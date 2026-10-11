@@ -33,6 +33,18 @@ Die Zuordnung wird in `docs/04-verification/traceability.md` gepflegt.
 Pro Feature: Anforderung (REQ) → `/ecc:plan` → TDD → `/ecc:code-review` → PR → CI grün → Deploy.
 Regeln: `.claude/rules/ecc/common/` und `.claude/rules/ecc/kotlin/`.
 
+| Situation | Befehl / Werkzeug |
+|---|---|
+| Anforderungen erarbeiten | `/ecc:prp-prd` → `docs/01-requirements/` |
+| Erster lauffähiger Stand aus dem PRD (MVP) | `/ecc:orch-build-mvp` |
+| Neues Feature end-to-end (Recherche, Plan, TDD, Review, Commit) | `/ecc:orch-add-feature` |
+| Bestehendes Feature ändern | `/ecc:orch-change-feature` |
+| Fehler beheben (erst fehlschlagender Regressionstest) | `/ecc:orch-fix-defect` |
+| API-Änderung | Skill `contract-first` — zuerst `api/openapi.yaml` (ADR-0004) |
+| Commit-Message prüfen | Agent `ecc:commit-reviewer` |
+
+Die `orch-*`-Befehle sind noch nicht erprobt — nach dem ersten Einsatz hier Erfahrungen ergänzen.
+
 ## Zielsystem (Pi `dockerhome`)
 
 - Raspberry Pi 5, 8 GB RAM, Debian 13 arm64, Docker + Compose, viele andere Container (Home Assistant, Paperless, …)
