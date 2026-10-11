@@ -29,7 +29,9 @@ der Pi zieht es per systemd-Timer alle 5 Minuten, wartet auf `healthy`, rollt so
 
 Nur Port **8095** wird veröffentlicht; der Health-Port 8096 bleibt im Container.
 
-## Erst-Einrichtung der Familie (bis die App in Phase 1b existiert)
+## Erst-Einrichtung der Familie
+
+Normalerweise in der App („Familie einrichten“, siehe [android/README.md](../android/README.md)). Als Fallback per `curl`:
 
 ```bash
 curl -k -X POST https://planner.home.arpa:8095/api/v1/setup -H 'Content-Type: application/json' \

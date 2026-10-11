@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ADR-0006: Nur der Hostname planner.home.arpa mit dem gepinnten selbstsignierten Zertifikat (ADR-0009). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">planner.home.arpa</domain>
+        <trust-anchors>
+            <certificates src="@raw/planner_cert" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

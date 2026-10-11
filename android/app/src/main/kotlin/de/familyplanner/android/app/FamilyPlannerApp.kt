@@ -1,0 +1,18 @@
+package de.familyplanner.android.app
+
+import android.app.Application
+import de.familyplanner.android.core.data.network.networkModule
+import de.familyplanner.android.core.data.network.sessionModule
+import de.familyplanner.android.feature.auth.authModule
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.startKoin
+
+class FamilyPlannerApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        startKoin {
+            androidContext(this@FamilyPlannerApp)
+            modules(appModule, sessionModule, networkModule, authModule)
+        }
+    }
+}
