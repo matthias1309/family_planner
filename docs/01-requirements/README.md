@@ -18,7 +18,7 @@ Als Familienmitglied möchte ich eine Aufgabe als erledigt markieren, damit alle
 
 ## MVP-Schnitt
 
-1. `AUTH` (minimal): Familie & Mitglieder, Rollen, Geräte-Anmeldung
+1. `AUTH` (minimal): Familie & Mitglieder, Rollen, Geräte-Anmeldung — siehe [auth.prd.md](auth.prd.md)
 2. `MEAL`: Essensplaner — siehe [meals.prd.md](meals.prd.md)
 
 Danach als eigene Module: `TASK` (inkl. Aufgaben für Kinder: Putzen, Zimmer, Hausaufgaben), `GAME`, `BOARD`.

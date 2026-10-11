@@ -1,0 +1,14 @@
+services:
+  family-planner:
+    image: ghcr.io/matthias1309/family-planner:stable
+    container_name: family-planner
+    init: true
+    restart: unless-stopped
+    ports:
+      - "8095:8095"
+    env_file: .env
+    environment:
+      FP_TLS_ENABLED: "true"
+    volumes:
+      - ./data:/app/data
+      - ./certs:/app/certs:ro

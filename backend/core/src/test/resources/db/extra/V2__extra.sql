@@ -1,0 +1,1 @@
+CREATE TABLE extra_test (id INTEGER PRIMARY KEY);

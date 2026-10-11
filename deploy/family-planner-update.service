@@ -1,0 +1,9 @@
+[Unit]
+Description=Family Planner: neues Image ziehen und deployen
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/containers/apps/family-planner
+ExecStart=/opt/containers/apps/family-planner/update.sh
