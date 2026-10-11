@@ -1,5 +1,16 @@
 {
   "model": "sonnet",
+  "extraKnownMarketplaces": {
+    "ecc": {
+      "source": {
+        "source": "github",
+        "repo": "affaan-m/everything-claude-code"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "ecc@ecc": true
+  },
   "env": {
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50",
     "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
