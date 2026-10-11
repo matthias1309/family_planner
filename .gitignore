@@ -22,6 +22,9 @@ captures/
 .env.*
 !.env.example
 data/
+deploy/certs/
+*.p12
+*.key
 *.db
 *.db-shm
 *.db-wal

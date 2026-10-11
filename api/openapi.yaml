@@ -1,0 +1,416 @@
+openapi: 3.0.3
+info:
+  title: Family Planner API
+  version: 0.1.0
+  description: Vertrag zwischen Android-App und Backend (ADR-0004). Alle Antworten nutzen den Envelope {success, data, error}.
+servers:
+  - url: https://planner.home.arpa:8095
+security:
+  - deviceToken: []
+tags:
+  - name: system
+  - name: auth
+  - name: members
+  - name: devices
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      tags: [system]
+      summary: Gesundheitsstatus inkl. Datenbank
+      security: []
+      responses:
+        '200':
+          description: Backend und Datenbank erreichbar
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthStatus' }
+        '503':
+          description: Datenbank nicht erreichbar
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthStatus' }
+
+  /api/v1/setup:
+    post:
+      operationId: setupFamily
+      tags: [auth]
+      summary: Erst-Einrichtung (erstes Elternteil + Gerät), nur solange keine Mitglieder existieren
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SetupRequest' }
+      responses:
+        '201':
+          description: Elternteil und Gerät angelegt
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PairingResultResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/SetupDisabled' }
+
+  /api/v1/devices/pair:
+    post:
+      operationId: pairDevice
+      tags: [auth]
+      summary: Gerät mit Kopplungscode einem Mitglied zuordnen
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PairDeviceRequest' }
+      responses:
+        '201':
+          description: Gerät gekoppelt
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PairingResultResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Angemeldetes Mitglied und Gerät
+      responses:
+        '200':
+          description: Aktuelles Mitglied
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/members:
+    get:
+      operationId: listMembers
+      tags: [members]
+      summary: Alle Familienmitglieder
+      responses:
+        '200':
+          description: Mitgliederliste
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MemberListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    post:
+      operationId: createMember
+      tags: [members]
+      summary: Mitglied anlegen (nur Eltern)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateMemberRequest' }
+      responses:
+        '201':
+          description: Mitglied angelegt
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MemberResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/members/{memberId}/pairing-codes:
+    post:
+      operationId: createPairingCode
+      tags: [members]
+      summary: Kopplungscode für ein Mitglied erzeugen (nur Eltern)
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      responses:
+        '201':
+          description: Code erzeugt (alter Code ist ungültig)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PairingCodeResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/devices:
+    get:
+      operationId: listDevices
+      tags: [devices]
+      summary: Alle aktiven Geräte (nur Eltern)
+      responses:
+        '200':
+          description: Geräteliste
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/devices/{deviceId}:
+    delete:
+      operationId: revokeDevice
+      tags: [devices]
+      summary: Gerät entfernen (nur Eltern)
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '204':
+          description: Gerät entfernt
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+components:
+  securitySchemes:
+    deviceToken:
+      type: http
+      scheme: bearer
+
+  parameters:
+    MemberId:
+      name: memberId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    DeviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    ValidationFailed:
+      description: Ungültige Anfrage
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Unauthorized:
+      description: Nicht angemeldet bzw. Token/Code ungültig
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: Nur für Eltern
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: Nicht gefunden
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Conflict:
+      description: Konflikt mit bestehendem Zustand
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    RateLimited:
+      description: Zu viele Anfragen
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    SetupDisabled:
+      description: Einrichtung nicht verfügbar (kein Setup-Token konfiguriert)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  schemas:
+    Role:
+      type: string
+      enum: [PARENT, CHILD]
+
+    ErrorCode:
+      type: string
+      enum:
+        - VALIDATION_FAILED
+        - UNAUTHORIZED
+        - INVALID_PAIRING_CODE
+        - FORBIDDEN
+        - NOT_FOUND
+        - CONFLICT
+        - RATE_LIMITED
+        - SETUP_DISABLED
+        - INTERNAL
+
+    ApiError:
+      type: object
+      required: [code, message]
+      properties:
+        code: { $ref: '#/components/schemas/ErrorCode' }
+        message: { type: string }
+
+    HealthStatus:
+      type: object
+      required: [status, version]
+      properties:
+        status: { type: string, enum: [ok, error] }
+        version: { type: string }
+
+    Member:
+      type: object
+      required: [id, name, role, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 40 }
+        role: { $ref: '#/components/schemas/Role' }
+        createdAt: { type: string, format: date-time }
+
+    Device:
+      type: object
+      required: [id, memberId, name, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        memberId: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 60 }
+        createdAt: { type: string, format: date-time }
+        lastSeenAt: { type: string, format: date-time, nullable: true }
+
+    PairingCode:
+      type: object
+      required: [code, expiresAt]
+      properties:
+        code: { type: string, pattern: '^[0-9]{6}$' }
+        expiresAt: { type: string, format: date-time }
+
+    PairingResult:
+      type: object
+      required: [token, member, device]
+      properties:
+        token: { type: string }
+        member: { $ref: '#/components/schemas/Member' }
+        device: { $ref: '#/components/schemas/Device' }
+
+    Me:
+      type: object
+      required: [member, deviceId]
+      properties:
+        member: { $ref: '#/components/schemas/Member' }
+        deviceId: { type: string, format: uuid }
+
+    SetupRequest:
+      type: object
+      required: [setupToken, parentName, deviceName]
+      properties:
+        setupToken: { type: string, minLength: 16 }
+        parentName: { type: string, minLength: 1, maxLength: 40 }
+        deviceName: { type: string, minLength: 1, maxLength: 60 }
+
+    PairDeviceRequest:
+      type: object
+      required: [code, deviceName]
+      properties:
+        code: { type: string, pattern: '^[0-9]{6}$' }
+        deviceName: { type: string, minLength: 1, maxLength: 60 }
+
+    CreateMemberRequest:
+      type: object
+      required: [name, role]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 40 }
+        role: { $ref: '#/components/schemas/Role' }
+
+    ErrorResponse:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean }
+        error: { $ref: '#/components/schemas/ApiError' }
+
+    PairingResultResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/PairingResult'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    MeResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Me'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    MemberResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Member'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    MemberListResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          type: array
+          nullable: true
+          items: { $ref: '#/components/schemas/Member' }
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    DeviceListResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          type: array
+          nullable: true
+          items: { $ref: '#/components/schemas/Device' }
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    PairingCodeResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/PairingCode'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true

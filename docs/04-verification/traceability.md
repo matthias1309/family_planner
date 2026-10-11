@@ -2,8 +2,10 @@
 
 | REQ-ID | Anforderung | Design | Unit | Integration | E2E | Status |
 |---|---|---|---|---|---|---|
-| REQ-AUTH-001 | Mitglieder & Rollen | | | | | offen |
-| REQ-AUTH-002 | Geräte-Anmeldung | | | | | offen |
+| REQ-AUTH-001 | Mitglieder & Rollen | [core](../03-design/core.md) | `MemberServiceTest` (`REQ-AUTH-001 …`) | `MemberDeviceApiTest` (`REQ-AUTH-001 …`) | | umgesetzt (Backend) |
+| REQ-AUTH-002 | Geräte-Anmeldung | [core](../03-design/core.md), [ADR-0008](../02-architecture/adr/0008-device-pairing.md) | `SetupServiceTest`, `PairingServiceTest`, `DeviceServiceTest` (`REQ-AUTH-002 …`) | `AuthApiTest`, `MemberDeviceApiTest` (`REQ-AUTH-002 …`) | | umgesetzt (Backend) |
+| REQ-AUTH-003 | Gerät entfernen | [core](../03-design/core.md) | `DeviceServiceTest` (`REQ-AUTH-003 …`) | `MemberDeviceApiTest` (`REQ-AUTH-003 …`) | | umgesetzt (Backend) |
+| REQ-OPS-001 | Betrieb (Health, Backup, Deploy) | [core](../03-design/core.md), [ADR-0005](../02-architecture/adr/0005-deployment-raspberry-pi.md) | `DatabaseFactoryTest` (Backup) | `AuthApiTest` (`REQ-OPS-001 health reports ok`) | | umgesetzt (Deploy-Probe auf dem Pi offen) |
 | REQ-MEAL-001 | Wochenplan ansehen | | | | | offen |
 | REQ-MEAL-002 | Plan ohne Heimnetz lesen | | | | | offen |
 | REQ-MEAL-010 | Anwesenheitsmuster pflegen | | | | | offen |
