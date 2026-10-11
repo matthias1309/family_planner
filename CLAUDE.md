@@ -35,7 +35,7 @@ Regeln: `.claude/rules/ecc/common/` und `.claude/rules/ecc/kotlin/`.
 
 | Situation | Befehl / Werkzeug |
 |---|---|
-| Anforderungen erarbeiten | `/ecc:prp-prd` → `docs/01-requirements/` |
+| Anforderungen erarbeiten | `/ecc:prp-prd` → **immer** `docs/01-requirements/<modul>.prd.md` (nicht `.claude/PRPs/prds/`) |
 | Erster lauffähiger Stand aus dem PRD (MVP) | `/ecc:orch-build-mvp` |
 | Neues Feature end-to-end (Recherche, Plan, TDD, Review, Commit) | `/ecc:orch-add-feature` |
 | Bestehendes Feature ändern | `/ecc:orch-change-feature` |

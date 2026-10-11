@@ -36,3 +36,4 @@ Siehe [adr/](adr/).
 | [0004](adr/0004-api-first-openapi.md) | API-first mit OpenAPI | Akzeptiert |
 | [0005](adr/0005-deployment-raspberry-pi.md) | Deployment auf dem Pi | Akzeptiert |
 | [0006](adr/0006-network-access-lan-only.md) | Zugriff nur im Heimnetz | Akzeptiert |
+| [0007](adr/0007-meal-deadlines-without-remote-access.md) | Essensplan-Fristen ohne Fernzugriff | Akzeptiert |

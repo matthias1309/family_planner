@@ -1,6 +1,6 @@
 # Anforderungen
 
-Wird mit `/ecc:prp-prd` erstellt (Datei `prd.md`).
+Wird mit `/ecc:prp-prd` erstellt — ein PRD pro Modul als `<modul>.prd.md` (z. B. `meals.prd.md`), immer hier und nicht unter `.claude/PRPs/prds/`.
 
 ## Konventionen
 
@@ -18,7 +18,7 @@ Als Familienmitglied möchte ich eine Aufgabe als erledigt markieren, damit alle
 
 ## MVP-Schnitt
 
-1. `AUTH`: Familie & Mitglieder, Login
-2. `TASK`: Kanban-Board mit Aufgaben
+1. `AUTH` (minimal): Familie & Mitglieder, Rollen, Geräte-Anmeldung
+2. `MEAL`: Essensplaner — siehe [meals.prd.md](meals.prd.md)
 
-Danach als eigene Module: `GAME`, `MEAL`, `BOARD`.
+Danach als eigene Module: `TASK` (inkl. Aufgaben für Kinder: Putzen, Zimmer, Hausaufgaben), `GAME`, `BOARD`.
