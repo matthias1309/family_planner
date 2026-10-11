@@ -351,7 +351,7 @@ stehen muss.
 
 | # | Phase | Description | Status | Parallel | Depends | PRP Plan |
 |---|-------|-------------|--------|----------|---------|----------|
-| 1 | Fundament & AUTH | Gradle-Gerüst, `core`, Mitglieder/Rollen, Geräte-Anmeldung, CI — aufgeteilt in 1a Backend/CI/Deploy und 1b Android | in-progress | - | - | 1a: `.claude/PRPs/plans/completed/fundament-auth-backend.plan.md` (umgesetzt, Report: `.claude/PRPs/reports/fundament-auth-backend-report.md`); 1b: offen |
+| 1 | Fundament & AUTH | Gradle-Gerüst, `core`, Mitglieder/Rollen, Geräte-Anmeldung, CI — aufgeteilt in 1a Backend/CI/Deploy und 1b Android | in-progress | - | - | 1a: `.claude/PRPs/plans/completed/fundament-auth-backend.plan.md` (umgesetzt, Report: `.claude/PRPs/reports/fundament-auth-backend-report.md`); 1b: `.claude/PRPs/plans/fundament-auth-android.plan.md` (geplant) |
 | 2 | Anwesenheit & Fristen | Muster, Ausnahmen, Fristberechnung (REQ-MEAL-010–013) | pending | with 3 | 1 | - |
 | 3 | Wochenplan & Elterngerichte | Plan ansehen, Elterngerichte, Offline-Cache (REQ-MEAL-001/002/032) | pending | with 2 | 1 | - |
 | 4 | Einreichung & Freigabe | Kindergericht, Absage, Freigabe, Stellvertretung, Wochenstatus (REQ-MEAL-020–031/033) | pending | - | 2, 3 | - |
