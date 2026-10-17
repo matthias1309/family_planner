@@ -31,6 +31,11 @@ gepinntem Zertifikat, AUTH-Screens (Einrichten, Koppeln, Home, Familie verwalten
 - Kein HTTP-Logging-Interceptor (YAGNI).
 - Emulator: `10.0.2.2` war im Sandbox-Netz nicht erreichbar → `adb reverse` + `localhost` (README erwähnt beides).
 
-## Offen
-- Geräte-Abnahme auf den fünf Handys gegen den Pi (Checkliste in `android/README.md`); PRD-Phase 1 erst danach `complete`.
-- Pinning-Gegenprobe und Release-Signatur nicht lokal geprüft.
+## Abnahme (2026-10-17)
+- Release-APK (signiert) auf Elternhandy installiert: Einrichtung gegen den Pi über HTTPS mit gepinntem Zertifikat funktioniert.
+- Kopplung mit einem Testhandy erfolgreich. Die übrigen Familienhandys werden im Betrieb gekoppelt.
+- Nicht geprüft: Pinning-Gegenprobe (zweiter Server mit anderem Zertifikat).
+
+## Erfahrungen
+- `data/` in `.gitignore` hatte die Android-Module `core:data` bzw. die `data`-Pakete ausgeschlossen (CI deckte es auf).
+- Ein neu angelegtes `data/`-Verzeichnis auf dem Pi muss dem Container-Benutzer (UID 10001) gehören, sonst startet das Backend nicht.
