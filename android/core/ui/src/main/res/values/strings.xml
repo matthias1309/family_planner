@@ -10,6 +10,7 @@
     <string name="error_setup_disabled">Einrichtung auf dem Server nicht aktiviert.</string>
     <string name="error_validation">Ungültige Eingabe.</string>
     <string name="error_conflict">Das passt nicht zum aktuellen Stand auf dem Server.</string>
+    <string name="error_storage">Die Anmeldung konnte auf diesem Gerät nicht gespeichert werden.</string>
     <string name="error_server">Fehler auf dem Server.</string>
     <string name="action_confirm">Bestätigen</string>
     <string name="action_cancel">Abbrechen</string>

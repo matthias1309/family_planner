@@ -1,11 +1,26 @@
 package de.familyplanner.android.feature.auth.domain
 
 import de.familyplanner.android.core.data.ApiResult
+import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.data.session.Role
 import de.familyplanner.android.core.data.session.Session
 import de.familyplanner.android.core.data.session.SessionStore
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import java.io.IOException
+
+/** Speichert eine erfolgreich erhaltene Session; ein Speicherfehler wird zum `AppError.Storage`. */
+private suspend fun ApiResult<Session>.thenSave(sessions: SessionStore): ApiResult<Session> {
+    if (this !is ApiResult.Success) return this
+    return try {
+        sessions.save(data)
+        this
+    } catch (
+        @Suppress("SwallowedException") e: IOException,
+    ) {
+        ApiResult.Failure(AppError.Storage)
+    }
+}
 
 class SetupFamilyUseCase(
     private val repository: AuthRepository,
@@ -22,7 +37,7 @@ class SetupFamilyUseCase(
         validateSetupToken(token)?.let { return it }
         validateName(name)?.let { return it }
         validateDeviceName(device)?.let { return it }
-        return repository.setup(token, name, device).also { if (it is ApiResult.Success) sessions.save(it.data) }
+        return repository.setup(token, name, device).thenSave(sessions)
     }
 }
 
@@ -38,7 +53,7 @@ class PairDeviceUseCase(
         val device = deviceName.trim()
         validateCode(trimmedCode)?.let { return it }
         validateDeviceName(device)?.let { return it }
-        return repository.pair(trimmedCode, device).also { if (it is ApiResult.Success) sessions.save(it.data) }
+        return repository.pair(trimmedCode, device).thenSave(sessions)
     }
 }
 
@@ -66,13 +81,9 @@ class LoadFamilyUseCase(
             val devices = async { repository.devices() }
             val membersResult = members.await()
             val devicesResult = devices.await()
-            when {
-                membersResult is ApiResult.Failure -> membersResult
-                devicesResult is ApiResult.Failure -> devicesResult
-                membersResult is ApiResult.Success && devicesResult is ApiResult.Success ->
-                    ApiResult.Success(FamilyOverview(membersResult.data, devicesResult.data))
-                else -> error("unreachable")
-            }
+            if (membersResult !is ApiResult.Success) return@coroutineScope membersResult as ApiResult.Failure
+            if (devicesResult !is ApiResult.Success) return@coroutineScope devicesResult as ApiResult.Failure
+            ApiResult.Success(FamilyOverview(membersResult.data, devicesResult.data))
         }
 }
 

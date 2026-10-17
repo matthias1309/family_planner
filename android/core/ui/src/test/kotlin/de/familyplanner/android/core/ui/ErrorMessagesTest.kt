@@ -18,6 +18,7 @@ class ErrorMessagesTest {
             AppError.SetupDisabled,
             AppError.Validation("x"),
             AppError.Conflict("x"),
+            AppError.Storage,
             AppError.Server,
         )
 

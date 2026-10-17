@@ -18,6 +18,7 @@ fun AppError.messageRes(): Int =
         AppError.SetupDisabled -> R.string.error_setup_disabled
         is AppError.Validation -> R.string.error_validation
         is AppError.Conflict -> R.string.error_conflict
+        AppError.Storage -> R.string.error_storage
         AppError.Server -> R.string.error_server
     }
 

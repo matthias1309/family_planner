@@ -186,4 +186,24 @@ class UseCasesTest {
             assertIs<ApiResult.Success<IssuedPairingCode>>(result)
             assertEquals("483920", result.data.code)
         }
+
+    @Test
+    fun `pairing reports storage error when the session cannot be saved`() =
+        runTest {
+            sessions.saveFailure = java.io.IOException("disk full")
+
+            val result = PairDeviceUseCase(auth, sessions)("123456", "Pixel")
+
+            assertEquals(ApiResult.Failure(AppError.Storage), result)
+        }
+
+    @Test
+    fun `setup reports storage error when the session cannot be saved`() =
+        runTest {
+            sessions.saveFailure = java.io.IOException("disk full")
+
+            val result = SetupFamilyUseCase(auth, sessions)("0123456789abcdef", "Mama", "Pixel")
+
+            assertEquals(ApiResult.Failure(AppError.Storage), result)
+        }
 }

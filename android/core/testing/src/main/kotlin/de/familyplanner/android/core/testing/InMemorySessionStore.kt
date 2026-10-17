@@ -5,6 +5,7 @@ import de.familyplanner.android.core.data.session.SessionState
 import de.familyplanner.android.core.data.session.SessionStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import java.io.IOException
 
 class InMemorySessionStore(
     initial: Session? = null,
@@ -23,7 +24,13 @@ class InMemorySessionStore(
         _state.value = if (session == null) SessionState.SignedOut else SessionState.SignedIn(session)
     }
 
-    override suspend fun save(session: Session) = setCurrent(session)
+    /** Simuliert einen Speicherfehler (z. B. Dateisystem voll). */
+    var saveFailure: IOException? = null
+
+    override suspend fun save(session: Session) {
+        saveFailure?.let { throw it }
+        setCurrent(session)
+    }
 
     override suspend fun clear() = setCurrent(null)
 }
