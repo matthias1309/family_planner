@@ -93,7 +93,8 @@ private fun WeekHeader(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         TextButton(onClick = { onEvent(WeekOverviewEvent.PreviousWeek) }, enabled = state.canGoPrevious) {
-            Text("‹", modifier = Modifier.semantics { contentDescription = "Vorige Woche" })
+            val previous = stringResource(R.string.week_previous)
+            Text("‹", modifier = Modifier.semantics { contentDescription = previous })
         }
         Text(
             stringResource(R.string.week_title, formatDate(state.weekStart), formatDate(state.weekStart.plusDays(6))),
@@ -101,7 +102,8 @@ private fun WeekHeader(
             modifier = Modifier.weight(1f),
         )
         TextButton(onClick = { onEvent(WeekOverviewEvent.NextWeek) }, enabled = state.canGoNext) {
-            Text("›", modifier = Modifier.semantics { contentDescription = "Nächste Woche" })
+            val next = stringResource(R.string.week_next)
+            Text("›", modifier = Modifier.semantics { contentDescription = next })
         }
     }
 }

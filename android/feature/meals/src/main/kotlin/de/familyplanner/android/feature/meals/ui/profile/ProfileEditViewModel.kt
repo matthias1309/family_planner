@@ -111,25 +111,31 @@ class ProfileEditViewModel(
 
     fun onEvent(event: ProfileEditEvent) {
         when (event) {
-            ProfileEditEvent.Refresh -> load()
+            ProfileEditEvent.Refresh -> refresh()
             is ProfileEditEvent.CooksChanged -> edit { it.copy(cooks = event.cooks) }
             is ProfileEditEvent.AlternatingChanged -> edit { it.copy(alternating = event.alternating) }
             is ProfileEditEvent.DayToggled -> edit { it.toggleDay(event.week, event.day) }
             is ProfileEditEvent.ThisWeekChanged -> edit { it.copy(thisWeekType = event.type) }
             ProfileEditEvent.Save -> save()
-            else -> onExceptionEvent(event)
-        }
-    }
-
-    private fun onExceptionEvent(event: ProfileEditEvent) {
-        when (event) {
             ProfileEditEvent.ShowAddException -> _state.update { it.copy(showAddException = true, addExceptionError = null) }
             ProfileEditEvent.DismissAddException -> _state.update { it.copy(showAddException = false, addExceptionError = null) }
             is ProfileEditEvent.AddException -> addException(event)
             is ProfileEditEvent.RequestDelete -> _state.update { it.copy(pendingDelete = event.exception) }
             ProfileEditEvent.CancelDelete -> _state.update { it.copy(pendingDelete = null) }
             ProfileEditEvent.ConfirmDelete -> confirmDelete()
-            else -> Unit
+        }
+    }
+
+    /** Ist das Formular schon geladen, würde ein Neuladen ungespeicherte Eingaben überschreiben — dann nur die Ausnahmen. */
+    private fun refresh() {
+        if (!_state.value.isLoaded) {
+            load()
+            return
+        }
+        _state.update { it.copy(isLoading = true, error = null) }
+        viewModelScope.launch {
+            reloadExceptions()
+            _state.update { it.copy(isLoading = false) }
         }
     }
 

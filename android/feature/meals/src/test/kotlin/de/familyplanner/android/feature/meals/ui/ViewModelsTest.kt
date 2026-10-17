@@ -6,6 +6,7 @@ import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.core.testing.MainDispatcherRule
 import de.familyplanner.android.feature.meals.domain.attendance.AddExceptionUseCase
 import de.familyplanner.android.feature.meals.domain.attendance.AttendancePattern
+import de.familyplanner.android.feature.meals.domain.attendance.AttendanceProfile
 import de.familyplanner.android.feature.meals.domain.attendance.DeleteExceptionUseCase
 import de.familyplanner.android.feature.meals.domain.attendance.ExceptionUseCases
 import de.familyplanner.android.feature.meals.domain.attendance.LoadDeadlineSettingsUseCase
@@ -287,6 +288,31 @@ class ViewModelsTest {
     @Test
     fun `unknown member shows not found`() {
         assertEquals(AppError.NotFound, editViewModel("c-99").state.value.error)
+    }
+
+    @Test
+    fun `refresh keeps unsaved form input and reloads exceptions`() {
+        val viewModel = editViewModel()
+        viewModel.onEvent(ProfileEditEvent.CooksChanged(false))
+        repository.exceptionsResult = ApiResult.Success(listOf(someException))
+
+        viewModel.onEvent(ProfileEditEvent.Refresh)
+
+        assertFalse(viewModel.state.value.cooks)
+        assertEquals(listOf(someException), viewModel.state.value.exceptions)
+        assertFalse(viewModel.state.value.isLoading)
+    }
+
+    @Test
+    fun `refresh after a failed load loads the profile again`() {
+        repository.profilesResult = ApiResult.Failure(AppError.Network)
+        val viewModel = editViewModel()
+        repository.profilesResult = ApiResult.Success(listOf(AttendanceProfile("c-1", true, AttendancePattern.Always)))
+
+        viewModel.onEvent(ProfileEditEvent.Refresh)
+
+        assertTrue(viewModel.state.value.isLoaded)
+        assertNull(viewModel.state.value.error)
     }
 
     @Test

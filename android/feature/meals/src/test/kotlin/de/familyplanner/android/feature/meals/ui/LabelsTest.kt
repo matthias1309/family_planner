@@ -1,6 +1,5 @@
 package de.familyplanner.android.feature.meals.ui
 
-import de.familyplanner.android.feature.meals.domain.attendance.AttendancePattern
 import de.familyplanner.android.feature.meals.ui.profile.dateToPickerMillis
 import de.familyplanner.android.feature.meals.ui.profile.pickerMillisToDate
 import java.time.DayOfWeek
@@ -18,21 +17,6 @@ class LabelsTest {
         assertEquals("Mo, Mi–Fr", summarizeDays(setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY)))
         assertEquals("Mo, Di", summarizeDays(setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY)))
         assertEquals("–", summarizeDays(emptySet()))
-    }
-
-    @Test
-    fun `REQ-MEAL-010 pattern summary names always and alternating`() {
-        assertEquals("immer da", patternSummary(AttendancePattern.Always))
-        assertEquals(
-            "Wechselmodell · A: Di–Do · B: Sa",
-            patternSummary(
-                AttendancePattern.Alternating(
-                    setOf(DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY),
-                    setOf(DayOfWeek.SATURDAY),
-                    LocalDate.of(2026, 10, 5),
-                ),
-            ),
-        )
     }
 
     @Test

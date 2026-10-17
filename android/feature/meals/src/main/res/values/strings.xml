@@ -9,6 +9,8 @@
     <string name="week_submit_until">Einreichen bis %1$s</string>
     <string name="week_no_cooking_day">In dieser Woche nicht da – kein Kochtag</string>
     <string name="week_no_children">Noch keine Kinder angelegt.</string>
+    <string name="week_previous">Vorige Woche</string>
+    <string name="week_next">Nächste Woche</string>
     <string name="week_manage">Anwesenheit verwalten</string>
     <string name="week_day_present">anwesend</string>
     <string name="week_day_absent">abwesend</string>
@@ -18,6 +20,8 @@
     <string name="profiles_empty">Noch keine Kinder angelegt.</string>
     <string name="profiles_cooks">kocht</string>
     <string name="profiles_cooks_not">kocht nicht</string>
+    <string name="profiles_pattern_always">immer da</string>
+    <string name="profiles_pattern_alternating">Wechselmodell · A: %1$s · B: %2$s</string>
     <string name="profiles_deadlines">Fristen einstellen</string>
 
     <string name="edit_title">Profil</string>

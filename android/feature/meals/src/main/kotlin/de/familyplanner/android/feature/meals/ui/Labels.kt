@@ -1,8 +1,11 @@
 package de.familyplanner.android.feature.meals.ui
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import de.familyplanner.android.core.ui.BerlinZone
 import de.familyplanner.android.core.ui.formatDate
 import de.familyplanner.android.core.ui.formatTime
+import de.familyplanner.android.feature.meals.R
 import de.familyplanner.android.feature.meals.domain.attendance.AttendancePattern
 import java.time.DayOfWeek
 import java.time.Instant
@@ -61,9 +64,10 @@ fun summarizeDays(days: Set<DayOfWeek>): String {
     }
 }
 
+@Composable
 fun patternSummary(pattern: AttendancePattern): String =
     when (pattern) {
-        AttendancePattern.Always -> "immer da"
+        AttendancePattern.Always -> stringResource(R.string.profiles_pattern_always)
         is AttendancePattern.Alternating ->
-            "Wechselmodell · A: ${summarizeDays(pattern.weekA)} · B: ${summarizeDays(pattern.weekB)}"
+            stringResource(R.string.profiles_pattern_alternating, summarizeDays(pattern.weekA), summarizeDays(pattern.weekB))
     }
