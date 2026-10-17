@@ -20,16 +20,20 @@ import de.familyplanner.android.feature.auth.R
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun HomeRoute(onManageFamily: () -> Unit) {
+fun HomeRoute(
+    onManageFamily: () -> Unit,
+    homeActions: @Composable () -> Unit = {},
+) {
     val viewModel = koinViewModel<HomeViewModel>()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    HomeScreen(state = state, onManageFamily = onManageFamily)
+    HomeScreen(state = state, onManageFamily = onManageFamily, homeActions = homeActions)
 }
 
 @Composable
 fun HomeScreen(
     state: HomeUiState,
     onManageFamily: () -> Unit,
+    homeActions: @Composable () -> Unit = {},
 ) {
     val session = state.session ?: return
     Column(
@@ -46,6 +50,7 @@ fun HomeScreen(
         if (state.isOffline) {
             Text(stringResource(R.string.home_offline), color = MaterialTheme.colorScheme.tertiary)
         }
+        homeActions()
         if (state.canManageFamily) {
             Button(onClick = onManageFamily, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.home_manage_family))

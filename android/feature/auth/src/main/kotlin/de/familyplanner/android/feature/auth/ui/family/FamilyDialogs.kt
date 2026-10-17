@@ -24,9 +24,9 @@ import androidx.compose.ui.unit.dp
 import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.data.session.Role
 import de.familyplanner.android.core.ui.components.ErrorText
+import de.familyplanner.android.core.ui.formatTime
 import de.familyplanner.android.feature.auth.R
 import de.familyplanner.android.feature.auth.domain.AuthLimits
-import de.familyplanner.android.feature.auth.ui.formatTime
 import de.familyplanner.android.core.ui.R as UiR
 
 @Composable

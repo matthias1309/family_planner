@@ -80,6 +80,14 @@ class AppNavHostTest {
     }
 
     @Test
+    fun `with session the home screen offers attendance`() {
+        sessions.setCurrent(session)
+        show()
+
+        compose.onNodeWithText("Anwesenheit & Fristen").assertIsDisplayed()
+    }
+
+    @Test
     fun `session switch moves between welcome and home`() {
         show()
         compose.onNodeWithText("Mit Code verbinden").assertIsDisplayed()

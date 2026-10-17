@@ -6,7 +6,7 @@ Android-App: Kotlin, Jetpack Compose, Clean Architecture. Entscheidungen: [ADR-0
 ## Module
 
 `app` · `core:api` (aus `api/openapi.yaml` generierter Retrofit-Client) · `core:data` (Netzwerk, Session, Fehlerabbildung) ·
-`core:ui` (Theme, Bausteine) · `core:testing` (Test-Helfer) · `feature:auth` (Einrichten, Koppeln, Familie verwalten).
+`core:ui` (Theme, Bausteine) · `core:testing` (Test-Helfer) · `feature:auth` (Einrichten, Koppeln, Familie verwalten) · `feature:meals` (Anwesenheit & Fristen).
 
 ## Voraussetzungen
 
@@ -64,3 +64,14 @@ Updates nur mit derselben Signatur; der Signatur-Keystore bleibt lokal (`*.jks` 
 - [ ] Gerät entfernen → die App dieses Geräts zeigt beim nächsten Aufruf „abgemeldet“
 - [ ] Außerhalb des WLANs: App startet, zeigt den angemeldeten Nutzer und „offline“
 - [ ] Gegenprobe Pinning: Server mit anderem Zertifikat → „Sichere Verbindung fehlgeschlagen“
+
+## Abnahme-Checkliste Phase 2b (manuell, echte Geräte gegen den Pi)
+
+- [ ] Release-APK 0.2.0 (gleiche Signatur) per `adb install -r` auf Elternhandy und einem Kinderhandy aktualisieren; Kopplung bleibt erhalten
+- [ ] Eltern: für jedes Kind „kocht“ und Muster setzen (Wechselmodell A = Di–Do, B = Di–So, „Diese Woche ist A/B“ nach echter Lage)
+- [ ] Wochenübersicht der aktuellen und der folgenden 3 Planwochen: Eltern bestätigen die Anwesenheitstage gegen ihren echten Kalender
+- [ ] Kind-Fristen: in A-Woche Donnerstag 16:00, in B-Woche = Bestellfrist; dauerhaft anwesendes Kind = Bestellfrist
+- [ ] Ausnahme (z. B. Ferien) anlegen → Tage in der Übersicht markiert, Frist ändert sich; zweite überlappende Ausnahme → Meldung „Zeitraum überschneidet sich …“; Ausnahme löschen → Muster gilt wieder
+- [ ] Fristen ändern → „Vorgemerkt ab Planwoche …“ sichtbar, die nächste Planwoche zeigt noch die alte Bestellfrist; danach wieder auf So 16:00 zurückstellen
+- [ ] Kinderhandy: Wochenübersicht sichtbar, keine „Anwesenheit verwalten“-Schaltfläche
+- [ ] WLAN aus: Übersicht zeigt „Server nicht erreichbar. Bist du im Heim-WLAN?“, nach WLAN an + Pull-to-Refresh wieder Daten

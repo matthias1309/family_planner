@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_attendance">Anwesenheit &amp; Fristen</string>
+    <string name="back">Zurück</string>
+
+    <string name="week_title">Woche %1$s–%2$s</string>
+    <string name="week_order_deadline">Bestellfrist: %1$s</string>
+    <string name="week_child_cooks">%1$s (kocht)</string>
+    <string name="week_submit_until">Einreichen bis %1$s</string>
+    <string name="week_no_cooking_day">In dieser Woche nicht da – kein Kochtag</string>
+    <string name="week_no_children">Noch keine Kinder angelegt.</string>
+    <string name="week_manage">Anwesenheit verwalten</string>
+    <string name="week_day_present">anwesend</string>
+    <string name="week_day_absent">abwesend</string>
+    <string name="week_day_exception">%1$s (Ausnahme)</string>
+
+    <string name="profiles_title">Anwesenheit verwalten</string>
+    <string name="profiles_empty">Noch keine Kinder angelegt.</string>
+    <string name="profiles_cooks">kocht</string>
+    <string name="profiles_cooks_not">kocht nicht</string>
+    <string name="profiles_deadlines">Fristen einstellen</string>
+
+    <string name="edit_title">Profil</string>
+    <string name="edit_cooks">kocht</string>
+    <string name="edit_pattern_always">immer da</string>
+    <string name="edit_pattern_alternating">Wechselmodell</string>
+    <string name="edit_week_a">Woche A</string>
+    <string name="edit_week_b">Woche B</string>
+    <string name="edit_this_week">Diese Woche (%1$s) ist Woche …</string>
+    <string name="edit_save">Speichern</string>
+    <string name="edit_saved">Gespeichert.</string>
+
+    <string name="exceptions_title">Ausnahmen</string>
+    <string name="exceptions_empty">Keine Ausnahmen.</string>
+    <string name="exceptions_add">+ Ausnahme</string>
+    <string name="exceptions_add_title">Ausnahme anlegen</string>
+    <string name="exceptions_add_submit">Anlegen</string>
+    <string name="exceptions_pick_range">Zeitraum wählen</string>
+    <string name="exceptions_present">anwesend</string>
+    <string name="exceptions_absent">abwesend</string>
+    <string name="exceptions_note">Notiz (optional)</string>
+    <string name="exceptions_delete">Ausnahme löschen</string>
+    <string name="exceptions_delete_title">Ausnahme löschen?</string>
+    <string name="exceptions_delete_text">Danach gilt wieder das Muster.</string>
+    <string name="exceptions_delete_confirm">Löschen</string>
+
+    <string name="settings_title">Fristen</string>
+    <string name="settings_current">Gilt jetzt: %1$s</string>
+    <string name="settings_scheduled">Vorgemerkt ab Planwoche %1$s: %2$s</string>
+    <string name="settings_description">%1$s, %2$s · Kind-Frist %3$s</string>
+    <string name="settings_order_deadline">Bestellfrist</string>
+    <string name="settings_order_time">Uhrzeit Bestellfrist</string>
+    <string name="settings_child_time">Kind-Frist (Uhrzeit)</string>
+    <string name="settings_hint">Änderungen gelten ab der übernächsten Planwoche; die gerade geplante Woche behält ihre Frist.</string>
+</resources>

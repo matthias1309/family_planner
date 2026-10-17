@@ -28,10 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.familyplanner.android.core.ui.components.ConfirmDialog
 import de.familyplanner.android.core.ui.components.ErrorText
+import de.familyplanner.android.core.ui.formatDateTime
 import de.familyplanner.android.feature.auth.R
 import de.familyplanner.android.feature.auth.domain.FamilyDevice
 import de.familyplanner.android.feature.auth.domain.FamilyMember
-import de.familyplanner.android.feature.auth.ui.formatDateTime
 import org.koin.androidx.compose.koinViewModel
 
 @Composable

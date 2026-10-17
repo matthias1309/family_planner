@@ -29,8 +29,8 @@ android {
         applicationId = "de.familyplanner.android"
         minSdk = 29
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
         buildConfigField("String", "FP_SERVER_URL", "\"$serverUrl\"")
     }
 
@@ -73,6 +73,7 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:ui"))
     implementation(project(":feature:auth"))
+    implementation(project(":feature:meals"))
     implementation(libs.activity.compose)
     implementation(libs.navigation.compose)
     implementation(libs.lifecycle.runtime.compose)
@@ -94,6 +95,7 @@ dependencies {
     kover(project(":core:data"))
     kover(project(":core:ui"))
     kover(project(":feature:auth"))
+    kover(project(":feature:meals"))
 }
 
 kover {
