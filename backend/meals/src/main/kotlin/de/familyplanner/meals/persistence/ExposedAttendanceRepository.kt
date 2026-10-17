@@ -110,6 +110,7 @@ class ExposedAttendanceRepository(
     override suspend fun deleteException(id: ExceptionId): Boolean =
         dbQuery(db) { MealAttendanceExceptionsTable.deleteWhere { MealAttendanceExceptionsTable.id eq id.value } > 0 }
 
+    /** Compares ISO date text; valid because the web layer only admits four-digit years (see `MIN_SUPPORTED_YEAR`). */
     private fun overlapping(
         from: LocalDate,
         to: LocalDate,

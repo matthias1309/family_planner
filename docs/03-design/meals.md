@@ -52,3 +52,9 @@ Siehe `backend/meals/src/test` (Namen beginnen mit der REQ-ID): Always/Alternati
 über den Jahreswechsel, Ausnahmen (Überschreiben, Randtage, Überlappung, Länge, Notiz), Fristen (Do/So, Maximum Bestellfrist,
 ganz abwesend, nicht kochend, Sommer-/Winterzeit 25.10. und 29.03.), Einstellungen (Defaults, Wirksamkeit ab nächster
 Planwoche, Überschreiben, Berliner Zeit), Persistenz gegen echte SQLite.
+
+## Eingabegrenzen
+
+Daten müssen im Jahr 2000–2100 liegen (Datumstexte werden lexikografisch verglichen, siehe `RequestParsing.kt`); Uhrzeiten
+genau im Format `HH:mm`. Verletzungen ergeben 400. Eine Frist-Uhrzeit in der Sommerzeit-Lücke (Sonntag 02:00–03:00) wird
+von `ZonedDateTime` nach vorn verschoben; praktisch irrelevant.

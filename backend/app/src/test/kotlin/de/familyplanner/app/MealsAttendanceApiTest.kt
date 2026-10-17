@@ -61,7 +61,8 @@ class MealsAttendanceApiTest {
         token: String,
         memberId: String,
         body: String,
-    ) = call(HttpMethod.Post, "$PROFILES/$memberId/exceptions", token, body)
+        invalid: Boolean = false,
+    ) = call(HttpMethod.Post, "$PROFILES/$memberId/exceptions", token, body, invalidRequestExpected = invalid)
 
     private suspend fun HttpClient.parentId(token: String) =
         checkNotNull(json.decodeFromString<MeResponse>(call(HttpMethod.Get, "/api/v1/me", token).bodyAsText()).data).member.id
@@ -268,6 +269,52 @@ class MealsAttendanceApiTest {
                 client.call(HttpMethod.Get, "/api/v1/meals/weeks/soon/attendance", family.parentToken, invalidRequestExpected = true)
 
             assertEquals(listOf(HttpStatusCode.BadRequest, HttpStatusCode.BadRequest), listOf(tuesday.status, garbage.status))
+        }
+
+    @Test
+    fun `dates outside the supported year range return 400 instead of 500`() =
+        testApplication {
+            start()
+            val family = setupFamilyWithChild()
+
+            val week =
+                client.call(
+                    HttpMethod.Get,
+                    "/api/v1/meals/weeks/+999999999-12-27/attendance",
+                    family.parentToken,
+                    invalidRequestExpected = true,
+                )
+            val exception =
+                client.createException(
+                    family.parentToken,
+                    family.childId,
+                    """{"from":"+999999999-01-01","to":"+999999999-01-02","presence":"ABSENT"}""",
+                    invalid = true,
+                )
+            val oldWeek = client.call(HttpMethod.Get, "/api/v1/meals/weeks/1999-12-27/attendance", family.parentToken)
+
+            assertEquals(
+                List(3) { HttpStatusCode.BadRequest },
+                listOf(week.status, exception.status, oldWeek.status),
+            )
+        }
+
+    @Test
+    fun `REQ-MEAL-013 deadline time with seconds or without leading zero returns 400`() =
+        testApplication {
+            start()
+            val family = setupFamilyWithChild()
+
+            suspend fun put(time: String) =
+                client.call(
+                    HttpMethod.Put,
+                    SETTINGS,
+                    family.parentToken,
+                    """{"orderDeadlineDay":"FRIDAY","orderDeadlineTime":"$time","childDeadlineTime":"16:00"}""",
+                    invalidRequestExpected = true,
+                )
+
+            assertEquals(listOf(HttpStatusCode.BadRequest, HttpStatusCode.BadRequest), listOf(put("16:00:30").status, put("7:00").status))
         }
 
     @Test
