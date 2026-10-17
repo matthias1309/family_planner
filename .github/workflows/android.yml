@@ -23,7 +23,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v3
+      # Der Runner bringt das Android SDK mit; fehlende Plattformen lädt AGP nach, sobald die Lizenzen akzeptiert sind.
+      - name: Accept Android SDK licenses
+        working-directory: .
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest koverVerify assembleDebug
       - uses: actions/upload-artifact@v4
