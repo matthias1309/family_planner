@@ -13,6 +13,10 @@ import de.familyplanner.core.pairing.SetupService
 import de.familyplanner.core.web.authRoutes
 import de.familyplanner.core.web.deviceRoutes
 import de.familyplanner.core.web.memberRoutes
+import de.familyplanner.meals.attendance.AttendanceService
+import de.familyplanner.meals.attendance.DeadlineSettingsService
+import de.familyplanner.meals.mealsModule
+import de.familyplanner.meals.web.attendanceRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.engine.EmbeddedServer
@@ -67,7 +71,7 @@ fun Application.module(
 ) {
     install(Koin) {
         slf4jLogger()
-        modules(coreModule(config.dbPath, config.setupToken, clock))
+        modules(coreModule(config.dbPath, config.setupToken, clock), mealsModule(clock))
     }
     configureSerialization()
     configureStatusPages()
@@ -80,5 +84,6 @@ fun Application.module(
         authRoutes(get<SetupService>(), get<PairingService>())
         memberRoutes(get<MemberService>(), get<PairingService>())
         deviceRoutes(get<DeviceService>())
+        attendanceRoutes(get<AttendanceService>(), get<DeadlineSettingsService>())
     }
 }
