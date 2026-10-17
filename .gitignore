@@ -22,6 +22,8 @@ captures/
 .env.*
 !.env.example
 data/
+# Android-Quellpakete/-Module heißen `data` und sind Quellcode
+!/android/**/data/
 deploy/certs/
 *.p12
 *.key
