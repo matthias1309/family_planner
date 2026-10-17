@@ -39,3 +39,4 @@ Siehe [adr/](adr/).
 | [0006](adr/0006-network-access-lan-only.md) | Zugriff nur im Heimnetz | Akzeptiert |
 | [0007](adr/0007-meal-deadlines-without-remote-access.md) | Essensplan-Fristen ohne Fernzugriff | Akzeptiert |
 | [0008](adr/0008-device-pairing.md) | Geräte-Anmeldung per Kopplungscode | Akzeptiert |
+| [0009](adr/0009-android-app-architecture.md) | Android-App-Architektur | Akzeptiert |

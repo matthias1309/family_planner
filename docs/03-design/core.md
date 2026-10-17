@@ -33,3 +33,29 @@ Siehe Testklassen in `backend/core/src/test` (Namen beginnen mit der REQ-ID): Mi
 Setup (Token falsch/deaktiviert/bereits erfolgt), Kopplungscode (Format, TTL, einmalig, ersetzt, unbekanntes Mitglied),
 Geräte-Authentifizierung (Widerruf, `lastSeenAt`-Drosselung), Secrets nur als Hash, `DatabaseFactory` (Pragmas,
 Backup-Rotation).
+
+## App-Seite (Phase 1b)
+
+Entscheidungen: [ADR-0009](../02-architecture/adr/0009-android-app-architecture.md). Code: `android/` (`core:data`, `feature:auth`).
+
+**Session-Lebenszyklus:** `SessionStore` hält `Loading` → `SignedOut` | `SignedIn(session)`. Koppeln/Einrichten speichert die
+Session (verschlüsselt, Tink + Keystore); die Navigation folgt dem Zustand. Antwortet der Server auf einen Request *mit*
+Token mit 401 (z. B. Gerät entfernt), löscht der `UnauthorizedInterceptor` die Session und meldet `SessionEvent.SignedOut`;
+die Startseite zeigt dann „Dieses Gerät wurde abgemeldet. Bitte neu koppeln.“. 401 bei `/setup` und `/devices/pair` (ohne
+Token) meldet nicht ab. Ist der Keystore-Schlüssel nicht mehr lesbar, gilt das Gerät als abgemeldet.
+
+**Fehlerabbildung** (`ApiResult` / `AppError`, je Fehler genau eine deutsche Meldung):
+
+| Quelle | `AppError` |
+|---|---|
+| `IOException` | `Network` („Im Heim-WLAN?“) |
+| `SSLException` | `Certificate` |
+| `ErrorCode` `VALIDATION_FAILED` / `CONFLICT` | `Validation` / `Conflict` (Servermeldung) |
+| `UNAUTHORIZED` / `INVALID_PAIRING_CODE` | `Unauthorized` / `InvalidPairingCode` |
+| `FORBIDDEN` / `NOT_FOUND` / `RATE_LIMITED` / `SETUP_DISABLED` | gleichnamig |
+| `INTERNAL`, unlesbare Antwort, fehlendes `data` | `Server` |
+
+**Screens und Rollen:** Welcome (Koppeln / Einrichten) → Setup (Setup-Token, Name, Gerätename; 409 → Hinweis) und Pair
+(6-stelliger Code, Gerätename) → Home („Hallo <Name>“, Rolle; `/me` beim Start, offline bleibt die Session erhalten) →
+Familie (nur Eltern: Mitglieder anlegen, Kopplungscode erzeugen, Geräte entfernen mit Bestätigung). Kinder sehen keine
+Verwaltung; ein 403 wird als „Nur für Eltern.“ angezeigt.

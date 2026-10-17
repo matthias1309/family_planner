@@ -1,0 +1,28 @@
+# Ergänzt die Detekt-Defaults (buildUponDefaultConfig = true).
+style:
+  MagicNumber:
+    ignoreEnums: true
+    ignoreNamedArgument: true
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreExtensionFunctions: true
+    ignoreAnnotated: ['Composable', 'Preview']
+  ReturnCount:
+    max: 4
+  MaxLineLength:
+    maxLineLength: 140
+  UnusedPrivateMember:
+    active: true
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+complexity:
+  LongMethod:
+    ignoreAnnotated: ['Composable']
+  LongParameterList:
+    ignoreAnnotated: ['Composable']
+    constructorThreshold: 8
+    functionThreshold: 8
+  TooManyFunctions:
+    thresholdInClasses: 15
+    thresholdInFiles: 15
