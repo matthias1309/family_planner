@@ -20,6 +20,9 @@ import de.familyplanner.android.feature.auth.HomeRoute
 import de.familyplanner.android.feature.auth.WelcomeRoute
 import de.familyplanner.android.feature.auth.authGraph
 import de.familyplanner.android.feature.auth.mainGraph
+import de.familyplanner.android.feature.meals.MealsHomeActions
+import de.familyplanner.android.feature.meals.WeekOverviewRoute
+import de.familyplanner.android.feature.meals.mealsGraph
 import org.koin.compose.koinInject
 
 /** Die Session bestimmt den Graphen: abgemeldet → Auth-Screens, angemeldet → Hauptscreens. */
@@ -57,6 +60,7 @@ private fun AuthHost(signedOutNotice: Boolean) {
 private fun MainHost() {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = HomeRoute) {
-        mainGraph(navController)
+        mainGraph(navController) { MealsHomeActions(onOpenWeek = { navController.navigate(WeekOverviewRoute) }) }
+        mealsGraph(navController)
     }
 }

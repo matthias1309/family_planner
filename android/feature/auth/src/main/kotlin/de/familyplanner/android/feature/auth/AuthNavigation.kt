@@ -1,5 +1,6 @@
 package de.familyplanner.android.feature.auth
 
+import androidx.compose.runtime.Composable
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
@@ -46,7 +47,13 @@ fun NavGraphBuilder.authGraph(
     }
 }
 
-fun NavGraphBuilder.mainGraph(navController: NavHostController) {
-    composable<HomeRoute> { HomeRoute(onManageFamily = { navController.navigate(FamilyRoute) }) }
+/** [homeActions] nimmt die Einstiege anderer Feature-Module auf (feature:auth kennt sie nicht). */
+fun NavGraphBuilder.mainGraph(
+    navController: NavHostController,
+    homeActions: @Composable () -> Unit = {},
+) {
+    composable<HomeRoute> {
+        HomeRoute(onManageFamily = { navController.navigate(FamilyRoute) }, homeActions = homeActions)
+    }
     composable<FamilyRoute> { FamilyRoute(onBack = { navController.popBackStack() }) }
 }

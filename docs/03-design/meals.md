@@ -1,11 +1,11 @@
-# Moduldesign: `meals` – Anwesenheit & Fristen (Phase 2a)
+# Moduldesign: `meals` – Anwesenheit & Fristen (Phase 2a/2b)
 
 ## Abgedeckte Anforderungen
 
 REQ-MEAL-010, REQ-MEAL-011, REQ-MEAL-012, REQ-MEAL-013 — siehe [meals.prd.md](../01-requirements/meals.prd.md).
 Konventionen für Feature-Module: [ADR-0010](../02-architecture/adr/0010-backend-feature-modules.md).
 Fristen ohne Fernzugriff: [ADR-0007](../02-architecture/adr/0007-meal-deadlines-without-remote-access.md).
-Die Eltern-UI in der App folgt als Phase 2b.
+Die Eltern-UI in der App (Phase 2b) steht im Abschnitt „App-Seite (Phase 2b)“.
 
 ## Domänenmodell & Regeln
 
@@ -58,3 +58,32 @@ Planwoche, Überschreiben, Berliner Zeit), Persistenz gegen echte SQLite.
 Daten müssen im Jahr 2000–2100 liegen (Datumstexte werden lexikografisch verglichen, siehe `RequestParsing.kt`); Uhrzeiten
 genau im Format `HH:mm`. Verletzungen ergeben 400. Eine Frist-Uhrzeit in der Sommerzeit-Lücke (Sonntag 02:00–03:00) wird
 von `ZonedDateTime` nach vorn verschoben; praktisch irrelevant.
+
+## App-Seite (Phase 2b)
+
+Modul `android/feature/meals` (Pakete `domain/attendance`, `data/attendance`, `ui/{week,profiles,profile,settings}`),
+Schichten und Muster wie `feature:auth` ([ADR-0009](../02-architecture/adr/0009-android-app-architecture.md)).
+`feature:meals` und `feature:auth` kennen sich nicht; nur `app` verbindet sie.
+
+| Screen | Rolle | Inhalt |
+|---|---|---|
+| Wochenübersicht | alle | Anwesenheit Mo–So je Kind, Ausnahmetage markiert, Kind-Frist („Einreichen bis …“), Bestellfrist, Woche vor/zurück (2000–2100) |
+| Anwesenheit verwalten | Eltern | Kinder mit „kocht“ und Muster-Zusammenfassung, Einstieg in Profil und Fristen |
+| Profil bearbeiten | Eltern | „kocht“, immer da / Wechselmodell, Tage Woche A/B, „Diese Woche ist A/B“, Ausnahmen anlegen/löschen |
+| Fristen | Eltern | Bestellfrist (Wochentag, Uhrzeit), Kind-Frist (Uhrzeit), Anzeige „gilt jetzt“ / „vorgemerkt ab Planwoche …“ |
+
+Regeln:
+
+- **Planwoche:** Die „aktuelle“ Planwoche ist der Montag nach heute in Berlin (`currentPlanWeek`); Sonntag 23:30 Berlin
+  zählt noch zur laufenden Woche, Montag 00:30 schon zur nächsten.
+- **Referenzwoche:** Eltern wählen „Diese Woche (Datum–Datum) ist Woche A|B“; die App rechnet daraus die Referenzwoche
+  (`referenceWeekFor`) und beim Laden zurück (`weekTypeOf`, `floorMod`, damit die Parität auch vor der Referenzwoche
+  stimmt). Ein unverändert gespeichertes Profil behält dadurch dieselbe Parität.
+- **Keine Client-Berechnung** von Anwesenheit oder Fristen: Die Wochenübersicht zeigt, was der Server liefert.
+- **Fehler:** 409 (Ausnahme überschneidet sich) zeigt die Servermeldung im Dialog; 403 „Nur für Eltern.“; offline
+  „Server nicht erreichbar. Bist du im Heim-WLAN?“ mit Pull-to-Refresh. Ein Kind ohne Namen (gerade gelöscht) erscheint als „?“.
+- **Datumsauswahl:** Der Material3-Picker liefert UTC-Mitternacht; die Umrechnung läuft über `ZoneOffset.UTC`
+  (`pickerMillisToDate`), nie über die Systemzone.
+- **Kein Cache:** Offline-Lesen kommt mit REQ-MEAL-002 (Phase 3).
+- **Einstieg:** `feature:auth` bietet auf der Startseite den Slot `homeActions`; `app` füllt ihn mit `MealsHomeActions`.
+- **Formatierung** (`formatDate`, `formatTime`, `formatDateTime`, `BerlinZone`) liegt zentral in `core:ui`.
