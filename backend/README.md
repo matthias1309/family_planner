@@ -8,9 +8,10 @@ Kotlin/Ktor, modularer Monolith, SQLite (WAL) via Exposed, Migrationen mit Flywa
 |---|---|
 | `api-contract` | Modelle, generiert aus `../api/openapi.yaml` (OpenAPI Generator, kotlinx.serialization) |
 | `core` | AUTH: Mitglieder, Geräte, Kopplungscodes, Persistenz, Bearer-Authentifizierung, Routen |
+| `meals` | Anwesenheit & Fristen (Muster, Ausnahmen, Bestell-/Einreichfristen); weitere Essensplaner-Phasen folgen. Design: `docs/03-design/meals.md` |
 | `app` | Ktor-Server (Netty, TLS), Konfiguration aus Umgebungsvariablen, Plugins, `/health` |
 
-Feature-Module (`meals`, …) kommen mit den jeweiligen Phasen. Muster zum Spiegeln: `docs/03-design/core.md`.
+Weitere Feature-Module kommen mit den jeweiligen Phasen. Konventionen: ADR-0010; Muster zum Spiegeln: `docs/03-design/core.md`, `docs/03-design/meals.md`.
 
 ## Befehle
 

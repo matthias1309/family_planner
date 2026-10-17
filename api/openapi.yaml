@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Family Planner API
-  version: 0.1.0
+  version: 0.2.0
   description: Vertrag zwischen Android-App und Backend (ADR-0004). Alle Antworten nutzen den Envelope {success, data, error}.
 servers:
   - url: https://planner.home.arpa:8095
@@ -12,6 +12,7 @@ tags:
   - name: auth
   - name: members
   - name: devices
+  - name: meals
 
 paths:
   /health:
@@ -174,6 +175,151 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
+  /api/v1/meals/profiles:
+    get:
+      operationId: listAttendanceProfiles
+      tags: [meals]
+      summary: Anwesenheitsprofile aller Kinder (Default-Profil, wenn keins gespeichert ist)
+      responses:
+        '200':
+          description: Profile in der Reihenfolge der Mitglieder
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AttendanceProfileListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/profiles/{memberId}:
+    put:
+      operationId: updateAttendanceProfile
+      tags: [meals]
+      summary: Profil eines Kindes setzen (kocht, Anwesenheitsmuster) (nur Eltern)
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateAttendanceProfileRequest' }
+      responses:
+        '200':
+          description: Profil gespeichert
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AttendanceProfileResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/profiles/{memberId}/exceptions:
+    get:
+      operationId: listAttendanceExceptions
+      tags: [meals]
+      summary: Anwesenheits-Ausnahmen eines Kindes, nach Beginn sortiert
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      responses:
+        '200':
+          description: Ausnahmen
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AttendanceExceptionListResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    post:
+      operationId: createAttendanceException
+      tags: [meals]
+      summary: Ausnahme anlegen, z. B. Ferien (nur Eltern)
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAttendanceExceptionRequest' }
+      responses:
+        '201':
+          description: Ausnahme angelegt
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AttendanceExceptionResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/exceptions/{exceptionId}:
+    delete:
+      operationId: deleteAttendanceException
+      tags: [meals]
+      summary: Ausnahme löschen (nur Eltern)
+      parameters:
+        - $ref: '#/components/parameters/ExceptionId'
+      responses:
+        '204':
+          description: Ausnahme gelöscht
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/settings:
+    get:
+      operationId: getDeadlineSettings
+      tags: [meals]
+      summary: Fristeinstellungen (aktuell und vorgemerkt)
+      responses:
+        '200':
+          description: Einstellungen
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeadlineSettingsOverviewResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    put:
+      operationId: updateDeadlineSettings
+      tags: [meals]
+      summary: Fristeinstellungen ändern, gilt ab der übernächsten Planwoche (nur Eltern)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateDeadlineSettingsRequest' }
+      responses:
+        '200':
+          description: Einstellungen vorgemerkt
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeadlineSettingsOverviewResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/weeks/{weekStart}/attendance:
+    get:
+      operationId: getWeekAttendance
+      tags: [meals]
+      summary: Anwesenheit aller Kinder und Fristen für eine Planwoche
+      parameters:
+        - $ref: '#/components/parameters/WeekStart'
+      responses:
+        '200':
+          description: Wochenübersicht
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WeekAttendanceResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
 components:
   securitySchemes:
     deviceToken:
@@ -191,6 +337,17 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    ExceptionId:
+      name: exceptionId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    WeekStart:
+      name: weekStart
+      in: path
+      required: true
+      description: Montag der Planwoche (yyyy-MM-dd)
+      schema: { type: string, format: date }
 
   responses:
     ValidationFailed:
@@ -409,6 +566,219 @@ components:
         data:
           allOf:
             - $ref: '#/components/schemas/PairingCode'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    Weekday:
+      type: string
+      enum: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
+
+    PatternType:
+      type: string
+      enum: [ALWAYS, ALTERNATING]
+
+    Presence:
+      type: string
+      enum: [PRESENT, ABSENT]
+
+    AttendanceSource:
+      type: string
+      enum: [PATTERN, EXCEPTION]
+
+    AttendancePattern:
+      type: object
+      description: >
+        ALWAYS - an allen Tagen anwesend (weekA/weekB leer, referenceWeek null).
+        ALTERNATING - Woche A/B mit je einer Tagesmenge; referenceWeek ist der Montag einer A-Woche.
+      required: [type, weekA, weekB]
+      properties:
+        type: { $ref: '#/components/schemas/PatternType' }
+        weekA:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/Weekday' }
+        weekB:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/Weekday' }
+        referenceWeek:
+          type: string
+          format: date
+          nullable: true
+
+    AttendanceProfile:
+      type: object
+      required: [memberId, cooks, pattern]
+      properties:
+        memberId: { type: string, format: uuid }
+        cooks: { type: boolean }
+        pattern: { $ref: '#/components/schemas/AttendancePattern' }
+
+    UpdateAttendanceProfileRequest:
+      type: object
+      required: [cooks, pattern]
+      properties:
+        cooks: { type: boolean }
+        pattern: { $ref: '#/components/schemas/AttendancePattern' }
+
+    AttendanceException:
+      type: object
+      required: [id, memberId, from, to, presence, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        memberId: { type: string, format: uuid }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        presence: { $ref: '#/components/schemas/Presence' }
+        note: { type: string, maxLength: 60, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    CreateAttendanceExceptionRequest:
+      type: object
+      required: [from, to, presence]
+      properties:
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        presence: { $ref: '#/components/schemas/Presence' }
+        note: { type: string, maxLength: 60, nullable: true }
+
+    DeadlineSettings:
+      type: object
+      required: [orderDeadlineDay, orderDeadlineTime, childDeadlineTime, effectiveFrom]
+      properties:
+        orderDeadlineDay: { $ref: '#/components/schemas/Weekday' }
+        orderDeadlineTime: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        childDeadlineTime: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        effectiveFrom: { type: string, format: date }
+
+    UpdateDeadlineSettingsRequest:
+      type: object
+      required: [orderDeadlineDay, orderDeadlineTime, childDeadlineTime]
+      properties:
+        orderDeadlineDay: { $ref: '#/components/schemas/Weekday' }
+        orderDeadlineTime: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+        childDeadlineTime: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }
+
+    DeadlineSettingsOverview:
+      type: object
+      required: [current]
+      properties:
+        current: { $ref: '#/components/schemas/DeadlineSettings' }
+        scheduled:
+          allOf:
+            - $ref: '#/components/schemas/DeadlineSettings'
+          nullable: true
+
+    AttendanceDay:
+      type: object
+      required: [date, present, source]
+      properties:
+        date: { type: string, format: date }
+        present: { type: boolean }
+        source: { $ref: '#/components/schemas/AttendanceSource' }
+
+    MemberWeekAttendance:
+      type: object
+      required: [memberId, cooks, days]
+      properties:
+        memberId: { type: string, format: uuid }
+        cooks: { type: boolean }
+        days:
+          type: array
+          items: { $ref: '#/components/schemas/AttendanceDay' }
+        submissionDeadline: { type: string, format: date-time, nullable: true }
+
+    WeekAttendance:
+      type: object
+      required: [weekStart, orderDeadline, members]
+      properties:
+        weekStart: { type: string, format: date }
+        orderDeadline: { type: string, format: date-time }
+        members:
+          type: array
+          items: { $ref: '#/components/schemas/MemberWeekAttendance' }
+
+    AttendanceProfileResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/AttendanceProfile'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    AttendanceProfileListResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          type: array
+          nullable: true
+          items: { $ref: '#/components/schemas/AttendanceProfile' }
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    AttendanceExceptionResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/AttendanceException'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    AttendanceExceptionListResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          type: array
+          nullable: true
+          items: { $ref: '#/components/schemas/AttendanceException' }
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    DeadlineSettingsOverviewResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/DeadlineSettingsOverview'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    WeekAttendanceResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/WeekAttendance'
           nullable: true
         error:
           allOf:

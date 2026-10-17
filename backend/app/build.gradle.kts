@@ -9,6 +9,7 @@ application {
 
 dependencies {
     implementation(project(":core"))
+    implementation(project(":meals"))
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.json)
@@ -21,6 +22,7 @@ dependencies {
     implementation(libs.logback)
 
     kover(project(":core"))
+    kover(project(":meals"))
 
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.ktor.client.content.negotiation)

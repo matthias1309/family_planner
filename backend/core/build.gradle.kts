@@ -1,5 +1,6 @@
 plugins {
     id("familyplanner.kotlin-jvm")
+    `java-test-fixtures`
 }
 
 dependencies {

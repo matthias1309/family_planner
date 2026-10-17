@@ -16,7 +16,13 @@ import io.ktor.http.contentType
 import io.ktor.server.testing.ApplicationTestBuilder
 import kotlinx.serialization.json.Json
 import java.nio.file.Path
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import kotlin.test.assertEquals
+
+/** Wednesday 14.10.2026 -> the plan week being planned is the one starting Monday 2026-10-19. */
+val FIXED_NOW: Clock = Clock.fixed(Instant.parse("2026-10-14T10:00:00Z"), ZoneOffset.UTC)
 
 const val SETUP_TOKEN = "test-setup-token-123456"
 
