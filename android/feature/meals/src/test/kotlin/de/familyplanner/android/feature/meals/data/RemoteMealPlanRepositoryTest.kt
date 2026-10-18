@@ -58,7 +58,9 @@ class RemoteMealPlanRepositoryTest {
         message: String,
     ) = """{"success":false,"error":{"code":"$code","message":"$message"}}"""
 
-    private val dishJson = """{"id":"d-1","date":"2026-10-12","cookId":"p-1","name":"Spaghetti","ingredients":["Nudeln","Hackfleisch"],"status":"APPROVED","late":false,"dayValid":true}"""
+    private val dishJson =
+        """{"id":"d-1","date":"2026-10-12","cookId":"p-1","name":"Spaghetti","ingredients":["Nudeln","Hackfleisch"],""" +
+            """"status":"APPROVED","late":false,"dayValid":true}"""
 
     private fun weekJson(
         days: Int = 7,
