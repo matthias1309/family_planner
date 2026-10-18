@@ -88,6 +88,14 @@ class AppNavHostTest {
     }
 
     @Test
+    fun `with session the home screen offers the meal plan`() {
+        sessions.setCurrent(session)
+        show()
+
+        compose.onNodeWithText("Essensplan").assertIsDisplayed()
+    }
+
+    @Test
     fun `session switch moves between welcome and home`() {
         show()
         compose.onNodeWithText("Mit Code verbinden").assertIsDisplayed()

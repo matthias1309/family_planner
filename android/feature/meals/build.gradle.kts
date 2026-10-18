@@ -13,6 +13,7 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.koin.compose)
+    implementation(libs.datastore)
     implementation(libs.navigation.compose)
     implementation(libs.compose.material.icons)
 

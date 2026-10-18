@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_plan">Essensplan</string>
     <string name="home_attendance">Anwesenheit &amp; Fristen</string>
     <string name="back">Zurück</string>
 
@@ -60,4 +61,29 @@
     <string name="settings_child_explain">Ein kochendes Kind reicht spätestens an seinem letzten Tag der Vorwoche zu dieser Uhrzeit ein. Ist es bis zur Bestellfrist da, gilt die Bestellfrist.</string>
     <string name="settings_child_time">Einreichfrist: Uhrzeit</string>
     <string name="settings_hint">Änderungen gelten ab der übernächsten Planwoche; die gerade geplante Woche behält ihre Frist.</string>
+
+    <string name="plan_today">Heute</string>
+    <string name="plan_open">noch offen</string>
+    <string name="plan_add">+ Gericht</string>
+    <string name="plan_cook">%1$s kocht</string>
+    <string name="plan_offline">Offline – Stand: %1$s</string>
+    <string name="plan_edit_hint_offline">Bearbeiten ist nur im Heim-WLAN möglich.</string>
+    <string name="plan_day_add_action">Gericht planen</string>
+    <string name="plan_day_edit_action">Gericht ändern</string>
+
+    <string name="dish_title_new">Gericht planen</string>
+    <string name="dish_title_edit">Gericht ändern</string>
+    <string name="dish_day">Tag</string>
+    <string name="dish_day_taken">%1$s (belegt)</string>
+    <string name="dish_cook">Koch/Köchin</string>
+    <string name="dish_cook_pick">Bitte wählen</string>
+    <string name="dish_name">Name</string>
+    <string name="dish_ingredients">Zutaten (eine pro Zeile, optional)</string>
+    <string name="dish_save">Speichern</string>
+    <string name="dish_delete">Löschen</string>
+    <string name="dish_cancel">Abbrechen</string>
+    <string name="dish_retry">Erneut versuchen</string>
+    <string name="dish_delete_title">Gericht löschen?</string>
+    <string name="dish_delete_text">Der Tag ist danach wieder offen.</string>
+    <string name="dish_delete_confirm">Löschen</string>
 </resources>

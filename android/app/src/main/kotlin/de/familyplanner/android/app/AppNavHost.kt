@@ -22,6 +22,7 @@ import de.familyplanner.android.feature.auth.authGraph
 import de.familyplanner.android.feature.auth.mainGraph
 import de.familyplanner.android.feature.meals.MealsHomeActions
 import de.familyplanner.android.feature.meals.WeekOverviewRoute
+import de.familyplanner.android.feature.meals.WeekPlanRoute
 import de.familyplanner.android.feature.meals.mealsGraph
 import org.koin.compose.koinInject
 
@@ -60,7 +61,12 @@ private fun AuthHost(signedOutNotice: Boolean) {
 private fun MainHost() {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = HomeRoute) {
-        mainGraph(navController) { MealsHomeActions(onOpenWeek = { navController.navigate(WeekOverviewRoute) }) }
+        mainGraph(navController) {
+            MealsHomeActions(
+                onOpenPlan = { navController.navigate(WeekPlanRoute) },
+                onOpenWeek = { navController.navigate(WeekOverviewRoute) },
+            )
+        }
         mealsGraph(navController)
     }
 }
