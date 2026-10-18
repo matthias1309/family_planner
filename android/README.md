@@ -27,7 +27,7 @@ fp.signing.keyPassword=…
 ## Befehle
 
 ```bash
-./gradlew ktlintCheck detekt lintDebug testDebugUnitTest koverVerify assembleDebug   # wie die CI
+./gradlew ktlintCheck detekt lintDebug testDebugUnitTest koverVerifyDebug assembleDebug   # wie die CI
 ./gradlew assembleRelease                                                            # minifizierte Release-APK
 ```
 

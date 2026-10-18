@@ -13,14 +13,11 @@ import de.familyplanner.core.auth.AUTH_DEVICE
 import de.familyplanner.core.auth.principalOrThrow
 import de.familyplanner.core.auth.requireParent
 import de.familyplanner.core.auth.uuidParameter
-import de.familyplanner.core.error.AppException
 import de.familyplanner.core.member.MemberId
 import de.familyplanner.meals.attendance.AttendanceService
 import de.familyplanner.meals.attendance.DeadlineSettingsService
 import de.familyplanner.meals.attendance.ExceptionId
-import de.familyplanner.meals.attendance.PlanWeek
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.authenticate
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -103,10 +100,4 @@ private fun Route.settingsRoutes(settings: DeadlineSettingsService) {
             )
         call.respond(DeadlineSettingsOverviewResponse(success = true, data = overview.toApi()))
     }
-}
-
-/** Reads the `weekStart` path parameter as the Monday of a plan week. */
-private fun ApplicationCall.weekParameter(): PlanWeek {
-    val raw = parameters["weekStart"] ?: throw AppException.Validation("Ungültiges Datum 'weekStart'")
-    return PlanWeek(parseDate(raw, "weekStart"))
 }

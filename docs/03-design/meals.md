@@ -1,8 +1,9 @@
-# Moduldesign: `meals` – Anwesenheit & Fristen (Phase 2a/2b)
+# Moduldesign: `meals` – Anwesenheit, Fristen & Wochenplan
 
 ## Abgedeckte Anforderungen
 
-REQ-MEAL-010, REQ-MEAL-011, REQ-MEAL-012, REQ-MEAL-013 — siehe [meals.prd.md](../01-requirements/meals.prd.md).
+REQ-MEAL-010, REQ-MEAL-011, REQ-MEAL-012, REQ-MEAL-013 (Phase 2), REQ-MEAL-001, REQ-MEAL-032 und – auf der App-Seite
+(Phase 3b) – REQ-MEAL-002 (Phase 3) — siehe [meals.prd.md](../01-requirements/meals.prd.md).
 Konventionen für Feature-Module: [ADR-0010](../02-architecture/adr/0010-backend-feature-modules.md).
 Fristen ohne Fernzugriff: [ADR-0007](../02-architecture/adr/0007-meal-deadlines-without-remote-access.md).
 Die Eltern-UI in der App (Phase 2b) steht im Abschnitt „App-Seite (Phase 2b)“.
@@ -40,11 +41,16 @@ Endpunkte siehe `api/openapi.yaml` (Tag `meals`), Lesen für alle Mitglieder, Sc
 - `GET|POST /api/v1/meals/profiles/{memberId}/exceptions`, `DELETE /api/v1/meals/exceptions/{exceptionId}`
 - `GET|PUT /api/v1/meals/settings`
 - `GET /api/v1/meals/weeks/{weekStart}/attendance` (Schnittstelle für Phase 3/4 und die Erinnerungen in Phase 6)
+- `GET /api/v1/meals/weeks/{weekStart}/plan` (Wochenplan, alle Mitglieder)
+- `POST /api/v1/meals/dishes`, `PUT|DELETE /api/v1/meals/dishes/{dishId}` (Elterngerichte, nur Eltern)
 
 ## DB-Tabellen
 
 Migration `V2__meals_attendance.sql`: `meal_attendance_profiles` (Tagesmasken: Bit `dayOfWeek − 1`, Mo = Bit 0),
 `meal_attendance_exceptions`, `meal_deadline_settings`. Daten als ISO-Text `yyyy-MM-dd`, Zeitstempel als Epoch-Millis.
+
+Migration `V3__meals_plan.sql`: `meal_dishes` (eindeutiger **Index** auf `meal_date` = ein Gericht je Tag; als Index statt
+Constraint, damit Phase 4 ihn ersetzen kann) und `meal_dish_ingredients` (`dish_id`, `position`, `text`; eine Zeile je Zutat).
 
 ## Unit-Testfälle
 
@@ -58,6 +64,26 @@ Planwoche, Überschreiben, Berliner Zeit), Persistenz gegen echte SQLite.
 Daten müssen im Jahr 2000–2100 liegen (Datumstexte werden lexikografisch verglichen, siehe `RequestParsing.kt`); Uhrzeiten
 genau im Format `HH:mm`. Verletzungen ergeben 400. Eine Frist-Uhrzeit in der Sommerzeit-Lücke (Sonntag 02:00–03:00) wird
 von `ZonedDateTime` nach vorn verschoben; praktisch irrelevant.
+
+## Wochenplan & Elterngerichte (Phase 3)
+
+| Begriff | Definition |
+|---|---|
+| `Dish` | `id`, `date`, `cookId`, `name`, `ingredients` (Liste von Zeilen) |
+| Ein Gericht je Tag | Ein Tag hat höchstens ein Gericht (eine Hauptmahlzeit); zweites Gericht oder Verschieben auf einen belegten Tag → 409 |
+| `PlanDay` / `WeekPlan` | Woche = genau 7 Tage Mo–So, je Tag Gericht oder `null` („noch offen“, REQ-MEAL-001) |
+| Woche lesen | jede Woche (Montag 2000–2100), alle Mitglieder; welche Woche die App zeigt, entscheidet die App (3b) |
+| Name | getrimmt, 1–60 Zeichen |
+| Zutaten | Freitext, eine Zeile je Zutat; Zeilen getrimmt, Leerzeilen entfernt, max. 80 Zeichen je Zeile, max. 30 Zeilen (nach dem Entfernen); roh höchstens 100 Zeilen inkl. Leerzeilen, damit die Eingabe begrenzt bleibt |
+| Koch/Köchin | muss existieren (404) und – in Phase 3 – Elternteil sein (400); Phase 4 öffnet das für Kinder (Stellvertretung) |
+| Ändern | ersetzt Datum, Koch/Köchin, Name, Zutaten vollständig |
+| Vergangene Tage | erlaubt, keine Sperre |
+
+Entscheidungen (Anwender 2026-10-18): ein Gericht je Tag; Zutaten bei Elterngerichten optional (Reste, Essen gehen) — Pflicht
+erst für Kindergerichte (REQ-MEAL-020); Koch/Köchin frei unter den Eltern wählbar. Zutaten liegen in der DB als eigene Zeilen
+(Reihenfolge, späterer Ausbau zu strukturierten Zutaten), in der API als `string[]`. Der zweite Teil von REQ-MEAL-032
+(„Zutaten stehen auf der Einkaufsliste“) wird in Phase 5 umgesetzt. Offline-Lesen (REQ-MEAL-002) ist App-Seite (Phase 3b);
+die API liefert nur IDs, Namen löst die App über `GET /api/v1/members` auf.
 
 ## App-Seite (Phase 2b)
 

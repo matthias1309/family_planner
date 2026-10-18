@@ -1,5 +1,6 @@
 package de.familyplanner.app
 
+import de.familyplanner.api.model.MeResponse
 import de.familyplanner.api.model.MemberResponse
 import de.familyplanner.api.model.PairingCodeResponse
 import de.familyplanner.api.model.PairingResultResponse
@@ -62,6 +63,10 @@ suspend fun HttpClient.call(
     if (validateContract) contract.assertValid(method.value, path, response, body, invalidRequestExpected)
     return response
 }
+
+/** Member ID of the device behind [token]. */
+suspend fun HttpClient.memberIdOf(token: String): String =
+    checkNotNull(json.decodeFromString<MeResponse>(call(HttpMethod.Get, "/api/v1/me", token).bodyAsText()).data).member.id
 
 suspend fun HttpClient.setup(
     parentName: String = "Mama",
