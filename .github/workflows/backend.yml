@@ -14,6 +14,8 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Normal runs take 1-3 minutes; fail fast on a hang.
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: backend
@@ -36,6 +38,7 @@ jobs:
   image:
     needs: test
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
     permissions:
       contents: read
       packages: write

@@ -14,6 +14,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Normal runs take 2-4 minutes; a hung Kotlin daemon must fail fast instead of blocking for 6 hours.
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: android
@@ -28,7 +30,8 @@ jobs:
         working-directory: .
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest koverVerify assembleDebug
+      # koverVerifyDebug instead of koverVerify: the total report would also compile every release variant.
+      - run: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest koverVerifyDebug assembleDebug
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
