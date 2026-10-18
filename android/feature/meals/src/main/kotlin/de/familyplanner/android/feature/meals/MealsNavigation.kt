@@ -54,11 +54,15 @@ data class RecipeViewRoute(
     val dishId: String? = null,
 )
 
-/** [recipeId] `null` = neues Rezept. */
+/** [recipeId] `null` = neues Rezept; [importText] geteilter Text/Link für den Import (ADR-0012). */
 @Serializable
 data class RecipeEditRoute(
     val recipeId: String? = null,
+    val importText: String? = null,
 )
+
+/** Öffnet den Editor „Neues Rezept“ mit Import (Teilen-Menü). */
+fun NavHostController.openRecipeImport(text: String) = navigate(RecipeEditRoute(importText = text))
 
 internal const val PICKED_RECIPE_KEY = "pickedRecipeId"
 
@@ -159,6 +163,7 @@ private fun NavGraphBuilder.recipeGraph(navController: NavHostController) {
         )
     }
     composable<RecipeEditRoute> { entry ->
-        RecipeEditRoute(RecipeEditArgs(entry.toRoute<RecipeEditRoute>().recipeId), onDone = { navController.popBackStack() })
+        val route = entry.toRoute<RecipeEditRoute>()
+        RecipeEditRoute(RecipeEditArgs(route.recipeId, route.importText), onDone = { navController.popBackStack() })
     }
 }

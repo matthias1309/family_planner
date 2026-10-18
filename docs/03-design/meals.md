@@ -262,7 +262,7 @@ Regeln:
 ## App-Seite (Phase 5b)
 
 Rezepte in `feature:meals`: Pakete `domain/recipe`, `data/recipe`, `ui/recipes` (Liste) und `ui/recipe` (Ansicht, Editor, Portionen-Stepper).
-Der REWE-Import folgt in Phase 5c und nutzt den Zerleger unten wieder. `api/` und `backend/` bleiben unverändert (Vertrag 0.5.0).
+Der REWE-Import (Phase 5c, Abschnitt unten) nutzt den Zerleger unten wieder. `api/` und `backend/` bleiben unverändert (Vertrag 0.5.0).
 
 | Screen | Rolle | Inhalt |
 |---|---|---|
@@ -277,7 +277,7 @@ Regeln:
 - **Zerleger** (`parseIngredientLine`): Zahl am Anfang (Dezimalpunkt oder -komma, Punkt als Tausendertrenner bei Gruppen aus drei Ziffern nur bei g/mg/ml, sonst Dezimalpunkt,
   direkt am Buchstaben nur vor bekannter Einheit: „500g“), danach eine **bekannte Einheit** (Liste, ohne Groß-/Kleinschreibung, oder Wort mit „(n)“-Endung) und der
   Name. Alles andere, auch Mengen außerhalb 0,001–10000 oder eine Einheit ohne Namen dahinter, bleibt ganz Name (ADR-0012).
-  Markenbereinigung gehört nicht dazu (Phase 5c).
+  Die Markenbereinigung („App-Seite (Phase 5c)“) geschieht erst nach dem Zerlegen.
 - **Anzeigeformat** wie im Backend (`displayText`); Textfeld und Zerleger sind rundtrip-stabil. Ab 0.5.0 sendet die App Gerichte nur noch
   mit `structuredIngredients` (und `ingredients = []`) sowie `recipeId`/`servings`.
 - **Portionen:** Vorschlag = alle Eltern + an dem Tag anwesende Kinder (Eltern-Anwesenheit kennt das System nicht), begrenzt auf 1–20.
@@ -293,3 +293,27 @@ Regeln:
 
 Unit-Testfälle: `IngredientLinesTest`, `ServingsTest`, `ValidationTest` (recipe), `UseCasesTest` (recipe, plan), `RecipeViewModelsTest`,
 `RecipeScreensTest`; Integration gegen MockWebServer: `RemoteRecipeRepositoryTest`, `RemoteMealPlanRepositoryTest`.
+
+## App-Seite (Phase 5c)
+
+REWE-Import (REQ-MEAL-061, ADR-0012) in `feature:meals`; `api/` und `backend/` bleiben unverändert.
+
+Einstiege: Android-Teilen-Ziel (`ACTION_SEND`, `text/plain` an `MainActivity`; der Text landet in `SharedRecipeInbox`, `MainHost` holt ihn ab und öffnet
+den Editor „Neues Rezept“ mit `importText`) und das Link-Feld oben im Editor „Neues Rezept“ mit „Übernehmen“. Im Bearbeiten-Modus gibt es keinen Import.
+
+Ablauf: `WebViewPageScriptLoader` (unsichtbare WebView, 20 s Zeitlimit) → JSON-LD-Texte → `readJsonLdRecipe` → `parseIngredientLine` → `stripStoreBrand` →
+Editor-Felder. Gespeichert wird erst über „Speichern“ und die vorhandene Rezept-API.
+
+Regeln:
+
+- Gelesen wird das **erste `Recipe` mit Name und mindestens einer Zutat** (direkt, in `@graph`, als `mainEntity` oder im Array; Tiefe begrenzt). REWE liefert weitere
+  `Recipe`-Blöcke nur mit Bewertungen.
+- Portionen aus `recipeYield`, sonst 4, begrenzt auf 1–20. Name auf 60 Zeichen gekürzt.
+- Quelle = geladener Link, denn das REWE-Recipe hat kein `url`-Feld.
+- Eigenmarken-Präfixe (`REWE Beste Wahl`, `REWE Feine Welt`, `REWE Bio`, `ja!`, `REWE`) werden nur am Namensanfang und nur als ganzes Wort entfernt.
+- Import überschreibt Name, Portionen, Zutaten, Schritte und Quelle. Fehler `NO_LINK`, `UNREACHABLE`, `NO_RECIPE` zeigen eine Meldung und lassen das Formular unverändert.
+- Nur Eltern: Kinder erhalten „Nur für Eltern.“, es wird keine Seite geladen. Abgemeldet bleibt ein geteilter Link vorgemerkt und wird nach der Anmeldung importiert.
+- Kein User-Agent-Wechsel, keine JavaScript-Bridge, kein Dateizugriff: die Bot-Abwehr von REWE wird nicht umgangen.
+
+Unit-Testfälle: Eigenmarken (längster Treffer, ganzes Wort), Link aus Text, JSON-LD-Varianten (mehrere Recipe-Blöcke, `@graph`, Array-Typ, `recipeYield`, `HowToSection`, kaputtes JSON),
+Use Case (Zutatentext, Grenzen, Fehler), Web-Quelle (Unreachable/NotFound/Found), ViewModel (Import, Sperre während des Ladens, Kinder), Screen, Inbox, Navigation.

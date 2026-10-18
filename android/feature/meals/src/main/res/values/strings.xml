@@ -192,6 +192,12 @@
     <string name="recipe_ingredients_label">Zutaten (eine pro Zeile, z. B. 500 g Spaghetti)</string>
     <string name="recipe_steps_label">Zubereitung (ein Schritt pro Zeile, optional)</string>
     <string name="recipe_source_label">Quelle (Link, optional)</string>
+    <string name="recipe_import_link_label">Link zum Rezept (optional, z. B. von rewe.de)</string>
+    <string name="recipe_import">Übernehmen</string>
+    <string name="recipe_import_running">Rezept wird gelesen …</string>
+    <string name="recipe_import_no_link">Kein Link gefunden. Füge einen Link zu einem Rezept ein oder lege es unten von Hand an.</string>
+    <string name="recipe_import_unreachable">Die Seite ließ sich nicht laden. Prüfe die Internetverbindung oder lege das Rezept unten von Hand an.</string>
+    <string name="recipe_import_no_recipe">Auf dieser Seite wurde kein Rezept gefunden. Du kannst es unten von Hand anlegen.</string>
     <string name="recipe_save">Speichern</string>
     <string name="recipe_cancel">Abbrechen</string>
     <string name="dish_recipe_pick">Aus Rezept wählen</string>

@@ -22,9 +22,11 @@ import de.familyplanner.android.feature.auth.authGraph
 import de.familyplanner.android.feature.auth.mainGraph
 import de.familyplanner.android.feature.meals.MealsHomeActions
 import de.familyplanner.android.feature.meals.RecipeListRoute
+import de.familyplanner.android.feature.meals.SharedRecipeInbox
 import de.familyplanner.android.feature.meals.WeekOverviewRoute
 import de.familyplanner.android.feature.meals.WeekPlanRoute
 import de.familyplanner.android.feature.meals.mealsGraph
+import de.familyplanner.android.feature.meals.openRecipeImport
 import org.koin.compose.koinInject
 
 /** Die Session bestimmt den Graphen: abgemeldet → Auth-Screens, angemeldet → Hauptscreens. */
@@ -59,8 +61,15 @@ private fun AuthHost(signedOutNotice: Boolean) {
 }
 
 @Composable
-private fun MainHost() {
+private fun MainHost(inbox: SharedRecipeInbox = koinInject()) {
     val navController = rememberNavController()
+    val shared by inbox.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(shared) {
+        shared?.let { text ->
+            inbox.consume()
+            navController.openRecipeImport(text)
+        }
+    }
     NavHost(navController = navController, startDestination = HomeRoute) {
         mainGraph(navController) {
             MealsHomeActions(

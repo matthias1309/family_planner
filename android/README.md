@@ -114,16 +114,32 @@ Abgenommen am 2026-10-18 durch den Anwender, alle Punkte.
 
 ## Abnahme-Checkliste Phase 5b (manuell, echte Geräte gegen den Pi)
 
-- [ ] Pi läuft mit Image inkl. Migration V5 (5a); Release-APK 0.5.0 (gleiche Signatur) per `adb install -r` auf Eltern- und Kinderhandy
-- [ ] Elternhandy: Startseite → „Rezepte“ → „Neues Rezept“: Lauch-Carbonara mit 4 Portionen und Zutaten als Zeilen
+- [x] Pi läuft mit Image inkl. Migration V5 (5a); Release-APK 0.5.0 (gleiche Signatur) per `adb install -r` auf Eltern- und Kinderhandy
+- [x] Elternhandy: Startseite → „Rezepte“ → „Neues Rezept“: Lauch-Carbonara mit 4 Portionen und Zutaten als Zeilen
       („500 g Vollkornspaghetti“, „Salz“, „2 Stange(n) Lauch“, …) und Schritten anlegen; ohne Zutaten/mit 0 Portionen gibt es eine Meldung
-- [ ] Gleicher Name noch einmal → „Ein Rezept mit diesem Namen gibt es schon“
-- [ ] Rezeptliste: Suche „lauch“ findet das Rezept, „xyz“ zeigt „Kein Rezept passt …“
-- [ ] Kinderhandy: Rezepte sichtbar, kein „Neues Rezept“, in der Ansicht kein Bearbeiten/Löschen
-- [ ] Kind reicht über „Mein Kochtag“ ein: „Aus Rezept wählen“ → Carbonara; Portionen vorbelegt mit den Anwesenden des Tages; auf 5 stellen →
+- [x] Gleicher Name noch einmal → „Ein Rezept mit diesem Namen gibt es schon“
+- [x] Rezeptliste: Suche „lauch“ findet das Rezept, „xyz“ zeigt „Kein Rezept passt …“
+- [x] Kinderhandy: Rezepte sichtbar, kein „Neues Rezept“, in der Ansicht kein Bearbeiten/Löschen
+- [x] Kind reicht über „Mein Kochtag“ ein: „Aus Rezept wählen“ → Carbonara; Portionen vorbelegt mit den Anwesenden des Tages; auf 5 stellen →
       „625 g Vollkornspaghetti“, „2,5 Stange(n) Lauch“, „Salz“ ohne Menge; einreichen
-- [ ] Essensplan (beide Handys): Gericht mit „Rezept ›“; Ansicht zeigt „Für 5 Portionen“, die Gerichtsmengen und die Schritte
-- [ ] Eltern ändern danach das Rezept (z. B. 600 g) → das eingereichte Gericht bleibt bei 625 g
-- [ ] Eltern löschen das Rezept → Gericht bleibt mit seinen Zutaten, „Rezept ›“ verschwindet nach Neuladen
-- [ ] Elterngericht ohne Rezept mit „500g Mehl“ speichern → Plan zeigt „500 g Mehl“
-- [ ] WLAN aus: Plan ohne „Rezept ›“; Rezeptliste zeigt „Server nicht erreichbar …“
+- [x] Essensplan (beide Handys): Gericht mit „Rezept ›“; Ansicht zeigt „Für 5 Portionen“, die Gerichtsmengen und die Schritte
+- [x] Eltern ändern danach das Rezept (z. B. 600 g) → das eingereichte Gericht bleibt bei 625 g
+- [x] Eltern löschen das Rezept → Gericht bleibt mit seinen Zutaten, „Rezept ›“ verschwindet nach Neuladen
+- [x] Elterngericht ohne Rezept mit „500g Mehl“ speichern → Plan zeigt „500 g Mehl“
+- [x] WLAN aus: Plan ohne „Rezept ›“; Rezeptliste zeigt „Server nicht erreichbar …“
+
+## Abnahme-Checkliste Phase 5c (manuell, echtes Gerät mit Internet)
+
+- [x] Release-APK 0.5.1 per `adb install -r` auf Eltern- und Kinderhandy
+- [x] Elternhandy, Chrome: `rewe.de/rezepte/spaghetti-lauch-carbonara-mit-ohne-speck/` → Teilen → Family Planner → Editor mit Name, 4 Portionen,
+      11 Zutaten („500 g Vollkornspaghetti“, „2 Stange(n) Lauch“, „Salz“ ohne Menge), Schritten und Quelle
+- [x] Zurück ohne Speichern → Rezept ist nicht in der Liste
+- [x] Erneut teilen, eine Zutat korrigieren, Speichern → Rezept in der Liste, Ansicht zeigt die Korrektur
+- [x] „Neues Rezept“ → Link `rewe.de/rezepte/bunte-gemuese-quesadilla/` einfügen → „Übernehmen“ → „2 EL Rapsöl“, „1 Dose(n) Kidney-Bohnen“,
+      „200 g Gouda gerieben“, „Saft von 1 Limette“ als Name; speichern
+- [x] Teilen aus der REWE-App (falls installiert) funktioniert ebenso
+- [x] Link zu einer Seite ohne Rezept (z. B. `https://www.rewe.de/`) → „Auf dieser Seite wurde kein Rezept gefunden …“, Formular nutzbar
+- [x] Flugmodus + WLAN aus → „Die Seite ließ sich nicht laden …“
+- [x] Kinderhandy: Link teilen → „Nur für Eltern.“
+- [x] Abgemeldetes Gerät (falls verfügbar, sonst entfällt): Link teilen → nach Anmeldung öffnet der Editor
+- [x] Erfolgssignal Phase 5: Kind reicht eines der importierten Rezepte mit umgerechneten Mengen ein

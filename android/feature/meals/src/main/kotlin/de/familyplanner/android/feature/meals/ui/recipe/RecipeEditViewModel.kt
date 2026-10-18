@@ -7,10 +7,14 @@ import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.data.session.Role
 import de.familyplanner.android.core.data.session.SessionStore
 import de.familyplanner.android.feature.meals.domain.plan.PlanLimits
+import de.familyplanner.android.feature.meals.domain.recipe.ImportRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.Recipe
+import de.familyplanner.android.feature.meals.domain.recipe.RecipeImportError
+import de.familyplanner.android.feature.meals.domain.recipe.RecipeImportResult
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeInput
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeLimits
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeUseCases
+import de.familyplanner.android.feature.meals.domain.recipe.extractRecipeUrl
 import de.familyplanner.android.feature.meals.domain.recipe.ingredientsToText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,11 +32,21 @@ data class RecipeEditUiState(
     val isLoading: Boolean = false,
     val loadError: AppError? = null,
     val isBusy: Boolean = false,
+    val isImporting: Boolean = false,
+    val importError: RecipeImportError? = null,
     val error: AppError? = null,
     val isDone: Boolean = false,
 ) {
     val isNew: Boolean get() = recipeId == null
-    val canSave: Boolean get() = !isLoading && loadError == null && !isBusy && name.isNotBlank() && ingredientsText.isNotBlank()
+    val canSave: Boolean get() =
+        !isLoading &&
+            loadError == null &&
+            !isBusy &&
+            !isImporting &&
+            name.isNotBlank() &&
+            ingredientsText.isNotBlank()
+    val canImport: Boolean
+        get() = isNew && !isLoading && loadError == null && !isBusy && !isImporting && sourceUrl.isNotBlank()
 }
 
 sealed interface RecipeEditEvent {
@@ -58,6 +72,8 @@ sealed interface RecipeEditEvent {
 
     data object Save : RecipeEditEvent
 
+    data object Import : RecipeEditEvent
+
     data object Retry : RecipeEditEvent
 }
 
@@ -65,6 +81,7 @@ class RecipeEditViewModel(
     private val args: RecipeEditArgs,
     sessions: SessionStore,
     private val recipes: RecipeUseCases,
+    private val importRecipe: ImportRecipeUseCase,
 ) : ViewModel() {
     private val isParent = sessions.current?.role == Role.PARENT
     private val _state = MutableStateFlow(RecipeEditUiState(recipeId = args.recipeId))
@@ -72,6 +89,7 @@ class RecipeEditViewModel(
 
     init {
         load()
+        if (isParent && args.recipeId == null && args.importText != null) startImport(args.importText)
     }
 
     fun onEvent(event: RecipeEditEvent) {
@@ -81,8 +99,9 @@ class RecipeEditViewModel(
                 edit { it.copy(servings = event.value.coerceIn(RecipeLimits.SERVINGS_MIN, RecipeLimits.SERVINGS_MAX)) }
             is RecipeEditEvent.IngredientsChanged -> edit { it.copy(ingredientsText = event.value) }
             is RecipeEditEvent.StepsChanged -> edit { it.copy(stepsText = event.value) }
-            is RecipeEditEvent.SourceUrlChanged -> edit { it.copy(sourceUrl = event.value) }
+            is RecipeEditEvent.SourceUrlChanged -> edit { it.copy(sourceUrl = event.value, importError = null) }
             RecipeEditEvent.Save -> save()
+            RecipeEditEvent.Import -> if (_state.value.canImport) startImport(_state.value.sourceUrl)
             RecipeEditEvent.Retry -> load()
         }
     }
@@ -113,6 +132,28 @@ class RecipeEditViewModel(
             ingredientsText = ingredientsToText(recipe.ingredients),
             stepsText = recipe.steps.joinToString("\n"),
             sourceUrl = recipe.sourceUrl.orEmpty(),
+        )
+
+    private fun startImport(text: String) {
+        _state.update {
+            it.copy(isImporting = true, importError = null, error = null, sourceUrl = extractRecipeUrl(text) ?: it.sourceUrl)
+        }
+        viewModelScope.launch {
+            when (val result = importRecipe(text)) {
+                is RecipeImportResult.Success -> _state.update { it.withImport(result.input) }
+                is RecipeImportResult.Failure -> _state.update { it.copy(isImporting = false, importError = result.error) }
+            }
+        }
+    }
+
+    private fun RecipeEditUiState.withImport(input: RecipeInput) =
+        copy(
+            isImporting = false,
+            name = input.name,
+            servings = input.servings,
+            ingredientsText = input.ingredientsText,
+            stepsText = input.stepsText,
+            sourceUrl = input.sourceUrl,
         )
 
     private fun save() {

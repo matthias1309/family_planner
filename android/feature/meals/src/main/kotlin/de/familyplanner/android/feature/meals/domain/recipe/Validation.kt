@@ -46,7 +46,7 @@ private fun validateSourceUrl(url: String): ApiResult.Failure? =
         validationFailure("Bitte einen gültigen Link (http/https) angeben.")
     }
 
-private fun isHttpUrl(url: String): Boolean =
+internal fun isHttpUrl(url: String): Boolean =
     try {
         val uri = URI(url)
         uri.scheme?.lowercase() in setOf("http", "https") && !uri.host.isNullOrEmpty()

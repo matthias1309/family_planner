@@ -10,6 +10,7 @@ import de.familyplanner.android.feature.meals.domain.plan.Dish
 import de.familyplanner.android.feature.meals.domain.plan.DishUseCases
 import de.familyplanner.android.feature.meals.domain.plan.LoadDishEditorUseCase
 import de.familyplanner.android.feature.meals.domain.plan.SaveDishUseCase
+import de.familyplanner.android.feature.meals.domain.recipe.ImportRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.Ingredient
 import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeRef
@@ -17,6 +18,7 @@ import de.familyplanner.android.feature.meals.fakes.FakeAttendanceRepository
 import de.familyplanner.android.feature.meals.fakes.FakeCookingRepository
 import de.familyplanner.android.feature.meals.fakes.FakeMealPlanRepository
 import de.familyplanner.android.feature.meals.fakes.FakeRecipeRepository
+import de.familyplanner.android.feature.meals.fakes.FakeRecipeSource
 import de.familyplanner.android.feature.meals.fakes.carbonara
 import de.familyplanner.android.feature.meals.fakes.childDish
 import de.familyplanner.android.feature.meals.fakes.childSession
@@ -59,7 +61,8 @@ class RecipeViewModelsTest {
 
     private fun viewViewModel(args: RecipeViewArgs = RecipeViewArgs("r-1")) = RecipeViewModel(args, sessions, recipeUseCases(recipes), plan)
 
-    private fun editViewModel(recipeId: String? = null) = RecipeEditViewModel(RecipeEditArgs(recipeId), sessions, recipeUseCases(recipes))
+    private fun editViewModel(recipeId: String? = null) =
+        RecipeEditViewModel(RecipeEditArgs(recipeId), sessions, recipeUseCases(recipes), ImportRecipeUseCase(FakeRecipeSource()))
 
     private fun dishViewModel(
         date: LocalDate = planWeek.plusDays(1),

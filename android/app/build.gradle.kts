@@ -29,8 +29,8 @@ android {
         applicationId = "de.familyplanner.android"
         minSdk = 29
         targetSdk = 37
-        versionCode = 5
-        versionName = "0.5.0"
+        versionCode = 6
+        versionName = "0.5.1"
         buildConfigField("String", "FP_SERVER_URL", "\"$serverUrl\"")
     }
 
@@ -112,6 +112,7 @@ kover {
                     "*Module*",
                     "*.MainActivity",
                     "*.FamilyPlannerApp",
+                    "*.WebViewPageScriptLoader*", // WebView: nur auf dem Gerät prüfbar (ADR-0012)
                     "*.theme.*",
                     "*Route*",
                 )

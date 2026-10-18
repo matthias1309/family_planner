@@ -252,7 +252,7 @@ class RecipeScreensTest {
         compose.onNodeWithText("5/60").assertExists()
         compose.onNodeWithText("Zutaten (eine pro Zeile, z. B. 500 g Spaghetti)").assertExists()
         compose.onNodeWithText("Zubereitung (ein Schritt pro Zeile, optional)").assertExists()
-        compose.onNodeWithText("Quelle (Link, optional)").assertExists()
+        compose.onNodeWithText("Link zum Rezept (optional, z. B. von rewe.de)").assertExists()
     }
 
     @Test
