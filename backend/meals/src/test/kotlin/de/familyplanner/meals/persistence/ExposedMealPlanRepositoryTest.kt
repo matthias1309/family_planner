@@ -8,12 +8,17 @@ import de.familyplanner.core.member.Role
 import de.familyplanner.core.persistence.DatabaseFactory
 import de.familyplanner.core.persistence.dbQuery
 import de.familyplanner.meals.attendance.PlanWeek
+import de.familyplanner.meals.fakes.lines
 import de.familyplanner.meals.plan.Cancellation
 import de.familyplanner.meals.plan.Dish
 import de.familyplanner.meals.plan.DishId
 import de.familyplanner.meals.plan.DishStatus
+import de.familyplanner.meals.plan.Ingredient
+import de.familyplanner.meals.plan.RecipeRef
 import de.familyplanner.meals.plan.ReviewOutcome
 import de.familyplanner.meals.plan.SaveOutcome
+import de.familyplanner.meals.recipe.Recipe
+import de.familyplanner.meals.recipe.RecipeId
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -49,7 +54,7 @@ class ExposedMealPlanRepositoryTest {
         id: String,
         date: String,
         name: String = "Spaghetti",
-        ingredients: List<String> = listOf("Nudeln", "Tomaten", "Basilikum"),
+        ingredients: List<Ingredient> = lines("Nudeln", "Tomaten", "Basilikum"),
     ) = Dish(DishId(id), LocalDate.parse(date), cookId, name, ingredients)
 
     private suspend fun all() = repository.findBetween(LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-31"))
@@ -67,6 +72,24 @@ class ExposedMealPlanRepositoryTest {
 
             // Assert
             assertEquals(SaveOutcome.SAVED, outcome)
+            assertEquals(listOf(dish), all())
+        }
+
+    @Test
+    fun `REQ-MEAL-062 structured ingredients and recipe reference roundtrip`() =
+        runTest {
+            // Arrange
+            ExposedRecipeRepository(db).createIfNameFree(
+                Recipe(RecipeId("r1"), "Carbonara", 4, lines("Nudeln"), emptyList(), null, cookId),
+                now,
+            )
+            val ingredients = listOf(Ingredient("Spaghetti", 625.0, "g"), Ingredient("Salz"), Ingredient("Lauch", 2.5, "Stange(n)"))
+            val dish = dish("d1", "2026-10-20", ingredients = ingredients).copy(recipe = RecipeRef(RecipeId("r1"), 5))
+
+            // Act
+            repository.createIfDayFree(dish, now)
+
+            // Assert
             assertEquals(listOf(dish), all())
         }
 
@@ -89,7 +112,7 @@ class ExposedMealPlanRepositoryTest {
         runTest {
             // Arrange
             repository.createIfDayFree(dish("d1", "2026-10-20"), now)
-            val changed = dish("d1", "2026-10-22", name = "Suppe", ingredients = listOf("Lauch"))
+            val changed = dish("d1", "2026-10-22", name = "Suppe", ingredients = lines("Lauch"))
 
             // Act
             val outcome = repository.updateIfDayFree(changed, now)
@@ -182,7 +205,7 @@ class ExposedMealPlanRepositoryTest {
         id: String,
         date: String,
         status: DishStatus = DishStatus.SUBMITTED,
-    ) = Dish(DishId(id), LocalDate.parse(date), childId, "Pizza", listOf("Teig", "Käse"), status, null, late = true)
+    ) = Dish(DishId(id), LocalDate.parse(date), childId, "Pizza", lines("Teig", "Käse"), status, null, late = true)
 
     @Test
     fun `REQ-MEAL-020 status and late flag are stored and read back`() =

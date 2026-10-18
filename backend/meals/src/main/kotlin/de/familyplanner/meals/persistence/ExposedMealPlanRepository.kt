@@ -7,9 +7,12 @@ import de.familyplanner.meals.plan.Cancellation
 import de.familyplanner.meals.plan.Dish
 import de.familyplanner.meals.plan.DishId
 import de.familyplanner.meals.plan.DishStatus
+import de.familyplanner.meals.plan.Ingredient
 import de.familyplanner.meals.plan.MealPlanRepository
+import de.familyplanner.meals.plan.RecipeRef
 import de.familyplanner.meals.plan.ReviewOutcome
 import de.familyplanner.meals.plan.SaveOutcome
+import de.familyplanner.meals.recipe.RecipeId
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
@@ -73,6 +76,8 @@ class ExposedMealPlanRepository(
                 it[status] = dish.status.name
                 it[rejectionReason] = dish.rejectionReason
                 it[late] = dish.late
+                it[recipeId] = dish.recipe?.recipeId?.value
+                it[servings] = dish.recipe?.servings
                 it[createdAt] = at.toEpochMilli()
                 it[updatedAt] = at.toEpochMilli()
             }
@@ -102,6 +107,8 @@ class ExposedMealPlanRepository(
                 it[status] = dish.status.name
                 it[rejectionReason] = dish.rejectionReason
                 it[late] = dish.late
+                it[recipeId] = dish.recipe?.recipeId?.value
+                it[servings] = dish.recipe?.servings
                 it[updatedAt] = at.toEpochMilli()
             }
             MealDishIngredientsTable.deleteWhere { MealDishIngredientsTable.dishId eq dish.id.value }
@@ -201,24 +208,33 @@ class ExposedMealPlanRepository(
         }.toList()
 
     private fun JdbcTransaction.insertIngredients(dish: Dish) {
-        MealDishIngredientsTable.batchInsert(dish.ingredients.withIndex()) { (index, line) ->
+        MealDishIngredientsTable.batchInsert(dish.ingredients.withIndex()) { (index, ingredient) ->
             this[MealDishIngredientsTable.dishId] = dish.id.value
             this[MealDishIngredientsTable.position] = index
-            this[MealDishIngredientsTable.text] = line
+            this[MealDishIngredientsTable.text] = ingredient.name
+            this[MealDishIngredientsTable.quantity] = ingredient.quantity
+            this[MealDishIngredientsTable.unit] = ingredient.unit
         }
     }
 
-    private fun ingredientsOf(dishIds: List<String>): Map<String, List<String>> {
+    private fun ingredientsOf(dishIds: List<String>): Map<String, List<Ingredient>> {
         if (dishIds.isEmpty()) return emptyMap()
         return MealDishIngredientsTable
             .selectAll()
             .where { MealDishIngredientsTable.dishId inList dishIds }
             .orderBy(MealDishIngredientsTable.position)
-            .groupBy({ it[MealDishIngredientsTable.dishId] }, { it[MealDishIngredientsTable.text] })
+            .groupBy({ it[MealDishIngredientsTable.dishId] }, { it.toIngredient() })
     }
 }
 
-internal fun ResultRow.toDish(ingredients: List<String>) =
+internal fun ResultRow.toIngredient() =
+    Ingredient(
+        name = this[MealDishIngredientsTable.text],
+        quantity = this[MealDishIngredientsTable.quantity],
+        unit = this[MealDishIngredientsTable.unit],
+    )
+
+internal fun ResultRow.toDish(ingredients: List<Ingredient>) =
     Dish(
         id = DishId(this[MealDishesTable.id]),
         date = LocalDate.parse(this[MealDishesTable.mealDate]),
@@ -228,7 +244,15 @@ internal fun ResultRow.toDish(ingredients: List<String>) =
         status = DishStatus.valueOf(this[MealDishesTable.status]),
         rejectionReason = this[MealDishesTable.rejectionReason],
         late = this[MealDishesTable.late],
+        recipe = toRecipeRef(),
     )
+
+/** Both columns are set together; after the recipe is deleted `recipe_id` is null and the reference is gone. */
+private fun ResultRow.toRecipeRef(): RecipeRef? {
+    val id = this[MealDishesTable.recipeId] ?: return null
+    val servings = this[MealDishesTable.servings] ?: return null
+    return RecipeRef(RecipeId(id), servings)
+}
 
 internal fun ResultRow.toCancellation() =
     Cancellation(

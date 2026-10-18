@@ -7,9 +7,14 @@ import de.familyplanner.core.auth.AUTH_DEVICE
 import de.familyplanner.core.auth.principalOrThrow
 import de.familyplanner.core.auth.requireParent
 import de.familyplanner.core.auth.uuidParameter
+import de.familyplanner.core.error.AppException
 import de.familyplanner.core.member.MemberId
 import de.familyplanner.meals.plan.DishId
+import de.familyplanner.meals.plan.Ingredient
 import de.familyplanner.meals.plan.MealPlanService
+import de.familyplanner.meals.plan.RecipeRef
+import de.familyplanner.meals.plan.ingredientsFromLines
+import de.familyplanner.meals.recipe.RecipeId
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.authenticate
@@ -30,14 +35,31 @@ fun Route.planRoutes(plan: MealPlanService) {
         post("/api/v1/meals/dishes") {
             val actor = call.principalOrThrow().toActor()
             val request = call.receive<SaveDishRequest>()
-            val dish = plan.create(actor, parseDate(request.date, "date"), request.cook(), request.name, request.ingredients)
+            val dish =
+                plan.create(
+                    actor,
+                    parseDate(request.date, "date"),
+                    request.cook(),
+                    request.name,
+                    request.ingredientList(),
+                    request.recipeRef(),
+                )
             call.respond(HttpStatusCode.Created, DishResponse(success = true, data = dish.toApi()))
         }
         put("/api/v1/meals/dishes/{dishId}") {
             val actor = call.principalOrThrow().toActor()
             val id = call.dishId()
             val request = call.receive<SaveDishRequest>()
-            val dish = plan.update(actor, id, parseDate(request.date, "date"), request.cook(), request.name, request.ingredients)
+            val dish =
+                plan.update(
+                    actor,
+                    id,
+                    parseDate(request.date, "date"),
+                    request.cook(),
+                    request.name,
+                    request.ingredientList(),
+                    request.recipeRef(),
+                )
             call.respond(DishResponse(success = true, data = dish.toApi()))
         }
         delete("/api/v1/meals/dishes/{dishId}") {
@@ -51,3 +73,17 @@ fun Route.planRoutes(plan: MealPlanService) {
 private fun ApplicationCall.dishId() = DishId(uuidParameter("dishId"))
 
 private fun SaveDishRequest.cook() = MemberId(parseUuid(cookId, "cookId"))
+
+private fun SaveDishRequest.ingredientList(): List<Ingredient> {
+    val structured = structuredIngredients ?: return ingredientsFromLines(ingredients)
+    if (ingredients.isNotEmpty()) throw AppException.Validation("Zutaten bitte entweder als Zeilen oder strukturiert angeben")
+    return structured.map { it.toDomain() }
+}
+
+private fun SaveDishRequest.recipeRef(): RecipeRef? {
+    val id = recipeId
+    val count = servings
+    if (id == null && count == null) return null
+    if (id == null || count == null) throw AppException.Validation("Rezept und Portionen gehören zusammen")
+    return RecipeRef(RecipeId(parseUuid(id, "recipeId")), count)
+}

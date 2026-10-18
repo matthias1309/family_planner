@@ -3,6 +3,7 @@ package de.familyplanner.meals.plan
 import de.familyplanner.core.member.MemberId
 import de.familyplanner.core.member.Role
 import de.familyplanner.meals.attendance.PlanWeek
+import de.familyplanner.meals.recipe.RecipeId
 import java.time.Instant
 import java.time.LocalDate
 
@@ -16,15 +17,22 @@ value class DishId(
     val value: String,
 )
 
+/** A dish was copied from a recipe for [servings] portions; the ingredients themselves are stored on the dish. */
+data class RecipeRef(
+    val recipeId: RecipeId,
+    val servings: Int,
+)
+
 data class Dish(
     val id: DishId,
     val date: LocalDate,
     val cookId: MemberId,
     val name: String,
-    val ingredients: List<String>,
+    val ingredients: List<Ingredient>,
     val status: DishStatus = DishStatus.APPROVED,
     val rejectionReason: String? = null,
     val late: Boolean = false,
+    val recipe: RecipeRef? = null,
 )
 
 /** A day of the plan; [dish] is null while the day is still open; [dayValid] is false if the cooking child is absent. */

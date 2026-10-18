@@ -96,6 +96,8 @@ class MealsPlanApiTest {
             assertEquals("Spaghetti", dish.name)
             assertEquals(parentId, dish.cookId)
             assertEquals(listOf("Nudeln", "Tomaten"), dish.ingredients)
+            assertEquals(listOf("Nudeln", "Tomaten"), dish.structuredIngredients.map { it.name })
+            assertNull(dish.recipeId)
             assertEquals(DishStatus.APPROVED, dish.status)
             assertEquals(false, dish.late)
             assertEquals(true, dish.dayValid)

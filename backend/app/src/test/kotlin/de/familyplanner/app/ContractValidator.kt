@@ -9,6 +9,8 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import java.io.File
+import java.net.URLDecoder
+import kotlin.text.Charsets.UTF_8
 
 /** Validates real request/response pairs against api/openapi.yaml. */
 class ContractValidator {
@@ -30,8 +32,9 @@ class ContractValidator {
     ): ValidationReport {
         val request =
             SimpleRequest
-                .Builder(method, path)
+                .Builder(method, path.substringBefore('?'))
                 .withContentType("application/json")
+                .apply { queryParameters(path).forEach { (name, value) -> withQueryParam(name, value) } }
                 .apply { requestBody?.let { withBody(it) } }
                 .build()
         val response =
@@ -69,5 +72,13 @@ class ContractValidator {
         }
     }
 }
+
+/** Decoded `name=value` pairs of the query part of [path]; empty if there is none. */
+private fun queryParameters(path: String): List<Pair<String, String>> =
+    path
+        .substringAfter('?', "")
+        .split('&')
+        .filter { it.isNotEmpty() }
+        .map { URLDecoder.decode(it.substringBefore('='), UTF_8) to URLDecoder.decode(it.substringAfter('=', ""), UTF_8) }
 
 fun ValidationReport.text(): String = messages.joinToString(separator = "; ") { message -> message.message }

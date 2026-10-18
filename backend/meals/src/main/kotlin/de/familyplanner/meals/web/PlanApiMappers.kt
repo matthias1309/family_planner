@@ -5,6 +5,7 @@ import de.familyplanner.meals.plan.Actor
 import de.familyplanner.meals.plan.Dish
 import de.familyplanner.meals.plan.PlanDay
 import de.familyplanner.meals.plan.WeekPlan
+import de.familyplanner.meals.plan.displayText
 import de.familyplanner.api.model.Dish as ApiDish
 import de.familyplanner.api.model.DishStatus as ApiDishStatus
 import de.familyplanner.api.model.PlanDay as ApiPlanDay
@@ -18,7 +19,10 @@ fun Dish.toApi(dayValid: Boolean = true) =
         date = date.toString(),
         cookId = cookId.value,
         name = name,
-        ingredients = ingredients,
+        ingredients = ingredients.map { it.displayText() },
+        structuredIngredients = ingredients.map { it.toApi() },
+        recipeId = recipe?.recipeId?.value,
+        servings = recipe?.servings,
         status = ApiDishStatus.valueOf(status.name),
         rejectionReason = rejectionReason,
         late = late,
