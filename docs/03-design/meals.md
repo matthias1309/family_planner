@@ -41,7 +41,7 @@ Endpunkte siehe `api/openapi.yaml` (Tag `meals`), Lesen für alle Mitglieder, Sc
 - `GET /api/v1/meals/profiles`, `PUT /api/v1/meals/profiles/{memberId}`
 - `GET|POST /api/v1/meals/profiles/{memberId}/exceptions`, `DELETE /api/v1/meals/exceptions/{exceptionId}`
 - `GET|PUT /api/v1/meals/settings`
-- `GET /api/v1/meals/weeks/{weekStart}/attendance` (Schnittstelle für Phase 3/4 und die Erinnerungen in Phase 6)
+- `GET /api/v1/meals/weeks/{weekStart}/attendance` (Schnittstelle für Phase 3/4 und die Erinnerungen in Phase 7)
 - `GET /api/v1/meals/weeks/{weekStart}/plan` (Wochenplan, alle Mitglieder)
 - `POST /api/v1/meals/dishes`, `PUT /api/v1/meals/dishes/{dishId}` (Eltern; Kinder nur eigene Gerichte, Phase 4), `DELETE /api/v1/meals/dishes/{dishId}` (nur Eltern)
 - `POST /api/v1/meals/dishes/{dishId}/approval`, `POST …/rejection` (Phase 4, nur Eltern, 204)
@@ -89,7 +89,7 @@ von `ZonedDateTime` nach vorn verschoben; praktisch irrelevant.
 Entscheidungen (Anwender 2026-10-18): ein Gericht je Tag; Zutaten bei Elterngerichten optional (Reste, Essen gehen) — Pflicht
 erst für Kindergerichte (REQ-MEAL-020); Koch/Köchin frei unter den Eltern wählbar. Zutaten liegen in der DB als eigene Zeilen
 (Reihenfolge, späterer Ausbau zu strukturierten Zutaten), in der API als `string[]`. Der zweite Teil von REQ-MEAL-032
-(„Zutaten stehen auf der Einkaufsliste“) wird in Phase 5 umgesetzt. Offline-Lesen (REQ-MEAL-002) ist App-Seite (Phase 3b);
+(„Zutaten stehen auf der Einkaufsliste“) wird in Phase 6 umgesetzt (Phasenfolge geändert, ADR-0012). Offline-Lesen (REQ-MEAL-002) ist App-Seite (Phase 3b);
 die API liefert nur IDs, Namen löst die App über `GET /api/v1/members` auf.
 
 ## Einreichung & Freigabe (Phase 4)
@@ -128,7 +128,7 @@ Statusübergänge:
 | löschen | Eltern | beliebig | gelöscht |
 
 Freigabe und Ablehnung antworten mit 204 ohne Body; die App lädt Plan und Status danach neu. Benachrichtigungen
-(REQ-MEAL-052) und Einkaufsliste (Phase 5) sind nicht Teil von 4a.
+(REQ-MEAL-052) und Einkaufsliste (Phase 6) sind nicht Teil von 4a.
 
 ## App-Seite (Phase 2b)
 

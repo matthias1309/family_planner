@@ -41,3 +41,5 @@ Siehe [adr/](adr/).
 | [0008](adr/0008-device-pairing.md) | Geräte-Anmeldung per Kopplungscode | Akzeptiert |
 | [0009](adr/0009-android-app-architecture.md) | Android-App-Architektur | Akzeptiert |
 | [0010](adr/0010-backend-feature-modules.md) | Backend-Feature-Module | Akzeptiert |
+| [0011](adr/0011-app-offline-cache.md) | Lokaler Lese-Cache der App | Akzeptiert |
+| [0012](adr/0012-recipes-and-rewe-import.md) | Rezeptsammlung und Rezept-Import in der App | Akzeptiert |
