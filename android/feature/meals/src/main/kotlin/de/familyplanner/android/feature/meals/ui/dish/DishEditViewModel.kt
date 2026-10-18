@@ -36,7 +36,7 @@ data class DishEditUiState(
     val isDone: Boolean = false,
 ) {
     val isNew: Boolean get() = dishId == null
-    val canSave: Boolean get() = !isLoading && loadError == null && cookId != null && name.isNotBlank() && !isBusy
+    val canSave: Boolean get() = !isLoading && loadError == null && cookId != null && name.isNotBlank() && date !in takenDates && !isBusy
 }
 
 sealed interface DishEditEvent {

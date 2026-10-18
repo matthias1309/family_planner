@@ -131,7 +131,7 @@ Regeln:
 - **Prefetch:** Beim Öffnen werden diese und die nächste Woche geladen; die nächste läuft im Hintergrund nur für den Cache.
 - **Cache (ADR-0011):** Jede erfolgreich geladene Woche wird mit Synchronisierungszeitpunkt und aufgelösten Namen von Koch/Köchin
   gespeichert; Besitzer ist das angemeldete Mitglied; Wochen vor der Vorwoche werden entfernt, höchstens 8 bleiben.
-- **Offline-Fallback nur bei Verbindungsproblemen** (`Network`, `Certificate`, `Server`): Anzeige „Offline – Stand: <Wochentag Datum, Uhrzeit>“.
+- **Offline-Fallback nur bei Verbindungsproblemen** (`Network`, `Certificate`, `Server`): Anzeige „Offline – Stand: <Wochentag Datum, Uhrzeit>“; bei `Server` (erreichbar, aber gestört) „Server gestört – gespeicherter Stand: …“.
   Andere Fehler (403, 404, …) werden gezeigt und nie vom Cache verdeckt.
 - **Offline keine Bearbeitung:** Eltern sehen „Bearbeiten ist nur im Heim-WLAN möglich.“; Kinder können nie bearbeiten.
 - **Editor:** nur Tage derselben Woche; Zutaten optional; Grenzen wie der Server (Name 60, Zutat 80, 30 Zutaten, 100 Rohzeilen).

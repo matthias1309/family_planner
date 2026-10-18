@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.ui.components.ErrorText
 import de.familyplanner.android.core.ui.formatDate
 import de.familyplanner.android.feature.meals.R
@@ -71,7 +72,8 @@ fun WeekPlanScreen(
         ) {
             item { WeekHeader(state, onEvent) }
             state.week?.takeIf { state.isOffline }?.let { week ->
-                item { OfflineNotice(stringResource(R.string.plan_offline, formatDeadline(week.syncedAt)), state.isParent) }
+                val notice = if (state.cacheReason == AppError.Server) R.string.plan_server_problem else R.string.plan_offline
+                item { OfflineNotice(stringResource(notice, formatDeadline(week.syncedAt)), state.isParent) }
             }
             item { ErrorText(state.error) }
             state.week?.let { week ->

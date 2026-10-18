@@ -63,7 +63,8 @@ class PlanScreensTest {
         isParent: Boolean = false,
         isOffline: Boolean = false,
         error: AppError? = null,
-    ) = WeekPlanUiState(thisWeek, today, week, error = error, isOffline = isOffline, isParent = isParent)
+        cacheReason: AppError? = null,
+    ) = WeekPlanUiState(thisWeek, today, week, error = error, isOffline = isOffline, cacheReason = cacheReason, isParent = isParent)
 
     private fun showPlan(
         state: WeekPlanUiState,
@@ -114,6 +115,13 @@ class PlanScreensTest {
         showPlan(planState(isOffline = true))
 
         compose.onNodeWithText("Offline – Stand: So 18.10., 12:00").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-MEAL-002 server problem hint does not claim offline`() {
+        showPlan(planState(isOffline = true, cacheReason = AppError.Server))
+
+        compose.onNodeWithText("Server gestört – gespeicherter Stand: So 18.10., 12:00").assertIsDisplayed()
     }
 
     @Test

@@ -138,6 +138,37 @@ class PlanViewModelsTest {
     }
 
     @Test
+    fun `REQ-MEAL-002 server error with cache keeps the reason`() {
+        val viewModel = planViewModel()
+        repository.weekResult = { ApiResult.Failure(AppError.Server) }
+
+        viewModel.onEvent(WeekPlanEvent.Refresh)
+
+        assertEquals(AppError.Server, viewModel.state.value.cacheReason)
+        assertTrue(viewModel.state.value.isOffline)
+    }
+
+    @Test
+    fun `today is updated on every load`() {
+        var instant = Instant.parse("2026-10-17T10:00:00Z")
+        val moving =
+            object : Clock() {
+                override fun getZone() = ZoneId.of("Europe/Berlin")
+
+                override fun withZone(zone: ZoneId?) = this
+
+                override fun instant() = instant
+            }
+        val viewModel = planViewModel(moving)
+        assertEquals(LocalDate.of(2026, 10, 17), viewModel.state.value.today)
+
+        instant = Instant.parse("2026-10-17T22:30:00Z")
+        viewModel.onEvent(WeekPlanEvent.Refresh)
+
+        assertEquals(LocalDate.of(2026, 10, 18), viewModel.state.value.today)
+    }
+
+    @Test
     fun `REQ-MEAL-002 offline without cache shows network error`() {
         repository.weekResult = { ApiResult.Failure(AppError.Network) }
 
@@ -263,6 +294,17 @@ class PlanViewModelsTest {
         viewModel.onEvent(DishEditEvent.Save)
 
         assertEquals(AppError.Validation("Höchstens 30 Zutaten je Gericht."), viewModel.state.value.error)
+        assertTrue(repository.created.isEmpty())
+    }
+
+    @Test
+    fun `date taken by another device cannot be saved`() {
+        // Das Gericht d-1 liegt schon auf dem Montag: neues Gericht für denselben Tag.
+        val viewModel = editViewModel(thisWeek)
+        viewModel.onEvent(DishEditEvent.NameChanged("Curry"))
+
+        assertFalse(viewModel.state.value.canSave)
+        viewModel.onEvent(DishEditEvent.Save)
         assertTrue(repository.created.isEmpty())
     }
 

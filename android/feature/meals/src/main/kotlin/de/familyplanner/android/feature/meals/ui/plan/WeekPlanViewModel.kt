@@ -28,6 +28,8 @@ data class WeekPlanUiState(
     val error: AppError? = null,
     /** Gezeigt wird ein gespeicherter Stand (REQ-MEAL-002). */
     val isOffline: Boolean = false,
+    /** Grund für den gespeicherten Stand; `Server` heißt: erreichbar, aber gestört. */
+    val cacheReason: AppError? = null,
     val isParent: Boolean = false,
 ) {
     val canEdit: Boolean get() = isParent && !isOffline && week != null
@@ -46,7 +48,7 @@ sealed interface WeekPlanEvent {
 class WeekPlanViewModel(
     sessions: SessionStore,
     private val loadWeekPlan: LoadWeekPlanUseCase,
-    clock: Clock = Clock.system(BerlinZone),
+    private val clock: Clock = Clock.system(BerlinZone),
 ) : ViewModel() {
     private val _state =
         MutableStateFlow(
@@ -74,7 +76,7 @@ class WeekPlanViewModel(
 
     private fun switchWeek(deltaWeeks: Long) {
         // Alte Daten verwerfen, damit nie die Daten einer anderen Woche unter dem neuen Titel stehen.
-        _state.update { it.copy(weekStart = it.weekStart.plusWeeks(deltaWeeks), week = null, isOffline = false) }
+        _state.update { it.copy(weekStart = it.weekStart.plusWeeks(deltaWeeks), week = null, isOffline = false, cacheReason = null) }
         load()
     }
 
@@ -86,7 +88,8 @@ class WeekPlanViewModel(
     private fun load() {
         loadJob?.cancel()
         val requested = _state.value.weekStart
-        _state.update { it.copy(isLoading = true, error = null) }
+        // „Heute“ bei jedem Laden neu bestimmen, falls die App über Mitternacht offen blieb.
+        _state.update { it.copy(isLoading = true, error = null, today = clock.instant().atZone(BerlinZone).toLocalDate()) }
         loadJob =
             viewModelScope.launch {
                 val result = loadWeekPlan(requested)
@@ -98,8 +101,15 @@ class WeekPlanViewModel(
 
     private fun WeekPlanUiState.withResult(result: WeekPlanLoad): WeekPlanUiState =
         when (result) {
-            is WeekPlanLoad.Fresh -> copy(isLoading = false, week = result.week, isOffline = false, error = null)
-            is WeekPlanLoad.Cached -> copy(isLoading = false, week = result.week, isOffline = true, error = null)
-            is WeekPlanLoad.Failed -> copy(isLoading = false, week = null, isOffline = false, error = result.error)
+            is WeekPlanLoad.Fresh -> copy(isLoading = false, week = result.week, isOffline = false, cacheReason = null, error = null)
+            is WeekPlanLoad.Cached ->
+                copy(
+                    isLoading = false,
+                    week = result.week,
+                    isOffline = true,
+                    cacheReason = result.error,
+                    error = null,
+                )
+            is WeekPlanLoad.Failed -> copy(isLoading = false, week = null, isOffline = false, cacheReason = null, error = result.error)
         }
 }

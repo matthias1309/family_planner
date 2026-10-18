@@ -67,6 +67,7 @@
     <string name="plan_add">+ Gericht</string>
     <string name="plan_cook">%1$s kocht</string>
     <string name="plan_offline">Offline – Stand: %1$s</string>
+    <string name="plan_server_problem">Server gestört – gespeicherter Stand: %1$s</string>
     <string name="plan_edit_hint_offline">Bearbeiten ist nur im Heim-WLAN möglich.</string>
     <string name="plan_day_add_action">Gericht planen</string>
     <string name="plan_day_edit_action">Gericht ändern</string>
