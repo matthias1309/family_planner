@@ -67,10 +67,10 @@ Schichten und Muster wie `feature:auth` ([ADR-0009](../02-architecture/adr/0009-
 
 | Screen | Rolle | Inhalt |
 |---|---|---|
-| Wochenübersicht | alle | Anwesenheit Mo–So je Kind, Ausnahmetage markiert, Kind-Frist („Einreichen bis …“), Bestellfrist, Woche vor/zurück (2000–2100) |
-| Anwesenheit verwalten | Eltern | Kinder mit „kocht“ und Muster-Zusammenfassung, Einstieg in Profil und Fristen |
+| Wochenübersicht | alle | Anwesenheit Mo–So je Kind, Ausnahmetage markiert, Kind-Frist („Einreichen bis …“), Bestellfrist, Woche vor/zurück (2000–2100); Eltern: Einstieg in „Anwesenheit verwalten“ und „Fristen einstellen“ |
+| Anwesenheit verwalten | Eltern | Kinder mit „kocht“ und Muster-Zusammenfassung (Tippen öffnet das Profil) |
 | Profil bearbeiten | Eltern | „kocht“, immer da / Wechselmodell, Tage Woche A/B, „Diese Woche ist A/B“, Ausnahmen anlegen/löschen |
-| Fristen | Eltern | Bestellfrist (Wochentag, Uhrzeit), Kind-Frist (Uhrzeit), Anzeige „gilt jetzt“ / „vorgemerkt ab Planwoche …“ |
+| Fristen | Eltern | Familienweit (nicht pro Kind): Bestellfrist (Wochentag, Uhrzeit), Einreichfrist der Kinder (Uhrzeit), Anzeige „gilt jetzt“ / „vorgemerkt ab Planwoche …“ |
 
 Regeln:
 

@@ -12,6 +12,7 @@
     <string name="week_previous">Vorige Woche</string>
     <string name="week_next">Nächste Woche</string>
     <string name="week_manage">Anwesenheit verwalten</string>
+    <string name="week_deadlines">Fristen einstellen</string>
     <string name="week_day_present">anwesend</string>
     <string name="week_day_absent">abwesend</string>
     <string name="week_day_exception">%1$s (Ausnahme)</string>
@@ -22,7 +23,7 @@
     <string name="profiles_cooks_not">kocht nicht</string>
     <string name="profiles_pattern_always">immer da</string>
     <string name="profiles_pattern_alternating">Wechselmodell · A: %1$s · B: %2$s</string>
-    <string name="profiles_deadlines">Fristen einstellen</string>
+    <string name="profiles_hint">Tippe auf ein Kind, um Muster und Ausnahmen zu ändern.</string>
 
     <string name="edit_title">Profil</string>
     <string name="edit_cooks">kocht</string>
@@ -53,7 +54,10 @@
     <string name="settings_scheduled">Vorgemerkt ab Planwoche %1$s: %2$s</string>
     <string name="settings_description">%1$s, %2$s · Kind-Frist %3$s</string>
     <string name="settings_order_deadline">Bestellfrist</string>
-    <string name="settings_order_time">Uhrzeit Bestellfrist</string>
-    <string name="settings_child_time">Kind-Frist (Uhrzeit)</string>
+    <string name="settings_order_explain">Bis dahin muss der Essensplan der nächsten Woche stehen, damit bestellt werden kann. Gilt für die ganze Familie.</string>
+    <string name="settings_order_time">Bestellfrist: Uhrzeit</string>
+    <string name="settings_child_deadline">Einreichfrist der Kinder</string>
+    <string name="settings_child_explain">Ein kochendes Kind reicht spätestens an seinem letzten Tag der Vorwoche zu dieser Uhrzeit ein. Ist es bis zur Bestellfrist da, gilt die Bestellfrist.</string>
+    <string name="settings_child_time">Einreichfrist: Uhrzeit</string>
     <string name="settings_hint">Änderungen gelten ab der übernächsten Planwoche; die gerade geplante Woche behält ihre Frist.</string>
 </resources>
