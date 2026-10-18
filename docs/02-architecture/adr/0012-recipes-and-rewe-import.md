@@ -35,14 +35,19 @@ Prüfung der beiden REWE-Seiten (2026-10-18):
 4. **Gericht aus Rezept = Kopie:** Wählt jemand ein Rezept für ein Gericht, werden Name und Zutaten **auf die gewählten
    Portionen umgerechnet und kopiert**; das Gericht merkt sich `recipeId` und `servings`. Danach ist das Gericht frei
    änderbar. Spätere Änderungen am Rezept ändern keine bestehenden (womöglich schon freigegebenen) Gerichte.
-   Vorschlag für `servings`: Anzahl der an diesem Tag anwesenden Familienmitglieder.
+   Vorschlag für `servings`: Anzahl der an diesem Tag anwesenden Familienmitglieder (änderbar).
 5. **Import läuft in der App, nicht auf dem Server:**
+   - Anlegen, Importieren, Ändern und Löschen von Rezepten nur durch **Eltern**; Kinder lesen und wählen aus.
    - Einstieg über das Android-**Teilen-Menü** (Browser/REWE-App → Family Planner) oder durch Einfügen einer URL.
    - Die App lädt die Seite in einer **unsichtbaren WebView**, liest alle `application/ld+json`-Blöcke und sucht ein
      `Recipe` (direkt, in `@graph` oder als `mainEntity`). Das ist allgemeines schema.org, also nicht an REWE gebunden;
      abgenommen wird aber nur mit REWE.
    - Die Zutatenzeilen werden mit einer reinen, unit-getesteten Funktion zerlegt (`"<Zahl> <Einheit> <Name>"`,
      `"<Zahl> <Name>"`, sonst alles als `name`); `"500.0"` wird zu `500`.
+   - **Eigenmarken-Präfixe** am Anfang des Namens werden entfernt, längster Treffer zuerst, nur als ganzes Wort:
+     „REWE Bio“, „REWE Beste Wahl“, „REWE Feine Welt“, „ja!“, „REWE“ (Liste als Konstante, erweiterbar). Aus
+     „REWE Bio Rapsöl“ wird „Rapsöl“, aus „REWE Beste Wahl Kidney-Bohnen“ „Kidney-Bohnen“. Bleibt danach nichts übrig,
+     gilt der ursprüngliche Name. Wörter wie „Bio“ allein (z. B. „Bio-Bacon“) bleiben stehen.
    - Das Ergebnis erscheint **immer zuerst im Rezept-Editor zur Prüfung**; gespeichert wird über die normale Rezept-API.
    - Wird kein `Recipe` gefunden (anderes Seitenformat, Captcha), meldet die App das und bietet das manuelle Anlegen an.
 6. **API-Änderung additiv:** Strukturierte Zutaten kommen als neues Feld hinzu; das bisherige `ingredients: string[]` bleibt

@@ -59,10 +59,9 @@ Wir wissen, dass wir richtig liegen, wenn wir **4 Wochen in Folge** die Picnic-B
 - [x] Uhrzeiten: Bestellfrist und Kind-Frist jeweils **16:00 Uhr** (konfigurierbar).
 - [x] Ferien/Abweichungen: Anwesenheit **frei eintragbar und überschreibbar** (beliebige Zeiträume).
 - [x] Zutaten: zunächst **Freitext**; Übernahme aus hinterlegten Rezepten **vor** der Einkaufsliste (Phase 5, ADR-0012).
-- [ ] Wer darf Rezepte anlegen, importieren, ändern und löschen? Vorschlag: alle anlegen/importieren; ändern und löschen
-  nur Eltern und wer das Rezept angelegt hat — vor Phase 5a bestätigen.
-- [ ] Portionen-Vorschlag beim Übernehmen: Anzahl der an dem Tag anwesenden Mitglieder — passt das (z. B. Gäste,
-  Reste für den nächsten Tag)? Vor Phase 5a bestätigen.
+- [x] Rezepte anlegen, importieren, ändern und löschen dürfen **nur Eltern**; Kinder sehen alle Rezepte und wählen sie
+  für ihr Gericht aus (Anwender, 2026-10-18).
+- [x] Portionen-Vorschlag beim Übernehmen: **Anzahl der an dem Tag anwesenden Mitglieder**, änderbar (Anwender, 2026-10-18).
 - [x] Kind darf das Kochen einer Woche **absagen** (z. B. Krankheit, Termin).
 - [x] Absage muss mit **Freitext begründet** werden; keine Bestätigung durch Eltern nötig (sie sehen sie im Wochenstatus).
 
@@ -241,10 +240,12 @@ Als Elternteil möchte ich auf einen Blick sehen, was vor der Bestellung noch fe
 #### Rezepte
 
 ##### REQ-MEAL-060 Rezepte anlegen und pflegen
-Als Familienmitglied möchte ich unsere Lieblingsrezepte mit Zutaten hinterlegen, damit wir sie nicht jede Woche neu
+Als Elternteil möchte ich unsere Lieblingsrezepte mit Zutaten hinterlegen, damit wir sie nicht jede Woche neu
 abtippen.
 
 **Abnahmekriterien**
+- Given ich bin ein Kind, When ich die Rezeptliste öffne, Then kann ich alle Rezepte ansehen, aber keine anlegen,
+  ändern, löschen oder importieren (Server lehnt mit 403 ab).
 - Given ich lege ein Rezept mit Name, Basis-Portionen und Zutaten (Name, optional Menge und Einheit) an, When ich
   speichere, Then erscheint es in der Rezeptliste aller Familienmitglieder.
 - Given ein Rezept ohne Name, ohne Zutaten oder mit Portionen < 1, When ich speichere, Then wird der Fehler gemeldet.
@@ -252,7 +253,7 @@ abtippen.
 - Given die Rezeptliste, When ich einen Suchbegriff eingebe, Then sehe ich nur Rezepte, deren Name ihn enthält.
 
 ##### REQ-MEAL-061 Rezept aus der REWE-Rezeptwelt importieren
-Als Familienmitglied möchte ich ein Rezept von rewe.de über „Teilen“ oder per Link übernehmen, damit Lieblingsrezepte
+Als Elternteil möchte ich ein Rezept von rewe.de über „Teilen“ oder per Link übernehmen, damit Lieblingsrezepte
 mit wenigen Tippern in der App sind.
 
 **Abnahmekriterien**
@@ -261,6 +262,9 @@ mit wenigen Tippern in der App sind.
   „2 Stange(n) Lauch“, „Salz“ ohne Menge), den Zubereitungsschritten und der Quell-URL.
 - Given ein importiertes Rezept, When ich im Editor Zutaten korrigiere und speichere, Then wird es wie ein manuell
   angelegtes Rezept gespeichert; ohne Speichern wird nichts übernommen.
+- Given Zutaten mit Eigenmarken-Präfix wie „REWE Bio Rapsöl“, „REWE Beste Wahl Kidney-Bohnen“ oder „ja! Gouda
+  gerieben“, When importiert wird, Then lauten die Namen „Rapsöl“, „Kidney-Bohnen“ und „Gouda gerieben“ (Menge und
+  Einheit bleiben erhalten, z. B. „1 Dose(n) Kidney-Bohnen“).
 - Given eine Zutatenzeile, die sich nicht in Menge/Einheit/Name zerlegen lässt (z. B. „Saft von 1 Limette“), When
   importiert wird, Then wird die ganze Zeile als Name übernommen.
 - Given eine Seite ohne erkennbares Rezept oder ohne Internetverbindung, When ich importiere, Then erhalte ich eine
@@ -502,6 +506,8 @@ laufen — Achtung: 5b und 7 ändern beide die App; nicht gleichzeitig dieselben
 | Zutaten | Freitext | Menge/Einheit/Name | Einfach für Kinder; Struktur kommt mit Rezepten |
 | Reihenfolge Rezepte/Einkaufsliste (2026-10-18) | Rezepte mit strukturierten Zutaten vor der Einkaufsliste (ADR-0012) | Einkaufsliste aus Freitext zuerst | Auswahl statt Abtippen; Liste kann Mengen zusammenführen und auf Esser umrechnen |
 | Rezept-Import (2026-10-18) | In der App über WebView und schema.org-JSON-LD, mit Prüfung im Editor | Server lädt die URL; Mealie daneben | Server-Abruf wird von REWE mit 403/Captcha abgewiesen; kein zweites System |
+| Rezeptrechte (2026-10-18) | Nur Eltern legen an, importieren, ändern, löschen | Alle dürfen anlegen | Eltern halten die Sammlung sauber; Kinder wählen nur aus |
+| Eigenmarken beim Import (2026-10-18) | Bekannte Marken-Präfixe entfernen („REWE Bio“, „REWE Beste Wahl“, „ja!“, „REWE“) | Namen unverändert übernehmen | Allgemeine Namen lesen sich besser, lassen sich zusammenführen und später bei Picnic finden |
 | Gericht aus Rezept (2026-10-18) | Kopie, umgerechnet auf Portionen | Live-Verknüpfung | Rezeptänderungen dürfen freigegebene Gerichte nicht verändern |
 | Absage | Kind darf mit Freitext-Begründung absagen, ohne Elternbestätigung | Nur Eltern; Bestätigung nötig | Krankheit/Termine kommen vor; Eltern sehen Begründung |
 
