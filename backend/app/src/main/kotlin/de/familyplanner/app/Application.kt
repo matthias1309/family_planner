@@ -16,8 +16,11 @@ import de.familyplanner.core.web.memberRoutes
 import de.familyplanner.meals.attendance.AttendanceService
 import de.familyplanner.meals.attendance.DeadlineSettingsService
 import de.familyplanner.meals.mealsModule
+import de.familyplanner.meals.plan.CookingWeekService
+import de.familyplanner.meals.plan.DishReviewService
 import de.familyplanner.meals.plan.MealPlanService
 import de.familyplanner.meals.web.attendanceRoutes
+import de.familyplanner.meals.web.cookingRoutes
 import de.familyplanner.meals.web.planRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -88,5 +91,6 @@ fun Application.module(
         deviceRoutes(get<DeviceService>())
         attendanceRoutes(get<AttendanceService>(), get<DeadlineSettingsService>())
         planRoutes(get<MealPlanService>())
+        cookingRoutes(get<DishReviewService>(), get<CookingWeekService>())
     }
 }

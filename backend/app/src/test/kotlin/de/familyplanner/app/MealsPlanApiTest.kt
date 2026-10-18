@@ -1,6 +1,7 @@
 package de.familyplanner.app
 
 import de.familyplanner.api.model.DishResponse
+import de.familyplanner.api.model.DishStatus
 import de.familyplanner.api.model.WeekPlan
 import de.familyplanner.api.model.WeekPlanResponse
 import io.ktor.client.HttpClient
@@ -95,6 +96,9 @@ class MealsPlanApiTest {
             assertEquals("Spaghetti", dish.name)
             assertEquals(parentId, dish.cookId)
             assertEquals(listOf("Nudeln", "Tomaten"), dish.ingredients)
+            assertEquals(DishStatus.APPROVED, dish.status)
+            assertEquals(false, dish.late)
+            assertEquals(true, dish.dayValid)
             assertEquals(6, plan.days.count { it.dish == null })
         }
 
@@ -181,7 +185,7 @@ class MealsPlanApiTest {
         }
 
     @Test
-    fun `REQ-AUTH-002 child cannot create, change or delete dishes`() =
+    fun `REQ-AUTH-002 child cannot write dishes of other cooks`() =
         testApplication {
             start()
             val family = setupFamilyWithChild()

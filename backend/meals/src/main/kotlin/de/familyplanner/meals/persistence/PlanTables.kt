@@ -7,6 +7,9 @@ object MealDishesTable : Table("meal_dishes") {
     val mealDate = varchar("meal_date", DATE_LENGTH)
     val cookMemberId = varchar("cook_member_id", ID_LENGTH)
     val name = varchar("name", NAME_LENGTH)
+    val status = varchar("status", STATUS_LENGTH)
+    val rejectionReason = varchar("rejection_reason", REASON_LENGTH).nullable()
+    val late = bool("late")
     val createdAt = long("created_at")
     val updatedAt = long("updated_at")
 
@@ -21,6 +24,17 @@ object MealDishIngredientsTable : Table("meal_dish_ingredients") {
     override val primaryKey = PrimaryKey(dishId, position)
 }
 
+object MealCookingCancellationsTable : Table("meal_cooking_cancellations") {
+    val memberId = varchar("member_id", ID_LENGTH)
+    val weekStart = varchar("week_start", DATE_LENGTH)
+    val reason = varchar("reason", REASON_LENGTH)
+    val createdAt = long("created_at")
+
+    override val primaryKey = PrimaryKey(memberId, weekStart)
+}
+
+private const val STATUS_LENGTH = 9
+private const val REASON_LENGTH = 200
 private const val ID_LENGTH = 36
 private const val DATE_LENGTH = 10
 private const val NAME_LENGTH = 60

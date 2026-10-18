@@ -28,16 +28,16 @@ fun Route.planRoutes(plan: MealPlanService) {
             call.respond(WeekPlanResponse(success = true, data = plan.week(call.weekParameter()).toApi()))
         }
         post("/api/v1/meals/dishes") {
-            call.requireParent()
+            val actor = call.principalOrThrow().toActor()
             val request = call.receive<SaveDishRequest>()
-            val dish = plan.create(parseDate(request.date, "date"), request.cook(), request.name, request.ingredients)
+            val dish = plan.create(actor, parseDate(request.date, "date"), request.cook(), request.name, request.ingredients)
             call.respond(HttpStatusCode.Created, DishResponse(success = true, data = dish.toApi()))
         }
         put("/api/v1/meals/dishes/{dishId}") {
-            call.requireParent()
+            val actor = call.principalOrThrow().toActor()
             val id = call.dishId()
             val request = call.receive<SaveDishRequest>()
-            val dish = plan.update(id, parseDate(request.date, "date"), request.cook(), request.name, request.ingredients)
+            val dish = plan.update(actor, id, parseDate(request.date, "date"), request.cook(), request.name, request.ingredients)
             call.respond(DishResponse(success = true, data = dish.toApi()))
         }
         delete("/api/v1/meals/dishes/{dishId}") {

@@ -1,5 +1,7 @@
 package de.familyplanner.meals.plan
 
+import de.familyplanner.core.member.MemberId
+import de.familyplanner.meals.attendance.PlanWeek
 import java.time.Instant
 import java.time.LocalDate
 
@@ -10,17 +12,42 @@ interface MealPlanRepository {
         to: LocalDate,
     ): List<Dish>
 
-    /** Atomically inserts unless the day already has a dish; never returns [SaveOutcome.NOT_FOUND]. */
+    suspend fun findById(id: DishId): Dish?
+
+    /**
+     * Atomically inserts unless the day already has a dish. With [cookWeek] (child cooks) it also requires that the cook has
+     * no other dish in that week and no cancellation for it. Never returns [SaveOutcome.NOT_FOUND].
+     */
     suspend fun createIfDayFree(
         dish: Dish,
         at: Instant,
+        cookWeek: PlanWeek? = null,
     ): SaveOutcome
 
-    /** Atomically replaces the dish with the same id unless another dish occupies its (new) date. */
+    /** Like [createIfDayFree] for an existing dish; the dish itself does not count as taking its day or week. */
     suspend fun updateIfDayFree(
         dish: Dish,
         at: Instant,
+        cookWeek: PlanWeek? = null,
     ): SaveOutcome
 
     suspend fun delete(id: DishId): Boolean
+
+    /** Atomically sets [status] and [reason] if the dish is SUBMITTED. */
+    suspend fun review(
+        id: DishId,
+        status: DishStatus,
+        reason: String?,
+        at: Instant,
+    ): ReviewOutcome
+
+    suspend fun findCancellations(week: PlanWeek): List<Cancellation>
+
+    /** Atomically stores (or replaces) the cancellation and deletes the cook's dishes in that week, ingredients included. */
+    suspend fun cancel(cancellation: Cancellation)
+
+    suspend fun deleteCancellation(
+        memberId: MemberId,
+        week: PlanWeek,
+    ): Boolean
 }
