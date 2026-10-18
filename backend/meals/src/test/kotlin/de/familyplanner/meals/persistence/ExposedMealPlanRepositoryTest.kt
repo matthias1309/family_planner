@@ -7,8 +7,12 @@ import de.familyplanner.core.member.MemberId
 import de.familyplanner.core.member.Role
 import de.familyplanner.core.persistence.DatabaseFactory
 import de.familyplanner.core.persistence.dbQuery
+import de.familyplanner.meals.attendance.PlanWeek
+import de.familyplanner.meals.plan.Cancellation
 import de.familyplanner.meals.plan.Dish
 import de.familyplanner.meals.plan.DishId
+import de.familyplanner.meals.plan.DishStatus
+import de.familyplanner.meals.plan.ReviewOutcome
 import de.familyplanner.meals.plan.SaveOutcome
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -21,6 +25,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ExposedMealPlanRepositoryTest {
@@ -166,5 +171,150 @@ class ExposedMealPlanRepositoryTest {
             // Assert
             assertEquals(listOf("d2", "d3"), week.map { it.id.value })
             assertEquals(emptyList(), week.first().ingredients)
+        }
+
+    private val week = PlanWeek(LocalDate.parse("2026-10-19"))
+    private var childId = MemberId("unset")
+
+    private suspend fun child(): MemberId = ExposedMemberRepository(db).create(aMember(role = Role.CHILD)).id.also { childId = it }
+
+    private fun childDish(
+        id: String,
+        date: String,
+        status: DishStatus = DishStatus.SUBMITTED,
+    ) = Dish(DishId(id), LocalDate.parse(date), childId, "Pizza", listOf("Teig", "Käse"), status, null, late = true)
+
+    @Test
+    fun `REQ-MEAL-020 status and late flag are stored and read back`() =
+        runTest {
+            // Arrange
+            child()
+            val dish = childDish("c1", "2026-10-20")
+
+            // Act
+            repository.createIfDayFree(dish, now, week)
+
+            // Assert
+            assertEquals(dish, repository.findById(dish.id))
+            assertEquals(listOf(dish), all())
+        }
+
+    @Test
+    fun `REQ-MEAL-020 second dish of the same cook in a week conflicts but next week is free`() =
+        runTest {
+            // Arrange
+            child()
+            repository.createIfDayFree(childDish("c1", "2026-10-20"), now, week)
+
+            // Act
+            val sameWeek = repository.createIfDayFree(childDish("c2", "2026-10-21"), now, week)
+            val nextWeek = repository.createIfDayFree(childDish("c3", "2026-10-27"), now, week.next())
+
+            // Assert
+            assertEquals(SaveOutcome.COOK_WEEK_TAKEN, sameWeek)
+            assertEquals(SaveOutcome.SAVED, nextWeek)
+        }
+
+    @Test
+    fun `REQ-MEAL-022 updating own dish within the week succeeds`() =
+        runTest {
+            // Arrange
+            child()
+            repository.createIfDayFree(childDish("c1", "2026-10-20"), now, week)
+
+            // Act
+            val outcome = repository.updateIfDayFree(childDish("c1", "2026-10-22"), now, week)
+
+            // Assert
+            assertEquals(SaveOutcome.SAVED, outcome)
+            assertEquals("2026-10-22", repository.findById(DishId("c1"))?.date.toString())
+        }
+
+    @Test
+    fun `REQ-MEAL-032 parent dishes are not checked against cook weeks`() =
+        runTest {
+            repository.createIfDayFree(dish("d1", "2026-10-20"), now)
+            assertEquals(SaveOutcome.SAVED, repository.createIfDayFree(dish("d2", "2026-10-21"), now))
+        }
+
+    @Test
+    fun `REQ-MEAL-023 cancellation blocks creating dishes`() =
+        runTest {
+            // Arrange
+            child()
+            repository.cancel(Cancellation(childId, week, "krank", now))
+
+            // Act
+            val outcome = repository.createIfDayFree(childDish("c1", "2026-10-20"), now, week)
+
+            // Assert
+            assertEquals(SaveOutcome.COOK_CANCELLED, outcome)
+        }
+
+    @Test
+    fun `REQ-MEAL-023 cancel deletes dish and ingredients of that week only`() =
+        runTest {
+            // Arrange
+            child()
+            repository.createIfDayFree(childDish("c1", "2026-10-20"), now, week)
+            repository.createIfDayFree(childDish("c2", "2026-10-27"), now, week.next())
+            repository.createIfDayFree(dish("p1", "2026-10-21"), now)
+
+            // Act
+            repository.cancel(Cancellation(childId, week, "krank", now))
+
+            // Assert
+            assertEquals(listOf("p1", "c2"), all().map { it.id.value })
+            assertEquals(5, ingredientRows())
+        }
+
+    @Test
+    fun `REQ-MEAL-023 cancelling twice keeps one entry with the new reason`() =
+        runTest {
+            // Arrange
+            child()
+            repository.cancel(Cancellation(childId, week, "krank", now))
+
+            // Act
+            repository.cancel(Cancellation(childId, week, "Ausflug", now))
+
+            // Assert
+            assertEquals(listOf("Ausflug"), repository.findCancellations(week).map { it.reason })
+            assertTrue(repository.findCancellations(week.next()).isEmpty())
+        }
+
+    @Test
+    fun `REQ-MEAL-023 deleting a cancellation reports whether it existed`() =
+        runTest {
+            child()
+            repository.cancel(Cancellation(childId, week, "krank", now))
+
+            assertTrue(repository.deleteCancellation(childId, week))
+            assertFalse(repository.deleteCancellation(childId, week))
+        }
+
+    @Test
+    fun `REQ-MEAL-030 review only changes pending dishes`() =
+        runTest {
+            // Arrange
+            child()
+            repository.createIfDayFree(childDish("c1", "2026-10-20"), now, week)
+
+            // Act
+            val rejected = repository.review(DishId("c1"), DishStatus.REJECTED, "kein Gemüse", now)
+            val again = repository.review(DishId("c1"), DishStatus.APPROVED, null, now)
+            val missing = repository.review(DishId("nope"), DishStatus.APPROVED, null, now)
+
+            // Assert
+            assertEquals(ReviewOutcome.SAVED, rejected)
+            assertEquals(ReviewOutcome.NOT_PENDING, again)
+            assertEquals(ReviewOutcome.NOT_FOUND, missing)
+            assertEquals("kein Gemüse", repository.findById(DishId("c1"))?.rejectionReason)
+        }
+
+    @Test
+    fun `REQ-MEAL-030 find by id returns null for unknown dish`() =
+        runTest {
+            assertNull(repository.findById(DishId("nope")))
         }
 }

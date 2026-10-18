@@ -44,4 +44,14 @@ class PlanTest {
         // Assert
         plan.days.forEach { assertNull(it.dish) }
     }
+
+    @Test
+    fun `REQ-MEAL-021 week plan marks dish invalid when cook is absent`() {
+        // Act
+        val plan = weekPlanOf(week, listOf(dish("2026-10-21"))) { false }
+
+        // Assert
+        assertEquals(false, plan.days[2].dayValid)
+        assertTrue(plan.days.filter { it.dish == null }.all { it.dayValid })
+    }
 }

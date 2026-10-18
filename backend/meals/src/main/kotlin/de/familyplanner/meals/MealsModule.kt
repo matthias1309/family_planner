@@ -7,6 +7,8 @@ import de.familyplanner.meals.attendance.DeadlineSettingsService
 import de.familyplanner.meals.persistence.ExposedAttendanceRepository
 import de.familyplanner.meals.persistence.ExposedDeadlineSettingsRepository
 import de.familyplanner.meals.persistence.ExposedMealPlanRepository
+import de.familyplanner.meals.plan.CookingWeekService
+import de.familyplanner.meals.plan.DishReviewService
 import de.familyplanner.meals.plan.MealPlanRepository
 import de.familyplanner.meals.plan.MealPlanService
 import org.koin.dsl.module
@@ -20,5 +22,7 @@ fun mealsModule(clock: Clock) =
         single { DeadlineSettingsService(get(), clock) }
         single { AttendanceService(get(), get(), get(), clock) }
         single<MealPlanRepository> { ExposedMealPlanRepository(get()) }
-        single { MealPlanService(get(), get(), clock) }
+        single { MealPlanService(get(), get(), get(), clock) }
+        single { DishReviewService(get(), clock) }
+        single { CookingWeekService(get(), get(), get(), get(), clock) }
     }

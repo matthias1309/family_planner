@@ -12,14 +12,14 @@
 | REQ-MEAL-011 | Anwesenheit frei eintragen/überschreiben | [meals](../03-design/meals.md) | `AttendanceCalculatorTest`, `AttendanceServiceTest`, `ExposedAttendanceRepositoryTest` (`REQ-MEAL-011 …`) App: `PlanWeeksTest`, `ValidationTest`, `UseCasesTest`, `ViewModelsTest`, `ScreensTest`, `LabelsTest` (`REQ-MEAL-011 …`) | `MealsAttendanceApiTest` (`REQ-MEAL-011 …`) App: `RemoteAttendanceRepositoryTest` | manuell: Abnahme Phase 2b ([android/README.md](../../android/README.md)) | abgenommen (Backend + App, 2026-10-18; Offline-Test steht aus) |
 | REQ-MEAL-012 | Kind-Einreichfrist berechnen | [meals](../03-design/meals.md), [ADR-0007](../02-architecture/adr/0007-meal-deadlines-without-remote-access.md) | `DeadlinesTest`, `AttendanceServiceTest` (`REQ-MEAL-012 …`) App: `PlanWeeksTest`, `ValidationTest`, `UseCasesTest`, `ViewModelsTest`, `ScreensTest`, `LabelsTest` (`REQ-MEAL-012 …`) | `MealsAttendanceApiTest` (`REQ-MEAL-012 …`) App: `RemoteAttendanceRepositoryTest` | manuell: Abnahme Phase 2b ([android/README.md](../../android/README.md)) | abgenommen (Backend + App, 2026-10-18; Offline-Test steht aus) |
 | REQ-MEAL-013 | Bestellfrist konfigurieren | [meals](../03-design/meals.md) | `DeadlinesTest`, `DeadlineSettingsServiceTest`, `ExposedAttendanceRepositoryTest` (`REQ-MEAL-013 …`) App: `PlanWeeksTest`, `ValidationTest`, `UseCasesTest`, `ViewModelsTest`, `ScreensTest`, `LabelsTest` (`REQ-MEAL-013 …`) | `MealsAttendanceApiTest` (`REQ-MEAL-013 …`) App: `RemoteAttendanceRepositoryTest` | manuell: Abnahme Phase 2b ([android/README.md](../../android/README.md)) | abgenommen (Backend + App, 2026-10-18; Offline-Test steht aus) |
-| REQ-MEAL-020 | Kochgericht einreichen | | | | | offen |
-| REQ-MEAL-021 | Nur Anwesenheitstage wählbar | | | | | offen |
-| REQ-MEAL-022 | Eingereichtes Gericht ändern | | | | | offen |
-| REQ-MEAL-023 | Kochen absagen | | | | | offen |
-| REQ-MEAL-030 | Freigeben / ablehnen | | | | | offen |
-| REQ-MEAL-031 | Stellvertretend eintragen | | | | | offen |
+| REQ-MEAL-020 | Kochgericht einreichen | [meals](../03-design/meals.md) | `MealPlanServiceTest`, `ChildCookingTest`, `ExposedMealPlanRepositoryTest` (`REQ-MEAL-020 …`) | `MealsSubmissionApiTest` (`REQ-MEAL-020 …`) | | Backend umgesetzt (App folgt in 4b) |
+| REQ-MEAL-021 | Nur Anwesenheitstage wählbar | [meals](../03-design/meals.md) | `MealPlanServiceTest`, `ChildCookingTest`, `PlanTest` (`REQ-MEAL-021 …`) | `MealsSubmissionApiTest` (`REQ-MEAL-021 …`) | | Backend umgesetzt (App folgt in 4b) |
+| REQ-MEAL-022 | Eingereichtes Gericht ändern | [meals](../03-design/meals.md) | `MealPlanServiceTest`, `ExposedMealPlanRepositoryTest` (`REQ-MEAL-022 …`) | `MealsSubmissionApiTest` (`REQ-MEAL-022 …`) | | Backend umgesetzt (App folgt in 4b) |
+| REQ-MEAL-023 | Kochen absagen | [meals](../03-design/meals.md) | `CookingWeekServiceTest`, `ExposedMealPlanRepositoryTest` (`REQ-MEAL-023 …`) | `MealsSubmissionApiTest` (`REQ-MEAL-023 …`) | | Backend umgesetzt (App folgt in 4b) |
+| REQ-MEAL-030 | Freigeben / ablehnen | [meals](../03-design/meals.md) | `DishReviewServiceTest`, `ExposedMealPlanRepositoryTest` (`REQ-MEAL-030 …`) | `MealsSubmissionApiTest` (`REQ-MEAL-030 …`) | | Backend umgesetzt (App folgt in 4b) |
+| REQ-MEAL-031 | Stellvertretend eintragen | [meals](../03-design/meals.md) | `MealPlanServiceTest` (`REQ-MEAL-031 …`) | `MealsSubmissionApiTest` (`REQ-MEAL-031 …`) | | Backend umgesetzt (App folgt in 4b) |
 | REQ-MEAL-032 | Elterngerichte planen | [meals](../03-design/meals.md) | `MealPlanServiceTest`, `ExposedMealPlanRepositoryTest` (`REQ-MEAL-032 …`); App: `ValidationTest`, `UseCasesTest`, `PlanViewModelsTest`, `PlanScreensTest` | `MealsPlanApiTest` (`REQ-MEAL-032 …`); App: `RemoteMealPlanRepositoryTest` | manuell: Abnahme Phase 3b ([android/README.md](../../android/README.md)) | abgenommen (2026-10-18, Geräte-Abnahme 3b) – umgesetzt (Backend + App; Einkaufsliste in Phase 5) |
-| REQ-MEAL-033 | Wochenstatus | | | | | offen |
+| REQ-MEAL-033 | Wochenstatus | [meals](../03-design/meals.md) | `WeekStatusTest`, `CookingWeekServiceTest` (`REQ-MEAL-033 …`) | `MealsSubmissionApiTest` (`REQ-MEAL-033 …`) | | Backend umgesetzt (App folgt in 4b) |
 | REQ-MEAL-040 | Einkaufsliste erzeugen | | | | | offen |
 | REQ-MEAL-041 | Einkaufsliste bearbeiten | | | | | offen |
 | REQ-MEAL-050 | Erinnerung vor Frist | | | | | offen |

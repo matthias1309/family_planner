@@ -1,15 +1,16 @@
 package de.familyplanner.meals.plan
 
 import de.familyplanner.core.error.AppException
-import de.familyplanner.core.fakes.InMemoryMemberRepository
-import de.familyplanner.core.fakes.MutableClock
 import de.familyplanner.core.fakes.aMember
 import de.familyplanner.core.member.MemberId
 import de.familyplanner.core.member.Role
+import de.familyplanner.meals.attendance.AttendancePattern
 import de.familyplanner.meals.attendance.PlanWeek
-import de.familyplanner.meals.fakes.InMemoryMealPlanRepository
+import de.familyplanner.meals.attendance.Presence
+import de.familyplanner.meals.fakes.PlanFixture
 import kotlinx.coroutines.test.runTest
-import java.time.Instant
+import java.time.DayOfWeek
+import java.time.Duration
 import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -17,11 +18,12 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class MealPlanServiceTest {
-    private val clock = MutableClock(Instant.parse("2026-10-14T10:00:00Z"))
-    private val memberRepository = InMemoryMemberRepository()
-    private var nextId = 0
-    private val service = MealPlanService(memberRepository, InMemoryMealPlanRepository(), clock) { "dish-${++nextId}" }
+    private val fixture = PlanFixture()
+    private val clock = fixture.clock
+    private val memberRepository = fixture.members
+    private val service = fixture.mealPlan
     private val week = PlanWeek(date("2026-10-19"))
+    private val admin = Actor(MemberId("admin"), Role.PARENT)
 
     private fun date(value: String) = LocalDate.parse(value)
 
@@ -41,7 +43,7 @@ class MealPlanServiceTest {
             val cook = parent()
 
             // Act
-            val dish = service.create(date("2026-10-20"), cook, "Spaghetti", listOf("Nudeln", "Tomaten"))
+            val dish = service.create(admin, date("2026-10-20"), cook, "Spaghetti", listOf("Nudeln", "Tomaten"))
 
             // Assert
             assertEquals(Dish(DishId("dish-1"), date("2026-10-20"), cook, "Spaghetti", listOf("Nudeln", "Tomaten")), dish)
@@ -52,7 +54,7 @@ class MealPlanServiceTest {
     fun `REQ-MEAL-001 week shows open days without dish`() =
         runTest {
             // Arrange
-            service.create(date("2026-10-20"), parent(), "Spaghetti", emptyList())
+            service.create(admin, date("2026-10-20"), parent(), "Spaghetti", emptyList())
 
             // Act
             val plan = service.week(week)
@@ -66,7 +68,7 @@ class MealPlanServiceTest {
     fun `REQ-MEAL-032 name and ingredients are trimmed and blank lines removed`() =
         runTest {
             // Act
-            val dish = service.create(date("2026-10-20"), parent(), "  Suppe ", listOf(" Lauch ", "", "   ", "Brühe"))
+            val dish = service.create(admin, date("2026-10-20"), parent(), "  Suppe ", listOf(" Lauch ", "", "   ", "Brühe"))
 
             // Assert
             assertEquals("Suppe", dish.name)
@@ -77,7 +79,7 @@ class MealPlanServiceTest {
     fun `REQ-MEAL-032 dish without ingredients is allowed`() =
         runTest {
             // Act
-            val dish = service.create(date("2026-10-20"), parent(), "Reste", emptyList())
+            val dish = service.create(admin, date("2026-10-20"), parent(), "Reste", emptyList())
 
             // Assert
             assertEquals(emptyList(), dish.ingredients)
@@ -87,14 +89,14 @@ class MealPlanServiceTest {
     fun `REQ-MEAL-032 blank name is rejected`() =
         runTest {
             val cook = parent()
-            assertFailsWith<AppException.Validation> { service.create(date("2026-10-20"), cook, "   ", emptyList()) }
+            assertFailsWith<AppException.Validation> { service.create(admin, date("2026-10-20"), cook, "   ", emptyList()) }
         }
 
     @Test
     fun `REQ-MEAL-032 name longer than 60 characters is rejected`() =
         runTest {
             val cook = parent()
-            assertFailsWith<AppException.Validation> { service.create(date("2026-10-20"), cook, "x".repeat(61), emptyList()) }
+            assertFailsWith<AppException.Validation> { service.create(admin, date("2026-10-20"), cook, "x".repeat(61), emptyList()) }
         }
 
     @Test
@@ -102,7 +104,7 @@ class MealPlanServiceTest {
         runTest {
             val cook = parent()
             assertFailsWith<AppException.Validation> {
-                service.create(date("2026-10-20"), cook, "Suppe", listOf("x".repeat(81)))
+                service.create(admin, date("2026-10-20"), cook, "Suppe", listOf("x".repeat(81)))
             }
         }
 
@@ -111,7 +113,7 @@ class MealPlanServiceTest {
         runTest {
             val cook = parent()
             assertFailsWith<AppException.Validation> {
-                service.create(date("2026-10-20"), cook, "Suppe", (1..31).map { "Zutat $it" })
+                service.create(admin, date("2026-10-20"), cook, "Suppe", (1..31).map { "Zutat $it" })
             }
         }
 
@@ -120,7 +122,7 @@ class MealPlanServiceTest {
         runTest {
             val cook = parent()
             assertFailsWith<AppException.Validation> {
-                service.create(date("2026-10-20"), cook, "Suppe", List(101) { "" })
+                service.create(admin, date("2026-10-20"), cook, "Suppe", List(101) { "" })
             }
         }
 
@@ -128,23 +130,23 @@ class MealPlanServiceTest {
     fun `REQ-MEAL-032 30 ingredients plus blank lines are accepted`() =
         runTest {
             // Act
-            val dish = service.create(date("2026-10-20"), parent(), "Suppe", (1..30).map { "Zutat $it" } + List(5) { "" })
+            val dish = service.create(admin, date("2026-10-20"), parent(), "Suppe", (1..30).map { "Zutat $it" } + List(5) { "" })
 
             // Assert
             assertEquals(30, dish.ingredients.size)
         }
 
     @Test
-    fun `REQ-MEAL-032 cook must be a parent`() =
+    fun `REQ-MEAL-031 child that does not cook cannot get a dish`() =
         runTest {
             val child = memberRepository.create(aMember(role = Role.CHILD)).id
-            assertFailsWith<AppException.Validation> { service.create(date("2026-10-20"), child, "Suppe", emptyList()) }
+            assertFailsWith<AppException.Validation> { service.create(admin, date("2026-10-20"), child, "Suppe", emptyList()) }
         }
 
     @Test
     fun `REQ-MEAL-032 unknown cook is rejected`() =
         runTest {
-            assertFailsWith<AppException.NotFound> { service.create(date("2026-10-20"), MemberId("nobody"), "Suppe", emptyList()) }
+            assertFailsWith<AppException.NotFound> { service.create(admin, date("2026-10-20"), MemberId("nobody"), "Suppe", emptyList()) }
         }
 
     @Test
@@ -152,10 +154,10 @@ class MealPlanServiceTest {
         runTest {
             // Arrange
             val cook = parent()
-            service.create(date("2026-10-20"), cook, "Spaghetti", emptyList())
+            service.create(admin, date("2026-10-20"), cook, "Spaghetti", emptyList())
 
             // Act + Assert
-            assertFailsWith<AppException.Conflict> { service.create(date("2026-10-20"), cook, "Suppe", emptyList()) }
+            assertFailsWith<AppException.Conflict> { service.create(admin, date("2026-10-20"), cook, "Suppe", emptyList()) }
         }
 
     @Test
@@ -164,10 +166,10 @@ class MealPlanServiceTest {
             // Arrange
             val cook = parent()
             val other = parent()
-            val dish = service.create(date("2026-10-20"), cook, "Spaghetti", listOf("Nudeln"))
+            val dish = service.create(admin, date("2026-10-20"), cook, "Spaghetti", listOf("Nudeln"))
 
             // Act
-            val updated = service.update(dish.id, date("2026-10-22"), other, "Lasagne", listOf("Platten", "Hack"))
+            val updated = service.update(admin, dish.id, date("2026-10-22"), other, "Lasagne", listOf("Platten", "Hack"))
 
             // Assert
             assertEquals(Dish(dish.id, date("2026-10-22"), other, "Lasagne", listOf("Platten", "Hack")), updated)
@@ -180,10 +182,10 @@ class MealPlanServiceTest {
         runTest {
             // Arrange
             val cook = parent()
-            val dish = service.create(date("2026-10-20"), cook, "Spaghetti", emptyList())
+            val dish = service.create(admin, date("2026-10-20"), cook, "Spaghetti", emptyList())
 
             // Act
-            val updated = service.update(dish.id, date("2026-10-20"), cook, "Spaghetti Carbonara", emptyList())
+            val updated = service.update(admin, dish.id, date("2026-10-20"), cook, "Spaghetti Carbonara", emptyList())
 
             // Assert
             assertEquals("Spaghetti Carbonara", dishOn("2026-10-20")?.name)
@@ -195,11 +197,11 @@ class MealPlanServiceTest {
         runTest {
             // Arrange
             val cook = parent()
-            val tuesday = service.create(date("2026-10-20"), cook, "Spaghetti", emptyList())
-            service.create(date("2026-10-21"), cook, "Suppe", emptyList())
+            val tuesday = service.create(admin, date("2026-10-20"), cook, "Spaghetti", emptyList())
+            service.create(admin, date("2026-10-21"), cook, "Suppe", emptyList())
 
             // Act + Assert
-            assertFailsWith<AppException.Conflict> { service.update(tuesday.id, date("2026-10-21"), cook, "Spaghetti", emptyList()) }
+            assertFailsWith<AppException.Conflict> { service.update(admin, tuesday.id, date("2026-10-21"), cook, "Spaghetti", emptyList()) }
             assertEquals("Spaghetti", dishOn("2026-10-20")?.name)
             assertEquals("Suppe", dishOn("2026-10-21")?.name)
         }
@@ -208,14 +210,23 @@ class MealPlanServiceTest {
     fun `REQ-MEAL-032 updating unknown dish fails`() =
         runTest {
             val cook = parent()
-            assertFailsWith<AppException.NotFound> { service.update(DishId("missing"), date("2026-10-20"), cook, "Suppe", emptyList()) }
+            assertFailsWith<AppException.NotFound> {
+                service.update(
+                    admin,
+                    DishId("missing"),
+                    date("2026-10-20"),
+                    cook,
+                    "Suppe",
+                    emptyList(),
+                )
+            }
         }
 
     @Test
     fun `REQ-MEAL-032 deleting dish reopens day`() =
         runTest {
             // Arrange
-            val dish = service.create(date("2026-10-20"), parent(), "Spaghetti", emptyList())
+            val dish = service.create(admin, date("2026-10-20"), parent(), "Spaghetti", emptyList())
 
             // Act
             service.delete(dish.id)
@@ -228,5 +239,235 @@ class MealPlanServiceTest {
     fun `REQ-MEAL-032 deleting unknown dish fails`() =
         runTest {
             assertFailsWith<AppException.NotFound> { service.delete(DishId("missing")) }
+        }
+
+    private suspend fun submit(
+        child: Actor,
+        day: String = "2026-10-20",
+        ingredients: List<String> = listOf("Nudeln"),
+    ) = service.create(child, date(day), child.id, "Spaghetti", ingredients)
+
+    @Test
+    fun `REQ-MEAL-020 child submits dish and it waits for approval`() =
+        runTest {
+            // Arrange
+            val child = fixture.child()
+
+            // Act
+            val dish = submit(child)
+
+            // Assert
+            assertEquals(DishStatus.SUBMITTED, dish.status)
+            assertEquals(false, dish.late)
+            assertEquals(dish, dishOn("2026-10-20"))
+        }
+
+    @Test
+    fun `REQ-MEAL-020 child dish needs ingredients`() =
+        runTest {
+            val child = fixture.child()
+            assertFailsWith<AppException.Validation> { submit(child, ingredients = listOf("", " ")) }
+        }
+
+    @Test
+    fun `REQ-MEAL-020 late submission is marked`() =
+        runTest {
+            // Arrange: Sunday 17:00 Berlin, deadline was 16:00
+            val child = fixture.child()
+            clock.advance(Duration.ofDays(4).plusHours(5))
+
+            // Act
+            val dish = submit(child)
+
+            // Assert
+            assertEquals(true, dish.late)
+        }
+
+    @Test
+    fun `REQ-MEAL-020 child cannot submit for another cook`() =
+        runTest {
+            val child = fixture.child()
+            val sibling = fixture.child()
+            val parent = parent()
+            assertFailsWith<AppException.Forbidden> { service.create(child, date("2026-10-20"), sibling.id, "Suppe", listOf("Lauch")) }
+            assertFailsWith<AppException.Forbidden> { service.create(child, date("2026-10-20"), parent, "Suppe", emptyList()) }
+        }
+
+    @Test
+    fun `REQ-MEAL-020 one dish per child and week`() =
+        runTest {
+            val child = fixture.child()
+            submit(child, "2026-10-20")
+            assertFailsWith<AppException.Conflict> { submit(child, "2026-10-21") }
+        }
+
+    @Test
+    fun `REQ-MEAL-020 submitting is blocked while cancelled`() =
+        runTest {
+            // Arrange
+            val child = fixture.child()
+            fixture.planRepository.cancel(Cancellation(child.id, week, "krank", clock.instant()))
+
+            // Act + Assert
+            assertFailsWith<AppException.Conflict> { submit(child) }
+        }
+
+    @Test
+    fun `REQ-MEAL-020 children cannot submit for a past week`() =
+        runTest {
+            val child = fixture.child()
+            assertFailsWith<AppException.Validation> { submit(child, "2026-10-13") }
+        }
+
+    @Test
+    fun `REQ-MEAL-020 child that does not cook cannot submit`() =
+        runTest {
+            val child = fixture.child(cooks = false)
+            assertFailsWith<AppException.Validation> { submit(child) }
+        }
+
+    @Test
+    fun `REQ-MEAL-021 child cannot pick an absent day`() =
+        runTest {
+            // Arrange: present Tuesday to Thursday only
+            val pattern = AttendancePattern.Alternating(setOf(DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY), emptySet(), week)
+            val child = fixture.child(pattern = pattern)
+
+            // Act + Assert
+            assertFailsWith<AppException.Validation> { submit(child, "2026-10-23") }
+            submit(child, "2026-10-21")
+        }
+
+    @Test
+    fun `REQ-MEAL-021 week plan flags dish whose day became absent`() =
+        runTest {
+            // Arrange
+            val child = fixture.child()
+            submit(child)
+
+            // Act
+            fixture.attendance.addException(child.id, date("2026-10-20"), date("2026-10-20"), Presence.ABSENT, null)
+
+            // Assert
+            assertEquals(false, service.week(week).days[1].dayValid)
+            assertEquals(true, service.week(week).days[2].dayValid)
+        }
+
+    @Test
+    fun `REQ-MEAL-022 child edit keeps pending`() =
+        runTest {
+            val child = fixture.child()
+            val dish = submit(child)
+
+            val edited = service.update(child, dish.id, dish.date, child.id, "Lasagne", listOf("Platten"))
+
+            assertEquals(DishStatus.SUBMITTED, edited.status)
+            assertEquals("Lasagne", dishOn("2026-10-20")?.name)
+        }
+
+    @Test
+    fun `REQ-MEAL-022 approved dish needs approval again after child edit`() =
+        runTest {
+            // Arrange
+            val child = fixture.child()
+            val dish = submit(child)
+            fixture.planRepository.review(dish.id, DishStatus.APPROVED, null, clock.instant())
+
+            // Act
+            val edited = service.update(child, dish.id, dish.date, child.id, "Lasagne", listOf("Platten"))
+
+            // Assert
+            assertEquals(DishStatus.SUBMITTED, edited.status)
+        }
+
+    @Test
+    fun `REQ-MEAL-022 rejected dish is resubmitted`() =
+        runTest {
+            // Arrange
+            val child = fixture.child()
+            val dish = submit(child)
+            fixture.planRepository.review(dish.id, DishStatus.REJECTED, "kein Gemüse", clock.instant())
+
+            // Act
+            val edited = service.update(child, dish.id, dish.date, child.id, "Gemüsepfanne", listOf("Paprika"))
+
+            // Assert
+            assertEquals(DishStatus.SUBMITTED, edited.status)
+            assertNull(edited.rejectionReason)
+            assertNull(dishOn("2026-10-20")?.rejectionReason)
+        }
+
+    @Test
+    fun `REQ-MEAL-022 edit after deadline is marked late`() =
+        runTest {
+            // Arrange
+            val child = fixture.child()
+            val dish = submit(child)
+            clock.advance(Duration.ofDays(4).plusHours(5))
+
+            // Act
+            val edited = service.update(child, dish.id, dish.date, child.id, "Lasagne", listOf("Platten"))
+
+            // Assert
+            assertEquals(true, edited.late)
+        }
+
+    @Test
+    fun `REQ-MEAL-022 child cannot edit another member's dish or hand dish to another cook`() =
+        runTest {
+            // Arrange
+            val child = fixture.child()
+            val sibling = fixture.child()
+            val parentDish = service.create(admin, date("2026-10-21"), parent(), "Suppe", emptyList())
+            val own = submit(child)
+
+            // Act + Assert
+            assertFailsWith<AppException.Forbidden> { service.update(child, parentDish.id, parentDish.date, child.id, "X", listOf("y")) }
+            assertFailsWith<AppException.Forbidden> { service.update(child, own.id, own.date, sibling.id, "X", listOf("y")) }
+        }
+
+    @Test
+    fun `REQ-MEAL-022 child can move dish within week`() =
+        runTest {
+            val child = fixture.child()
+            val dish = submit(child, "2026-10-20")
+
+            val moved = service.update(child, dish.id, date("2026-10-21"), child.id, "Spaghetti", listOf("Nudeln"))
+
+            assertEquals(date("2026-10-21"), moved.date)
+        }
+
+    @Test
+    fun `REQ-MEAL-031 parent enters child dish approved`() =
+        runTest {
+            val child = fixture.child()
+
+            val dish = service.create(admin, date("2026-10-20"), child.id, "Spaghetti", listOf("Nudeln"))
+
+            assertEquals(DishStatus.APPROVED, dish.status)
+            assertEquals(false, dish.late)
+        }
+
+    @Test
+    fun `REQ-MEAL-031 parent edit of child dish keeps late flag`() =
+        runTest {
+            // Arrange
+            val child = fixture.child()
+            clock.advance(Duration.ofDays(4).plusHours(5))
+            val dish = submit(child)
+
+            // Act
+            val edited = service.update(admin, dish.id, dish.date, child.id, "Lasagne", listOf("Platten"))
+
+            // Assert
+            assertEquals(DishStatus.APPROVED, edited.status)
+            assertEquals(true, edited.late)
+        }
+
+    @Test
+    fun `REQ-MEAL-031 parent cannot enter dish for non-cooking child`() =
+        runTest {
+            val child = fixture.child(cooks = false)
+            assertFailsWith<AppException.Validation> { service.create(admin, date("2026-10-20"), child.id, "Suppe", listOf("Lauch")) }
         }
 }

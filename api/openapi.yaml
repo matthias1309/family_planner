@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Family Planner API
-  version: 0.3.0
+  version: 0.4.0
   description: Vertrag zwischen Android-App und Backend (ADR-0004). Alle Antworten nutzen den Envelope {success, data, error}.
 servers:
   - url: https://planner.home.arpa:8095
@@ -337,11 +337,69 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
+  /api/v1/meals/weeks/{weekStart}/status:
+    get:
+      operationId: getWeekStatus
+      tags: [meals]
+      summary: "Wochenstatus: offene Tage, Einreichungen, Freigaben"
+      parameters:
+        - $ref: '#/components/parameters/WeekStart'
+      responses:
+        '200':
+          description: Wochenstatus
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WeekStatusResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/weeks/{weekStart}/cancellations/{memberId}:
+    put:
+      operationId: cancelCooking
+      tags: [meals]
+      summary: Kochen einer Woche absagen (Kind für sich, Eltern für jedes Kind)
+      parameters:
+        - $ref: '#/components/parameters/WeekStart'
+        - $ref: '#/components/parameters/MemberId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CancelCookingRequest' }
+      responses:
+        '200':
+          description: Absage gespeichert, Gericht der Woche entfernt
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CookingCancellationResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    delete:
+      operationId: withdrawCookingCancellation
+      tags: [meals]
+      summary: Absage zurücknehmen
+      parameters:
+        - $ref: '#/components/parameters/WeekStart'
+        - $ref: '#/components/parameters/MemberId'
+      responses:
+        '204':
+          description: Absage zurückgenommen
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
   /api/v1/meals/dishes:
     post:
       operationId: createDish
       tags: [meals]
-      summary: Gericht planen (nur Eltern)
+      summary: Gericht planen (Eltern) oder einreichen (kochendes Kind, nur für sich)
+      description: Eltern speichern direkt freigegeben. Ein Kind darf nur mit cookId gleich der eigenen ID einreichen (Status SUBMITTED); für andere 403.
       requestBody:
         required: true
         content:
@@ -364,7 +422,7 @@ paths:
     put:
       operationId: updateDish
       tags: [meals]
-      summary: Gericht ändern oder verschieben (nur Eltern)
+      summary: Gericht ändern oder verschieben (Eltern; Kind nur eigenes)
       parameters:
         - $ref: '#/components/parameters/DishId'
       requestBody:
@@ -397,6 +455,45 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/dishes/{dishId}/approval:
+    post:
+      operationId: approveDish
+      tags: [meals]
+      summary: Kindergericht freigeben (nur Eltern)
+      parameters:
+        - $ref: '#/components/parameters/DishId'
+      responses:
+        '204':
+          description: Gericht freigegeben
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/dishes/{dishId}/rejection:
+    post:
+      operationId: rejectDish
+      tags: [meals]
+      summary: Kindergericht mit Begründung ablehnen (nur Eltern)
+      parameters:
+        - $ref: '#/components/parameters/DishId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RejectDishRequest' }
+      responses:
+        '204':
+          description: Gericht abgelehnt
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
 components:
@@ -871,7 +968,7 @@ components:
 
     Dish:
       type: object
-      required: [id, date, cookId, name, ingredients]
+      required: [id, date, cookId, name, ingredients, status, late, dayValid]
       properties:
         id: { type: string, format: uuid }
         date: { type: string, format: date }
@@ -881,6 +978,10 @@ components:
           type: array
           maxItems: 30
           items: { type: string, minLength: 1, maxLength: 80 }
+        status: { $ref: '#/components/schemas/DishStatus' }
+        rejectionReason: { type: string, maxLength: 200, nullable: true }
+        late: { type: boolean, description: Vom Kind nach seiner Frist gespeichert }
+        dayValid: { type: boolean, description: 'false, wenn das kochende Kind an dem Tag nicht (mehr) anwesend ist' }
 
     SaveDishRequest:
       type: object
@@ -938,6 +1039,89 @@ components:
         data:
           allOf:
             - $ref: '#/components/schemas/WeekPlan'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    DishStatus:
+      type: string
+      description: SUBMITTED = wartet auf Freigabe, APPROVED = freigegeben, REJECTED = abgelehnt
+      enum: [SUBMITTED, APPROVED, REJECTED]
+
+    RejectDishRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 200 }
+
+    CancelCookingRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 200 }
+
+    CookingCancellation:
+      type: object
+      required: [memberId, weekStart, reason]
+      properties:
+        memberId: { type: string, format: uuid }
+        weekStart: { type: string, format: date }
+        reason: { type: string, minLength: 1, maxLength: 200 }
+
+    CookState:
+      type: string
+      enum: [NOT_SUBMITTED, SUBMITTED, APPROVED, REJECTED, CANCELLED]
+
+    CookStatus:
+      type: object
+      required: [memberId, state, late, dayValid]
+      properties:
+        memberId: { type: string, format: uuid }
+        submissionDeadline: { type: string, format: date-time, nullable: true }
+        state: { $ref: '#/components/schemas/CookState' }
+        dishId: { type: string, format: uuid, nullable: true }
+        late: { type: boolean }
+        dayValid: { type: boolean }
+        cancellationReason: { type: string, maxLength: 200, nullable: true }
+
+    WeekStatus:
+      type: object
+      required: [weekStart, orderDeadline, readyToOrder, openDays, cooks]
+      properties:
+        weekStart: { type: string, format: date }
+        orderDeadline: { type: string, format: date-time }
+        readyToOrder: { type: boolean }
+        openDays:
+          type: array
+          items: { type: string, format: date }
+        cooks:
+          type: array
+          items: { $ref: '#/components/schemas/CookStatus' }
+
+    CookingCancellationResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/CookingCancellation'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    WeekStatusResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/WeekStatus'
           nullable: true
         error:
           allOf:

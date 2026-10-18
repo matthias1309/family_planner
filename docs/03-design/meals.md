@@ -1,9 +1,9 @@
-# Moduldesign: `meals` – Anwesenheit, Fristen & Wochenplan
+# Moduldesign: `meals` – Anwesenheit, Fristen, Wochenplan & Einreichung
 
 ## Abgedeckte Anforderungen
 
 REQ-MEAL-010, REQ-MEAL-011, REQ-MEAL-012, REQ-MEAL-013 (Phase 2), REQ-MEAL-001, REQ-MEAL-032 und – auf der App-Seite
-(Phase 3b) – REQ-MEAL-002 (Phase 3) — siehe [meals.prd.md](../01-requirements/meals.prd.md).
+(Phase 3b) – REQ-MEAL-002 (Phase 3) sowie REQ-MEAL-020, -021, -022, -023, -030, -031, -033 (Phase 4, Backend/API) — siehe [meals.prd.md](../01-requirements/meals.prd.md).
 Konventionen für Feature-Module: [ADR-0010](../02-architecture/adr/0010-backend-feature-modules.md).
 Fristen ohne Fernzugriff: [ADR-0007](../02-architecture/adr/0007-meal-deadlines-without-remote-access.md).
 Die Eltern-UI in der App (Phase 2b) steht im Abschnitt „App-Seite (Phase 2b)“, Essensplan und Offline-Cache im Abschnitt
@@ -43,7 +43,10 @@ Endpunkte siehe `api/openapi.yaml` (Tag `meals`), Lesen für alle Mitglieder, Sc
 - `GET|PUT /api/v1/meals/settings`
 - `GET /api/v1/meals/weeks/{weekStart}/attendance` (Schnittstelle für Phase 3/4 und die Erinnerungen in Phase 6)
 - `GET /api/v1/meals/weeks/{weekStart}/plan` (Wochenplan, alle Mitglieder)
-- `POST /api/v1/meals/dishes`, `PUT|DELETE /api/v1/meals/dishes/{dishId}` (Elterngerichte, nur Eltern)
+- `POST /api/v1/meals/dishes`, `PUT /api/v1/meals/dishes/{dishId}` (Eltern; Kinder nur eigene Gerichte, Phase 4), `DELETE /api/v1/meals/dishes/{dishId}` (nur Eltern)
+- `POST /api/v1/meals/dishes/{dishId}/approval`, `POST …/rejection` (Phase 4, nur Eltern, 204)
+- `PUT|DELETE /api/v1/meals/weeks/{weekStart}/cancellations/{memberId}` (Absage und Rücknahme, Kind für sich, Eltern für jedes Kind)
+- `GET /api/v1/meals/weeks/{weekStart}/status` (Wochenstatus, alle Mitglieder)
 
 ## DB-Tabellen
 
@@ -52,6 +55,9 @@ Migration `V2__meals_attendance.sql`: `meal_attendance_profiles` (Tagesmasken: B
 
 Migration `V3__meals_plan.sql`: `meal_dishes` (eindeutiger **Index** auf `meal_date` = ein Gericht je Tag; als Index statt
 Constraint, damit Phase 4 ihn ersetzen kann) und `meal_dish_ingredients` (`dish_id`, `position`, `text`; eine Zeile je Zutat).
+
+Migration `V4__meals_submissions.sql`: `meal_dishes` + `status` (Default `APPROVED`), `rejection_reason`, `late`; Index
+`(cook_member_id, meal_date)`; Tabelle `meal_cooking_cancellations` (`member_id`, `week_start`, `reason`, `created_at`).
 
 ## Unit-Testfälle
 
@@ -76,7 +82,7 @@ von `ZonedDateTime` nach vorn verschoben; praktisch irrelevant.
 | Woche lesen | jede Woche (Montag 2000–2100), alle Mitglieder; welche Woche die App zeigt, entscheidet die App (3b) |
 | Name | getrimmt, 1–60 Zeichen |
 | Zutaten | Freitext, eine Zeile je Zutat; Zeilen getrimmt, Leerzeilen entfernt, max. 80 Zeichen je Zeile, max. 30 Zeilen (nach dem Entfernen); roh höchstens 100 Zeilen inkl. Leerzeilen, damit die Eingabe begrenzt bleibt |
-| Koch/Köchin | muss existieren (404) und – in Phase 3 – Elternteil sein (400); Phase 4 öffnet das für Kinder (Stellvertretung) |
+| Koch/Köchin | muss existieren (404); Elternteil → Regeln dieses Abschnitts, Kind → siehe „Einreichung & Freigabe (Phase 4)“ |
 | Ändern | ersetzt Datum, Koch/Köchin, Name, Zutaten vollständig |
 | Vergangene Tage | erlaubt, keine Sperre |
 
@@ -85,6 +91,44 @@ erst für Kindergerichte (REQ-MEAL-020); Koch/Köchin frei unter den Eltern wäh
 (Reihenfolge, späterer Ausbau zu strukturierten Zutaten), in der API als `string[]`. Der zweite Teil von REQ-MEAL-032
 („Zutaten stehen auf der Einkaufsliste“) wird in Phase 5 umgesetzt. Offline-Lesen (REQ-MEAL-002) ist App-Seite (Phase 3b);
 die API liefert nur IDs, Namen löst die App über `GET /api/v1/members` auf.
+
+## Einreichung & Freigabe (Phase 4)
+
+Entscheidungen des Anwenders (2026-10-18): Ändern nach der Frist erlaubt und als „nach Frist“ markiert (keine Sperre,
+ADR-0007); Absage durch Kind **und** Eltern, Rücknahme möglich; Wochenstatus für **alle** Mitglieder lesbar; Kinder löschen nicht
+selbst, sondern sagen nur ab. Dieser Stand ist Backend/API (4a); die App folgt in 4b.
+
+| Begriff | Definition |
+|---|---|
+| `DishStatus` | `SUBMITTED` („wartet auf Freigabe“), `APPROVED` („freigegeben“), `REJECTED` („abgelehnt“). Bestehende und von Eltern gespeicherte Gerichte sind `APPROVED`. |
+| `Dish` (erweitert) | + `status`, `rejectionReason`, `late` |
+| `Actor` | `id`, `role` — wer schreibt (aus dem Geräte-Token) |
+| Kocht in Woche W | Kind hat in `AttendanceService.week(W)` eine Einreichfrist (`cooks=true` und in W an mind. einem Tag anwesend) |
+| Regeln für **jedes** Kindergericht (Kind oder Eltern speichern) | (1) Kind kocht in der Planwoche, sonst 400; (2) Tag ist Anwesenheitstag, sonst 400 (REQ-MEAL-021); (3) mind. eine Zutat, sonst 400 (REQ-MEAL-020); (4) höchstens **ein** Gericht je Kind und Planwoche, sonst 409; (5) keine Absage für Kind+Woche, sonst 409. (4)+(5) atomar im Repository. |
+| Kind als Akteur | darf nur `cookId == eigene ID` anlegen und nur eigene Gerichte ändern (sonst 403); Planwoche ≥ aktuelle Planwoche, sonst 400; Löschen: 403 |
+| Status beim Speichern | Kind: immer `SUBMITTED`, Ablehnungsgrund gelöscht, `late = jetzt > Einreichfrist` (bei **jedem** Speichern neu). Eltern: immer `APPROVED`, Grund gelöscht; `late` beim Anlegen `false`, beim Ändern übernommen, wenn der Koch gleich bleibt. |
+| Elterngericht | Regeln aus Phase 3 unverändert (Zutaten optional, keine Wochen-/Anwesenheitsprüfung) |
+| Freigabe / Ablehnung (REQ-MEAL-030) | nur Eltern, nur aus `SUBMITTED`, sonst 409; Ablehnung braucht Begründung (1–200 Zeichen). Abgelehntes Gericht blockiert den Tag, bis das Kind es ändert (→ `SUBMITTED`) oder Eltern es löschen. |
+| Absage (REQ-MEAL-023) | `PUT …/cancellations/{memberId}` mit Begründung (1–200); Ziel ist ein Kind, das in der Woche kocht, Woche ≥ aktuelle Planwoche; idempotent; **löscht atomar** das Gericht des Kindes in der Woche samt Zutaten. `DELETE` nimmt die Absage zurück (404 ohne Absage). |
+| `dayValid` (REQ-MEAL-021) | beim Lesen berechnet: Kindergericht und Kind an dem Tag laut Anwesenheit (inkl. Ausnahmen) abwesend → `false`. |
+| Zustand je Koch | Absage → `CANCELLED`; sonst Gericht der Woche → dessen Status; sonst `NOT_SUBMITTED`. Köche = Kinder, die kochen, plus Kinder mit einem Gericht in der Woche. |
+| `WeekStatus` (REQ-MEAL-033) | `openDays`, `cooks`, `orderDeadline`, `readyToOrder = keine offenen Tage ∧ alle Gerichte APPROVED ∧ alle dayValid` |
+
+Statusübergänge:
+
+| Aktion | Akteur | vorher | nachher |
+|---|---|---|---|
+| anlegen | Kind (eigenes) | – | `SUBMITTED`, `late` berechnet |
+| anlegen | Eltern | – | `APPROVED` |
+| ändern | Kind (eigenes) | beliebig | `SUBMITTED`, Grund gelöscht, `late` neu |
+| ändern | Eltern | beliebig | `APPROVED`, Grund gelöscht |
+| freigeben | Eltern | `SUBMITTED` | `APPROVED` |
+| ablehnen | Eltern | `SUBMITTED` | `REJECTED` + Grund |
+| absagen | Kind / Eltern | Gericht der Woche (beliebig) | gelöscht, Absage gespeichert |
+| löschen | Eltern | beliebig | gelöscht |
+
+Freigabe und Ablehnung antworten mit 204 ohne Body; die App lädt Plan und Status danach neu. Benachrichtigungen
+(REQ-MEAL-052) und Einkaufsliste (Phase 5) sind nicht Teil von 4a.
 
 ## App-Seite (Phase 2b)
 
