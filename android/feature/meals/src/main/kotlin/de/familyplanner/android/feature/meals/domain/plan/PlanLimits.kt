@@ -7,6 +7,9 @@ object PlanLimits {
     const val INGREDIENTS_MAX_COUNT = 30
     const val INGREDIENT_LINES_RAW_MAX = 100
 
+    /** Begründung für Absage und Ablehnung. */
+    const val REASON_MAX = 200
+
     /** Höchstens so viele Wochen bleiben im Offline-Cache (ADR-0011). */
     const val CACHED_WEEKS_MAX = 8
 }

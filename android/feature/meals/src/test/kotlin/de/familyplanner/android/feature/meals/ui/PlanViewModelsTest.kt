@@ -4,12 +4,19 @@ import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.core.testing.MainDispatcherRule
+import de.familyplanner.android.feature.meals.domain.cooking.CancelCookingUseCase
+import de.familyplanner.android.feature.meals.domain.cooking.CookingUseCases
+import de.familyplanner.android.feature.meals.domain.cooking.LoadWeekStatusUseCase
+import de.familyplanner.android.feature.meals.domain.cooking.ReviewDishUseCase
+import de.familyplanner.android.feature.meals.domain.cooking.WithdrawCancellationUseCase
 import de.familyplanner.android.feature.meals.domain.plan.DeleteDishUseCase
 import de.familyplanner.android.feature.meals.domain.plan.Dish
 import de.familyplanner.android.feature.meals.domain.plan.DishUseCases
 import de.familyplanner.android.feature.meals.domain.plan.LoadDishEditorUseCase
 import de.familyplanner.android.feature.meals.domain.plan.LoadWeekPlanUseCase
 import de.familyplanner.android.feature.meals.domain.plan.SaveDishUseCase
+import de.familyplanner.android.feature.meals.fakes.FakeAttendanceRepository
+import de.familyplanner.android.feature.meals.fakes.FakeCookingRepository
 import de.familyplanner.android.feature.meals.fakes.FakeMealPlanRepository
 import de.familyplanner.android.feature.meals.fakes.InMemoryPlanCache
 import de.familyplanner.android.feature.meals.fakes.childSession
@@ -17,6 +24,7 @@ import de.familyplanner.android.feature.meals.fakes.parentSession
 import de.familyplanner.android.feature.meals.fakes.someDish
 import de.familyplanner.android.feature.meals.fakes.thisWeek
 import de.familyplanner.android.feature.meals.fakes.weekPlanOf
+import de.familyplanner.android.feature.meals.ui.dish.DishEditArgs
 import de.familyplanner.android.feature.meals.ui.dish.DishEditEvent
 import de.familyplanner.android.feature.meals.ui.dish.DishEditViewModel
 import de.familyplanner.android.feature.meals.ui.plan.WeekPlanEvent
@@ -46,17 +54,33 @@ class PlanViewModelsTest {
     // Samstag, 17.10.2026, 12:00 Berlin
     private val saturday = Clock.fixed(Instant.parse("2026-10-17T10:00:00Z"), ZoneId.of("Europe/Berlin"))
 
+    private val attendance = FakeAttendanceRepository()
+    private val cooking = FakeCookingRepository()
+
     private fun planViewModel(clock: Clock = saturday) =
-        WeekPlanViewModel(sessions, LoadWeekPlanUseCase(repository, cache, sessions, clock), clock)
+        WeekPlanViewModel(
+            sessions,
+            LoadWeekPlanUseCase(repository, cache, sessions, clock),
+            CookingUseCases(
+                LoadWeekStatusUseCase(cooking, repository),
+                CancelCookingUseCase(cooking),
+                WithdrawCancellationUseCase(cooking),
+            ),
+            clock,
+        )
 
     private fun editViewModel(
         date: LocalDate = thisWeek.plusDays(1),
         dishId: String? = null,
     ) = DishEditViewModel(
-        date,
-        dishId,
+        DishEditArgs(date, dishId),
         sessions,
-        DishUseCases(LoadDishEditorUseCase(repository), SaveDishUseCase(repository), DeleteDishUseCase(repository)),
+        DishUseCases(
+            LoadDishEditorUseCase(repository, attendance),
+            SaveDishUseCase(repository),
+            DeleteDishUseCase(repository),
+            ReviewDishUseCase(cooking),
+        ),
     )
 
     @Test
@@ -299,13 +323,15 @@ class PlanViewModelsTest {
 
     @Test
     fun `date taken by another device cannot be saved`() {
-        // Das Gericht d-1 liegt schon auf dem Montag: neues Gericht für denselben Tag.
+        // Das Gericht d-1 liegt schon auf dem Montag: der belegte Tag wird nicht vorausgewählt und lässt sich nicht wählen.
         val viewModel = editViewModel(thisWeek)
         viewModel.onEvent(DishEditEvent.NameChanged("Curry"))
+        assertEquals(thisWeek.plusDays(1), viewModel.state.value.date)
 
-        assertFalse(viewModel.state.value.canSave)
-        viewModel.onEvent(DishEditEvent.Save)
-        assertTrue(repository.created.isEmpty())
+        viewModel.onEvent(DishEditEvent.DateSelected(thisWeek))
+
+        assertEquals(thisWeek.plusDays(1), viewModel.state.value.date)
+        assertFalse(thisWeek in viewModel.state.value.allowedDates)
     }
 
     @Test

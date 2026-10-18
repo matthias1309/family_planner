@@ -9,6 +9,7 @@ import de.familyplanner.android.core.testing.MainDispatcherRule
 import de.familyplanner.android.feature.meals.domain.plan.PlanCache
 import de.familyplanner.android.feature.meals.fakes.InMemoryPlanCache
 import de.familyplanner.android.feature.meals.fakes.parentSession
+import de.familyplanner.android.feature.meals.ui.dish.DishEditArgs
 import de.familyplanner.android.feature.meals.ui.dish.DishEditViewModel
 import de.familyplanner.android.feature.meals.ui.plan.WeekPlanViewModel
 import de.familyplanner.android.feature.meals.ui.profile.ProfileEditViewModel
@@ -51,7 +52,7 @@ class MealsModuleTest {
         assertNotNull(koin.get<ProfileEditViewModel> { parametersOf("c-1") })
         assertNotNull(koin.get<DeadlineSettingsViewModel>())
         assertNotNull(koin.get<WeekPlanViewModel>())
-        assertNotNull(koin.get<DishEditViewModel> { parametersOf(LocalDate.of(2026, 10, 12), null) })
-        assertNotNull(koin.get<DishEditViewModel> { parametersOf(LocalDate.of(2026, 10, 12), "d-1") })
+        assertNotNull(koin.get<DishEditViewModel> { parametersOf(DishEditArgs(LocalDate.of(2026, 10, 19))) })
+        assertNotNull(koin.get<DishEditViewModel> { parametersOf(DishEditArgs(LocalDate.of(2026, 10, 19), "d-1")) })
     }
 }

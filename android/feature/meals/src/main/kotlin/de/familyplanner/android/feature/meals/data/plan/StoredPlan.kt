@@ -3,10 +3,12 @@ package de.familyplanner.android.feature.meals.data.plan
 import de.familyplanner.android.feature.meals.data.mapAllOrNull
 import de.familyplanner.android.feature.meals.data.parseDate
 import de.familyplanner.android.feature.meals.domain.plan.Dish
+import de.familyplanner.android.feature.meals.domain.plan.DishStatus
 import de.familyplanner.android.feature.meals.domain.plan.PlannedDay
 import de.familyplanner.android.feature.meals.domain.plan.WeekPlanSnapshot
 import kotlinx.serialization.Serializable
 import java.time.Instant
+import java.time.LocalDate
 
 internal const val CACHE_VERSION = 1
 
@@ -38,7 +40,14 @@ data class StoredDish(
     val cookId: String,
     val name: String,
     val ingredients: List<String>,
+    // Defaults: Cache-Dateien aus 3b (ohne diese Felder) bleiben lesbar; dort gab es nur Elterngerichte.
+    val status: String = "APPROVED",
+    val rejectionReason: String? = null,
+    val late: Boolean = false,
+    val dayValid: Boolean = true,
 )
+
+internal fun Dish.toStored() = StoredDish(id, cookId, name, ingredients, status.name, rejectionReason, late, dayValid)
 
 internal fun WeekPlanSnapshot.toStored() =
     StoredWeek(
@@ -46,7 +55,7 @@ internal fun WeekPlanSnapshot.toStored() =
         syncedAtMillis = syncedAt.toEpochMilli(),
         days =
             days.map { day ->
-                StoredDay(day.date.toString(), day.dish?.let { StoredDish(it.id, it.cookId, it.name, it.ingredients) }, day.cookName)
+                StoredDay(day.date.toString(), day.dish?.toStored(), day.cookName)
             },
     )
 
@@ -59,6 +68,11 @@ internal fun StoredWeek.toDomain(): WeekPlanSnapshot? {
 
 private fun StoredDay.toDomain(): PlannedDay? {
     val day = parseDate(date) ?: return null
-    val mapped = dish?.let { Dish(it.id, day, it.cookId, it.name, it.ingredients) }
+    val mapped = dish?.let { it.toDomain(day) ?: return null }
     return PlannedDay(day, mapped, cookName)
+}
+
+private fun StoredDish.toDomain(day: LocalDate): Dish? {
+    val parsed = DishStatus.entries.firstOrNull { it.name == status } ?: return null
+    return Dish(id, day, cookId, name, ingredients, parsed, rejectionReason, late, dayValid)
 }

@@ -7,6 +7,7 @@ import de.familyplanner.android.core.data.network.createJson
 import de.familyplanner.android.core.data.network.createRetrofit
 import de.familyplanner.android.feature.meals.data.plan.RemoteMealPlanRepository
 import de.familyplanner.android.feature.meals.domain.plan.DishDraft
+import de.familyplanner.android.feature.meals.domain.plan.DishStatus
 import de.familyplanner.api.client.MealsApi
 import de.familyplanner.api.client.MembersApi
 import de.familyplanner.api.model.SaveDishRequest
@@ -96,6 +97,53 @@ class RemoteMealPlanRepositoryTest {
                     ?.ingredients,
             )
             assertNull(plan.days[1].dish)
+        }
+
+    private fun singleDayWeek(dish: String) = ok("""{"weekStart":"2026-10-12","days":${weekJson().replace(dishJson, dish)}}""")
+
+    @Test
+    fun `REQ-MEAL-020 dish maps status late and day validity`() =
+        runTest {
+            enqueue(200, singleDayWeek(dishJson.replace("APPROVED", "SUBMITTED").replace("\"late\":false", "\"late\":true")))
+
+            val dish =
+                (repository.week(LocalDate.of(2026, 10, 12)) as ApiResult.Success)
+                    .data.days
+                    .first()
+                    .dish!!
+
+            assertEquals(DishStatus.SUBMITTED, dish.status)
+            assertEquals(true, dish.late)
+            assertEquals(true, dish.dayValid)
+        }
+
+    @Test
+    fun `REQ-MEAL-030 rejected dish maps reason`() =
+        runTest {
+            enqueue(200, singleDayWeek(dishJson.replace("APPROVED", "REJECTED").replace("}", ""","rejectionReason":"Bitte mit Gemüse"}""")))
+
+            val dish =
+                (repository.week(LocalDate.of(2026, 10, 12)) as ApiResult.Success)
+                    .data.days
+                    .first()
+                    .dish!!
+
+            assertEquals(DishStatus.REJECTED, dish.status)
+            assertEquals("Bitte mit Gemüse", dish.rejectionReason)
+        }
+
+    @Test
+    fun `REQ-MEAL-021 invalid day maps dayValid false`() =
+        runTest {
+            enqueue(200, singleDayWeek(dishJson.replace("\"dayValid\":true", "\"dayValid\":false")))
+
+            val dish =
+                (repository.week(LocalDate.of(2026, 10, 12)) as ApiResult.Success)
+                    .data.days
+                    .first()
+                    .dish!!
+
+            assertEquals(false, dish.dayValid)
         }
 
     @Test

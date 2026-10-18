@@ -11,6 +11,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import de.familyplanner.android.feature.meals.ui.dish.DishEditArgs
 import de.familyplanner.android.feature.meals.ui.dish.DishEditRoute
 import de.familyplanner.android.feature.meals.ui.plan.WeekPlanRoute
 import de.familyplanner.android.feature.meals.ui.profile.ProfileEditRoute
@@ -23,11 +24,12 @@ import java.time.LocalDate
 @Serializable
 data object WeekPlanRoute
 
-/** [date] als ISO-Datum (`yyyy-MM-dd`); [dishId] `null` = neues Gericht. */
+/** [date] als ISO-Datum (`yyyy-MM-dd`); [dishId] `null` = neues Gericht; [cookId] Vorauswahl (Stellvertretung/Kind). */
 @Serializable
 data class DishEditRoute(
     val date: String,
     val dishId: String? = null,
+    val cookId: String? = null,
 )
 
 @Serializable
@@ -61,13 +63,13 @@ fun MealsHomeActions(
 fun NavGraphBuilder.mealsGraph(navController: NavHostController) {
     composable<WeekPlanRoute> {
         WeekPlanRoute(
-            onOpenDay = { date, dishId -> navController.navigate(DishEditRoute(date.toString(), dishId)) },
+            onOpenEditor = { args -> navController.navigate(DishEditRoute(args.date.toString(), args.dishId, args.cookId)) },
             onBack = { navController.popBackStack() },
         )
     }
     composable<DishEditRoute> { entry ->
         val route = entry.toRoute<DishEditRoute>()
-        DishEditRoute(date = LocalDate.parse(route.date), dishId = route.dishId, onDone = { navController.popBackStack() })
+        DishEditRoute(DishEditArgs(LocalDate.parse(route.date), route.dishId, route.cookId), onDone = { navController.popBackStack() })
     }
     composable<WeekOverviewRoute> {
         WeekOverviewRoute(

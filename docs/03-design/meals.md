@@ -96,7 +96,7 @@ die API liefert nur IDs, Namen löst die App über `GET /api/v1/members` auf.
 
 Entscheidungen des Anwenders (2026-10-18): Ändern nach der Frist erlaubt und als „nach Frist“ markiert (keine Sperre,
 ADR-0007); Absage durch Kind **und** Eltern, Rücknahme möglich; Wochenstatus für **alle** Mitglieder lesbar; Kinder löschen nicht
-selbst, sondern sagen nur ab. Dieser Stand ist Backend/API (4a); die App folgt in 4b.
+selbst, sondern sagen nur ab. Backend/API: 4a; App: Abschnitt „App-Seite (Phase 4b)“.
 
 | Begriff | Definition |
 |---|---|
@@ -183,3 +183,34 @@ Regeln:
 - **Fehler:** 409 „An diesem Tag ist schon ein Gericht geplant“ (Servermeldung, Formular bleibt), 403 „Nur für Eltern.“,
   404 beim Löschen zählt als gelöscht, offen als „Server nicht erreichbar. Bist du im Heim-WLAN?“.
 - **Namen:** Koch/Köchin kommen aus `GET /api/v1/members`; unbekannte erscheinen als „?“.
+
+## App-Seite (Phase 4b)
+
+Neue Pakete `domain/cooking` und `data/cooking` (Wochenstatus, Freigabe, Absage); Erweiterungen in `domain/plan` (Dish-Status,
+`EditorRules`, Anwesenheit im Editor), `ui/plan` und `ui/dish`. `api/` und `backend/` bleiben unverändert (Vertrag 0.4.0 aus 4a).
+Entscheidungen des Anwenders (2026-10-18): Wochenstatus als Karte oben im Essensplan; „Mein Kochtag“ für kochende Kinder;
+Freigabe/Ablehnung im Gericht-Screen; bei `dayValid=false` können Eltern das Gericht **nur verschieben oder löschen**
+(Verschieben gibt es nach der Server-Regel aus 4a frei – akzeptiert).
+
+| Screen | Rolle | Inhalt |
+|---|---|---|
+| Essensplan | alle | + Badges „wartet auf Freigabe“ / „abgelehnt“ / „nach Frist“ / „⚠ Tag ungültig“ (auch offline aus dem Cache); „Zur Planwoche …“ in der Vorwoche; Karte **Wochenstatus** (Bestellfrist, offene Tage, Zustand je Koch; Eltern: Eintragen, Absagen…, Zurücknehmen, gesendetes Gericht öffnen); Karte **Mein Kochtag** (kochendes Kind: Frist, Zustand, Begründung, Einreichen/Ändern/Überarbeiten, Kochen absagen / Absage zurücknehmen) |
+| Gericht-Screen | Eltern, Kinder | Modi `PARENT_EDIT` (planen/ändern), `PARENT_REVIEW` (Freigeben / Ablehnen… mit Begründung, darunter Ändern/Löschen), `PARENT_MOVE` (nur Tag wählbar, Name/Zutaten/Koch gesperrt, Verschieben oder Löschen), `CHILD` (Koch fest, nur eigene Anwesenheitstage, Zutaten Pflicht, kein Löschen) |
+
+Regeln:
+
+- **Karten nur ab Planwoche und online:** Der Wochenstatus wird nur für Wochen ab `currentPlanWeek` geladen (parallel zum Plan); bei
+  gespeichertem Stand zeigt der Plan „Wochenstatus nur im Heim-WLAN.“ und keine Karten. Der Prefetch lädt keinen Status.
+- **Editor-Modus** (`editorMode`): Kind → `CHILD`; Eltern + Kindergericht mit `dayValid=false` → `PARENT_MOVE` (hat Vorrang vor
+  `SUBMITTED`); Eltern + Kindergericht `SUBMITTED` → `PARENT_REVIEW`; sonst `PARENT_EDIT` (auch abgelehnte Kindergerichte).
+- **Wählbare Tage** (`allowedDates`): ohne belegte Tage; bei Kind als Koch nur dessen Anwesenheitstage. Beim Wechsel zu einem Kind
+  fällt ein nicht mehr wählbarer Tag auf den ersten erlaubten.
+- **Kind:** Zutaten sind Pflicht (Server-Reihenfolge Name → Zutaten); Fristhinweis „nach Frist“ ohne Sperre (ADR-0007); Kind ohne
+  Kochwoche bekommt „Du kochst in dieser Woche nicht.“.
+- **Begründung** (Absage und Ablehnung): 1–200 Zeichen, vor dem Request geprüft und getrimmt; ein Validierungsfehler bleibt im
+  Dialog, andere Fehler (z. B. 409 „Das Gericht wartet nicht auf Freigabe“) schließen ihn und erscheinen auf dem Screen.
+- **Stellvertretung:** „Eintragen“ im Wochenstatus öffnet den Editor mit vorgewähltem Kind; Absage/Rücknahme in den Karten.
+- **Cache:** `StoredDish` bekommt Status-Felder mit Defaults; `CACHE_VERSION` bleibt 1, alte Dateien bleiben lesbar. Ein unbekannter
+  Status macht die Woche „nicht gespeichert“.
+- **Editor-Daten:** Woche, Mitglieder und Anwesenheit (Kinder, die kochen oder noch ein Gericht der Woche besitzen); schlägt eine
+  der drei Anfragen fehl, schlägt das Laden fehl.

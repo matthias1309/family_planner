@@ -6,7 +6,7 @@ Android-App: Kotlin, Jetpack Compose, Clean Architecture. Entscheidungen: [ADR-0
 ## Module
 
 `app` · `core:api` (aus `api/openapi.yaml` generierter Retrofit-Client) · `core:data` (Netzwerk, Session, Fehlerabbildung) ·
-`core:ui` (Theme, Bausteine) · `core:testing` (Test-Helfer) · `feature:auth` (Einrichten, Koppeln, Familie verwalten) · `feature:meals` (Anwesenheit & Fristen, Essensplan – offline lesbar).
+`core:ui` (Theme, Bausteine) · `core:testing` (Test-Helfer) · `feature:auth` (Einrichten, Koppeln, Familie verwalten) · `feature:meals` (Anwesenheit & Fristen, Essensplan – offline lesbar, Einreichen, Freigeben, Absagen, Wochenstatus).
 
 ## Voraussetzungen
 
@@ -93,3 +93,19 @@ Abgenommen am 2026-10-18 durch den Anwender, alle Punkte.
 - [x] Elternhandy offline: Plan lesbar, Hinweis „Bearbeiten ist nur im Heim-WLAN möglich.“
 - [x] Zurück im WLAN + Pull-to-Refresh: Hinweis verschwindet, aktueller Stand
 - [x] Nachtrag 2b: WLAN aus → Wochenübersicht zeigt „Server nicht erreichbar. Bist du im Heim-WLAN?“ (offener Punkt der 2b-Checkliste)
+
+## Abnahme-Checkliste Phase 4b (manuell, echte Geräte gegen den Pi)
+
+- [ ] Pi läuft mit Image inkl. Migration V4 (4a); Release-APK 0.4.0 (gleiche Signatur) per `adb install -r` auf Eltern- und Kinderhandy
+- [ ] Kinderhandy (kochendes Kind) an Sa/So: Essensplan zeigt „Zur Planwoche … ›“; dort „Mein Kochtag“ mit Frist
+- [ ] Kind reicht ein: nur Anwesenheitstage wählbar, ohne Zutaten Meldung; danach „wartet auf Freigabe“ in Karte und Plan
+- [ ] Elternhandy: Wochenstatus zeigt offene Tage, Kind „wartet auf Freigabe“, anderes Kind „noch nicht eingereicht, bis …“
+- [ ] Eltern lehnen mit Begründung ab → Kinderhandy (Pull-to-Refresh) zeigt „Abgelehnt: …“; Kind überarbeitet → wieder „wartet“
+- [ ] Eltern geben frei → „Freigegeben“; Kind ändert → wieder „wartet auf Freigabe“
+- [ ] Eltern tragen für das zweite Kind über „Eintragen“ ein → direkt freigegeben, nur dessen Anwesenheitstage wählbar
+- [ ] Eltern legen für das Kind eine Abwesenheits-Ausnahme auf dessen Kochtag an → Plan „⚠ Tag ungültig“; Gericht-Screen
+      „Gericht verschieben“: Felder gesperrt, kein Freigeben; auf gültigen Tag verschieben → freigegeben; Variante: löschen
+- [ ] Kind sagt mit Begründung ab → Gericht verschwindet, Status „abgesagt: …“; Eltern/Kind nehmen die Absage zurück
+- [ ] Alle Tage belegt und freigegeben → „✓ Bereit zur Bestellung“
+- [ ] Zweites Elternhandy gibt gleichzeitig frei → Meldung „Das Gericht wartet nicht auf Freigabe“
+- [ ] WLAN aus: Plan mit Badges lesbar, „Wochenstatus nur im Heim-WLAN.“, keine Karten

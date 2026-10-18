@@ -3,13 +3,19 @@ package de.familyplanner.android.feature.meals.domain.plan
 import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.testing.InMemorySessionStore
+import de.familyplanner.android.feature.meals.fakes.FakeAttendanceRepository
 import de.familyplanner.android.feature.meals.fakes.FakeMealPlanRepository
 import de.familyplanner.android.feature.meals.fakes.InMemoryPlanCache
+import de.familyplanner.android.feature.meals.fakes.benDeadline
+import de.familyplanner.android.feature.meals.fakes.childDish
+import de.familyplanner.android.feature.meals.fakes.childWeek
 import de.familyplanner.android.feature.meals.fakes.parentAnna
 import de.familyplanner.android.feature.meals.fakes.parentSession
 import de.familyplanner.android.feature.meals.fakes.parentTom
+import de.familyplanner.android.feature.meals.fakes.planWeek
 import de.familyplanner.android.feature.meals.fakes.someDish
 import de.familyplanner.android.feature.meals.fakes.thisWeek
+import de.familyplanner.android.feature.meals.fakes.weekOf
 import de.familyplanner.android.feature.meals.fakes.weekPlanOf
 import kotlinx.coroutines.test.runTest
 import java.time.Clock
@@ -24,6 +30,7 @@ import kotlin.test.assertTrue
 class UseCasesTest {
     private val repository = FakeMealPlanRepository()
     private val cache = InMemoryPlanCache()
+    private val attendance = FakeAttendanceRepository()
     private val sessions = InMemorySessionStore(parentSession)
 
     // Samstag, 17.10.2026, 12:00 Berlin
@@ -119,12 +126,64 @@ class UseCasesTest {
         }
 
     @Test
-    fun `REQ-MEAL-032 editor offers only parents as cooks`() =
+    fun `REQ-MEAL-031 editor offers parents and cooking children`() =
         runTest {
-            val data = (LoadDishEditorUseCase(repository)(thisWeek) as ApiResult.Success).data
+            val data = (LoadDishEditorUseCase(repository, attendance)(planWeek) as ApiResult.Success).data
 
             assertEquals(listOf(parentAnna, parentTom), data.parents)
-            assertEquals(thisWeek, data.week.weekStart)
+            assertEquals(planWeek, data.week.weekStart)
+            assertEquals(listOf("c-1"), data.children.map { it.memberId })
+        }
+
+    @Test
+    fun `REQ-MEAL-021 editor lists cooking children with present days`() =
+        runTest {
+            attendance.weekResult = { ApiResult.Success(weekOf(childWeek(present = true), start = it)) }
+
+            val child = (LoadDishEditorUseCase(repository, attendance)(planWeek) as ApiResult.Success).data.children.single()
+
+            assertEquals("Ben", child.name)
+            assertEquals((0L..6L).map { planWeek.plusDays(it) }.toSet(), child.presentDays)
+            assertEquals(benDeadline, child.submissionDeadline)
+        }
+
+    @Test
+    fun `REQ-MEAL-021 child that does not cook is no candidate`() =
+        runTest {
+            attendance.weekResult = { ApiResult.Success(weekOf(childWeek(cooks = false, deadline = null), start = it)) }
+
+            val data = (LoadDishEditorUseCase(repository, attendance)(planWeek) as ApiResult.Success).data
+
+            assertTrue(data.children.isEmpty())
+        }
+
+    @Test
+    fun `REQ-MEAL-021 owner of an invalid dish stays a candidate`() =
+        runTest {
+            attendance.weekResult = { ApiResult.Success(weekOf(childWeek(cooks = false, deadline = null, present = false), start = it)) }
+            repository.weekResult = { ApiResult.Success(weekPlanOf(it, childDish.copy(dayValid = false))) }
+
+            val child = (LoadDishEditorUseCase(repository, attendance)(planWeek) as ApiResult.Success).data.children.single()
+
+            assertEquals("c-1", child.memberId)
+            assertTrue(child.presentDays.isEmpty())
+        }
+
+    @Test
+    fun `REQ-MEAL-020 failed attendance request fails the editor`() =
+        runTest {
+            attendance.weekResult = { ApiResult.Failure(AppError.Network) }
+
+            assertEquals(ApiResult.Failure(AppError.Network), LoadDishEditorUseCase(repository, attendance)(planWeek))
+        }
+
+    @Test
+    fun `REQ-MEAL-020 child dish requires ingredients when saving`() =
+        runTest {
+            val result = SaveDishUseCase(repository)(null, planWeek, "c-1", "Curry", "", ingredientsRequired = true)
+
+            assertIs<AppError.Validation>((result as ApiResult.Failure).error)
+            assertTrue(repository.created.isEmpty())
         }
 
     @Test
@@ -132,7 +191,7 @@ class UseCasesTest {
         runTest {
             repository.membersResult = ApiResult.Failure(AppError.Network)
 
-            assertEquals(ApiResult.Failure(AppError.Network), LoadDishEditorUseCase(repository)(thisWeek))
+            assertEquals(ApiResult.Failure(AppError.Network), LoadDishEditorUseCase(repository, attendance)(thisWeek))
         }
 
     @Test
