@@ -58,7 +58,7 @@ Updates nur mit derselben Signatur; der Signatur-Keystore bleibt lokal (`*.jks` 
 
 ## Abnahme-Checkliste Phase 1b (manuell, echte Geräte)
 
-Abgenommen am 2026-10-18 bis auf den Offline-Punkt (WLAN-Test steht aus).
+Abgenommen am 2026-10-18; der Offline-Punkt wurde mit Phase 3b nachgeholt.
 
 - [x] Release-APK auf dem Elternhandy installieren, „Familie einrichten“ mit dem Setup-Token
 - [x] Mitglieder anlegen, Kopplungscode je Kind erzeugen, Codes auf den Handys einlösen (alle fünf gekoppelt)
@@ -69,7 +69,7 @@ Abgenommen am 2026-10-18 bis auf den Offline-Punkt (WLAN-Test steht aus).
 
 ## Abnahme-Checkliste Phase 2b (manuell, echte Geräte gegen den Pi)
 
-Abgenommen am 2026-10-18 bis auf den Offline-Punkt (WLAN-Test steht aus).
+Abgenommen am 2026-10-18; der Offline-Punkt wurde mit Phase 3b nachgeholt.
 
 - [x] Release-APK 0.2.0 (gleiche Signatur) per `adb install -r` auf Elternhandy und einem Kinderhandy aktualisieren; Kopplung bleibt erhalten
 - [x] Eltern: für jedes Kind „kocht“ und Muster setzen (Wechselmodell A = Di–Do, B = Di–So, „Diese Woche ist A/B“ nach echter Lage)
@@ -78,16 +78,18 @@ Abgenommen am 2026-10-18 bis auf den Offline-Punkt (WLAN-Test steht aus).
 - [x] Ausnahme (z. B. Ferien) anlegen → Tage in der Übersicht markiert, Frist ändert sich; zweite überlappende Ausnahme → Meldung „Zeitraum überschneidet sich …“; Ausnahme löschen → Muster gilt wieder
 - [x] Fristen ändern → „Vorgemerkt ab Planwoche …“ sichtbar, die nächste Planwoche zeigt noch die alte Bestellfrist; danach wieder auf So 16:00 zurückstellen
 - [x] Kinderhandy: Wochenübersicht sichtbar, keine „Anwesenheit verwalten“-Schaltfläche
-- [ ] WLAN aus: Übersicht zeigt „Server nicht erreichbar. Bist du im Heim-WLAN?“, nach WLAN an + Pull-to-Refresh wieder Daten
+- [x] WLAN aus: Übersicht zeigt „Server nicht erreichbar. Bist du im Heim-WLAN?“, nach WLAN an + Pull-to-Refresh wieder Daten
 
 ## Abnahme-Checkliste Phase 3b (manuell, echte Geräte gegen den Pi)
 
-- [ ] Release-APK 0.3.0 (gleiche Signatur) per `adb install -r` auf Elternhandy und einem Kinderhandy; Kopplung bleibt erhalten
-- [ ] Home zeigt „Essensplan“ und „Anwesenheit & Fristen“
-- [ ] Eltern: für die kommende Woche an mehreren Tagen Gerichte mit/ohne Zutaten anlegen, eines ändern, eines auf einen anderen Tag verschieben, eines löschen
-- [ ] Belegter Tag ist im Editor nicht wählbar; zweites Elternhandy legt zeitgleich am selben Tag an → Meldung „An diesem Tag ist schon ein Gericht geplant“
-- [ ] Kinderhandy: Plan dieser Woche mit Gericht und Koch/Köchin je Tag, offene Tage „noch offen“, „Heute“ markiert; am Sonntag mit › zur kommenden Woche; keine Bearbeitung möglich
-- [ ] Kinderhandy im WLAN öffnen, dann WLAN aus (mobile Daten an): Plan dieser **und** der nächsten Woche mit „Offline – Stand: …“ sichtbar
-- [ ] Elternhandy offline: Plan lesbar, Hinweis „Bearbeiten ist nur im Heim-WLAN möglich.“
-- [ ] Zurück im WLAN + Pull-to-Refresh: Hinweis verschwindet, aktueller Stand
-- [ ] Nachtrag 2b: WLAN aus → Wochenübersicht zeigt „Server nicht erreichbar. Bist du im Heim-WLAN?“ (offener Punkt der 2b-Checkliste)
+Abgenommen am 2026-10-18 durch den Anwender, alle Punkte.
+
+- [x] Release-APK 0.3.0 (gleiche Signatur) per `adb install -r` auf Elternhandy und einem Kinderhandy; Kopplung bleibt erhalten
+- [x] Home zeigt „Essensplan“ und „Anwesenheit & Fristen“
+- [x] Eltern: für die kommende Woche an mehreren Tagen Gerichte mit/ohne Zutaten anlegen, eines ändern, eines auf einen anderen Tag verschieben, eines löschen
+- [x] Belegter Tag ist im Editor nicht wählbar; zweites Elternhandy legt zeitgleich am selben Tag an → Meldung „An diesem Tag ist schon ein Gericht geplant“
+- [x] Kinderhandy: Plan dieser Woche mit Gericht und Koch/Köchin je Tag, offene Tage „noch offen“, „Heute“ markiert; am Sonntag mit › zur kommenden Woche; keine Bearbeitung möglich
+- [x] Kinderhandy im WLAN öffnen, dann WLAN aus (mobile Daten an): Plan dieser **und** der nächsten Woche mit „Offline – Stand: …“ sichtbar
+- [x] Elternhandy offline: Plan lesbar, Hinweis „Bearbeiten ist nur im Heim-WLAN möglich.“
+- [x] Zurück im WLAN + Pull-to-Refresh: Hinweis verschwindet, aktueller Stand
+- [x] Nachtrag 2b: WLAN aus → Wochenübersicht zeigt „Server nicht erreichbar. Bist du im Heim-WLAN?“ (offener Punkt der 2b-Checkliste)
