@@ -8,6 +8,8 @@ import de.familyplanner.android.core.data.network.createRetrofit
 import de.familyplanner.android.feature.meals.data.plan.RemoteMealPlanRepository
 import de.familyplanner.android.feature.meals.domain.plan.DishDraft
 import de.familyplanner.android.feature.meals.domain.plan.DishStatus
+import de.familyplanner.android.feature.meals.domain.recipe.Ingredient
+import de.familyplanner.android.feature.meals.domain.recipe.RecipeRef
 import de.familyplanner.api.client.MealsApi
 import de.familyplanner.api.client.MembersApi
 import de.familyplanner.api.model.SaveDishRequest
@@ -22,6 +24,7 @@ import org.junit.Test
 import java.time.LocalDate
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import de.familyplanner.api.model.Ingredient as ApiIngredient
 
 class RemoteMealPlanRepositoryTest {
     private val json = createJson()
@@ -72,7 +75,8 @@ class RemoteMealPlanRepositoryTest {
         """{"date":"$date","dish":${if (index == 0) dishJson else "null"}}"""
     }
 
-    private val draft = DishDraft(LocalDate.of(2026, 10, 13), "p-1", "Curry", listOf("Reis", "Erbsen"))
+    private val draft =
+        DishDraft(LocalDate.of(2026, 10, 13), "p-1", "Curry", listOf(Ingredient("Reis"), Ingredient("Erbsen", 2.0, "Dose(n)")))
 
     @Test
     fun `REQ-MEAL-001 week plan maps seven days with dish or null`() =
@@ -200,7 +204,7 @@ class RemoteMealPlanRepositoryTest {
         }
 
     @Test
-    fun `REQ-MEAL-032 create dish posts date cook name and ingredients`() =
+    fun `REQ-MEAL-062 create sends structured ingredients and empty lines`() =
         runTest {
             enqueue(201, ok(dishJson))
 
@@ -211,7 +215,71 @@ class RemoteMealPlanRepositoryTest {
             assertEquals("POST", request.method)
             assertEquals("/api/v1/meals/dishes", request.url.encodedPath)
             val body = json.decodeFromString<SaveDishRequest>(request.body!!.utf8())
-            assertEquals(SaveDishRequest("2026-10-13", "p-1", "Curry", listOf("Reis", "Erbsen")), body)
+            assertEquals(
+                SaveDishRequest(
+                    "2026-10-13",
+                    "p-1",
+                    "Curry",
+                    emptyList(),
+                    listOf(ApiIngredient("Reis"), ApiIngredient("Erbsen", 2.0, "Dose(n)")),
+                ),
+                body,
+            )
+        }
+
+    @Test
+    fun `REQ-MEAL-062 dish without recipe sends no recipe fields`() =
+        runTest {
+            enqueue(201, ok(dishJson))
+
+            repository.createDish(draft)
+
+            val body = json.decodeFromString<SaveDishRequest>(server.takeRequest().body!!.utf8())
+            assertNull(body.recipeId)
+            assertNull(body.servings)
+        }
+
+    @Test
+    fun `REQ-MEAL-062 create sends recipe reference`() =
+        runTest {
+            enqueue(201, ok(dishJson))
+
+            repository.createDish(draft.copy(recipe = RecipeRef("r-1", 5)))
+
+            val body = json.decodeFromString<SaveDishRequest>(server.takeRequest().body!!.utf8())
+            assertEquals("r-1", body.recipeId)
+            assertEquals(5, body.servings)
+        }
+
+    @Test
+    fun `REQ-MEAL-062 dish maps recipe reference`() =
+        runTest {
+            val withRecipe = dishJson.replace(""""status":""", """"recipeId":"r-1","servings":5,"status":""")
+            enqueue(200, ok("""{"weekStart":"2026-10-12","days":${weekJson().replace(dishJson, withRecipe)}}"""))
+
+            val dish =
+                (repository.week(LocalDate.of(2026, 10, 12)) as ApiResult.Success)
+                    .data.days
+                    .first()
+                    .dish!!
+
+            assertEquals("r-1", dish.recipeId)
+            assertEquals(5, dish.servings)
+        }
+
+    @Test
+    fun `REQ-MEAL-062 dish without recipe maps nulls`() =
+        runTest {
+            enqueue(200, ok("""{"weekStart":"2026-10-12","days":${weekJson()}}"""))
+
+            val dish =
+                (repository.week(LocalDate.of(2026, 10, 12)) as ApiResult.Success)
+                    .data.days
+                    .first()
+                    .dish!!
+
+            assertNull(dish.recipeId)
+            assertNull(dish.servings)
         }
 
     @Test

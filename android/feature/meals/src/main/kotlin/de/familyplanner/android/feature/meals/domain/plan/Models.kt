@@ -1,6 +1,8 @@
 package de.familyplanner.android.feature.meals.domain.plan
 
 import de.familyplanner.android.core.data.AppError
+import de.familyplanner.android.feature.meals.domain.recipe.Ingredient
+import de.familyplanner.android.feature.meals.domain.recipe.RecipeRef
 import java.time.Instant
 import java.time.LocalDate
 
@@ -18,6 +20,9 @@ data class Dish(
     val late: Boolean = false,
     /** `false`: Das kochende Kind ist an dem Tag nicht (mehr) da (REQ-MEAL-021). */
     val dayValid: Boolean = true,
+    /** Rezept, aus dem das Gericht übernommen wurde (ADR-0012); `null` nach Löschen des Rezepts. */
+    val recipeId: String? = null,
+    val servings: Int? = null,
 )
 
 data class PlanDay(
@@ -42,6 +47,8 @@ data class DishEditorData(
     val week: WeekPlan,
     val parents: List<PlanMember>,
     val children: List<CookCandidate>,
+    /** Anwesende Mitglieder je Tag der Woche: alle Eltern + anwesende Kinder (Portionen-Vorschlag, REQ-MEAL-062). */
+    val presentByDate: Map<LocalDate, Int> = emptyMap(),
 )
 
 data class PlanMember(
@@ -55,7 +62,17 @@ data class DishDraft(
     val date: LocalDate,
     val cookId: String,
     val name: String,
-    val ingredients: List<String>,
+    val ingredients: List<Ingredient>,
+    val recipe: RecipeRef? = null,
+)
+
+/** Formularwerte des Gericht-Editors (roh, ungeprüft). */
+data class DishInput(
+    val date: LocalDate,
+    val cookId: String,
+    val name: String,
+    val ingredientsText: String,
+    val recipe: RecipeRef? = null,
 )
 
 /** Tag zur Anzeige: Gericht mit aufgelöstem Namen von Koch/Köchin („?“, wenn unbekannt). */

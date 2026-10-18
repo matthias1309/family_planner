@@ -81,7 +81,7 @@ class PlanScreensTest {
         state: WeekPlanUiState,
         onEvent: (WeekPlanEvent) -> Unit = {},
         onOpenEditor: (DishEditArgs) -> Unit = {},
-    ) = show { WeekPlanScreen(state, onEvent, onOpenEditor, {}) }
+    ) = show { WeekPlanScreen(state, onEvent, onOpenEditor, {}, {}) }
 
     @Test
     fun `REQ-MEAL-001 day with dish shows name and cook`() {
@@ -204,7 +204,7 @@ class PlanScreensTest {
     private fun showEdit(
         state: DishEditUiState,
         onEvent: (DishEditEvent) -> Unit = {},
-    ) = show { DishEditScreen(state, onEvent, {}) }
+    ) = show { DishEditScreen(state, onEvent, {}, {}) }
 
     @Test
     fun `REQ-MEAL-032 editor shows fields and save`() {

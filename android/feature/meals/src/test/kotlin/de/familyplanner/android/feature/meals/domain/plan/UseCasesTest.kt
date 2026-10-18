@@ -3,6 +3,11 @@ package de.familyplanner.android.feature.meals.domain.plan
 import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.testing.InMemorySessionStore
+import de.familyplanner.android.feature.meals.domain.attendance.AttendanceDay
+import de.familyplanner.android.feature.meals.domain.attendance.AttendanceSource
+import de.familyplanner.android.feature.meals.domain.attendance.RawChildWeek
+import de.familyplanner.android.feature.meals.domain.recipe.Ingredient
+import de.familyplanner.android.feature.meals.domain.recipe.RecipeRef
 import de.familyplanner.android.feature.meals.fakes.FakeAttendanceRepository
 import de.familyplanner.android.feature.meals.fakes.FakeMealPlanRepository
 import de.familyplanner.android.feature.meals.fakes.InMemoryPlanCache
@@ -180,7 +185,7 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-020 child dish requires ingredients when saving`() =
         runTest {
-            val result = SaveDishUseCase(repository)(null, planWeek, "c-1", "Curry", "", ingredientsRequired = true)
+            val result = SaveDishUseCase(repository)(null, DishInput(planWeek, "c-1", "Curry", ""), ingredientsRequired = true)
 
             assertIs<AppError.Validation>((result as ApiResult.Failure).error)
             assertTrue(repository.created.isEmpty())
@@ -197,7 +202,7 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-032 invalid dish is not sent`() =
         runTest {
-            val result = SaveDishUseCase(repository)(null, thisWeek, "p-1", " ", "")
+            val result = SaveDishUseCase(repository)(null, DishInput(thisWeek, "p-1", " ", ""))
 
             assertIs<AppError.Validation>((result as ApiResult.Failure).error)
             assertTrue(repository.created.isEmpty())
@@ -206,15 +211,41 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-032 new dish is created with trimmed name and cleaned ingredients`() =
         runTest {
-            SaveDishUseCase(repository)(null, thisWeek, "p-1", "  Curry ", " Reis \n\n Erbsen ")
+            SaveDishUseCase(repository)(null, DishInput(thisWeek, "p-1", "  Curry ", " Reis \n\n Erbsen "))
 
-            assertEquals(DishDraft(thisWeek, "p-1", "Curry", listOf("Reis", "Erbsen")), repository.created.single())
+            assertEquals(DishDraft(thisWeek, "p-1", "Curry", listOf(Ingredient("Reis"), Ingredient("Erbsen"))), repository.created.single())
+        }
+
+    @Test
+    fun `REQ-MEAL-062 save sends parsed ingredients and recipe ref`() =
+        runTest {
+            SaveDishUseCase(repository)(null, DishInput(thisWeek, "p-1", "Carbonara", "625 g Spaghetti\nSalz", RecipeRef("r-1", 5)))
+
+            val draft = repository.created.single()
+            assertEquals(listOf(Ingredient("Spaghetti", 625.0, "g"), Ingredient("Salz")), draft.ingredients)
+            assertEquals(RecipeRef("r-1", 5), draft.recipe)
+        }
+
+    @Test
+    fun `REQ-MEAL-062 editor counts parents and present children per day`() =
+        runTest {
+            val days =
+                (0L..6L).map { AttendanceDay(planWeek.plusDays(it), it in 1L..3L, AttendanceSource.PATTERN) }
+            attendance.weekResult =
+                { ApiResult.Success(weekOf(RawChildWeek("c-1", true, days, Instant.parse("2026-10-15T14:00:00Z")), start = it)) }
+
+            val data = (LoadDishEditorUseCase(repository, attendance)(planWeek) as ApiResult.Success).data
+
+            assertEquals(2, data.presentByDate[planWeek])
+            assertEquals(3, data.presentByDate[planWeek.plusDays(1)])
+            assertEquals(3, data.presentByDate[planWeek.plusDays(3)])
+            assertEquals(2, data.presentByDate[planWeek.plusDays(4)])
         }
 
     @Test
     fun `REQ-MEAL-032 existing dish is updated`() =
         runTest {
-            SaveDishUseCase(repository)("d-1", thisWeek.plusDays(1), "p-2", "Curry", "")
+            SaveDishUseCase(repository)("d-1", DishInput(thisWeek.plusDays(1), "p-2", "Curry", ""))
 
             assertEquals("d-1" to DishDraft(thisWeek.plusDays(1), "p-2", "Curry", emptyList()), repository.updated.single())
         }

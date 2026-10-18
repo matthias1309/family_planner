@@ -6,6 +6,8 @@ import de.familyplanner.android.core.data.session.SessionStore
 import de.familyplanner.android.core.ui.BerlinZone
 import de.familyplanner.android.feature.meals.domain.attendance.AttendanceRepository
 import de.familyplanner.android.feature.meals.domain.cooking.ReviewDishUseCase
+import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
+import de.familyplanner.android.feature.meals.domain.recipe.ingredientsFromText
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import java.time.Clock
@@ -84,7 +86,13 @@ class LoadDishEditorUseCase(
                                 .toSet()
                         CookCandidate(child.memberId, names[child.memberId] ?: UNKNOWN_NAME, present, child.submissionDeadline)
                     }
-            ApiResult.Success(DishEditorData(weekResult.data, membersResult.data.filter { it.isParent }, children))
+            val parents = membersResult.data.filter { it.isParent }
+            val presentByDate =
+                weekResult.data.days.associate { day ->
+                    day.date to
+                        parents.size + presenceResult.data.children.count { child -> child.days.any { it.date == day.date && it.present } }
+                }
+            ApiResult.Success(DishEditorData(weekResult.data, parents, children, presentByDate))
         }
 }
 
@@ -93,14 +101,11 @@ class SaveDishUseCase(
 ) {
     suspend operator fun invoke(
         dishId: String?,
-        date: LocalDate,
-        cookId: String,
-        name: String,
-        ingredientsText: String,
+        input: DishInput,
         ingredientsRequired: Boolean = false,
     ): ApiResult<Dish> {
-        validateDish(name, ingredientsText, ingredientsRequired)?.let { return it }
-        val draft = DishDraft(date, cookId, name.trim(), ingredientLines(ingredientsText))
+        validateDish(input.name, input.ingredientsText, ingredientsRequired)?.let { return it }
+        val draft = DishDraft(input.date, input.cookId, input.name.trim(), ingredientsFromText(input.ingredientsText), input.recipe)
         return if (dishId == null) repository.createDish(draft) else repository.updateDish(dishId, draft)
     }
 }
@@ -117,4 +122,5 @@ class DishUseCases(
     val save: SaveDishUseCase,
     val delete: DeleteDishUseCase,
     val review: ReviewDishUseCase,
+    val recipe: LoadRecipeUseCase,
 )

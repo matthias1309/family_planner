@@ -163,4 +163,46 @@
     <string name="child_day_invalid_hint">Du bist an diesem Tag nicht da – bitte wähle einen anderen Tag.</string>
     <string name="child_submit">Einreichen</string>
     <string name="child_resubmit">Erneut einreichen</string>
+
+    <!-- Rezepte (Phase 5b) -->
+    <string name="home_recipes">Rezepte</string>
+    <string name="recipes_title">Rezepte</string>
+    <string name="recipes_pick_title">Rezept wählen</string>
+    <string name="recipes_search">Suchen</string>
+    <string name="recipes_servings">%1$d Portionen</string>
+    <string name="recipes_empty">Noch keine Rezepte.</string>
+    <string name="recipes_no_match">Kein Rezept passt zu „%1$s“.</string>
+    <string name="recipes_new">Neues Rezept</string>
+    <string name="recipes_back">Zurück</string>
+    <string name="recipe_servings">Für %1$d Portionen</string>
+    <string name="recipe_ingredients">Zutaten</string>
+    <string name="recipe_steps">Zubereitung</string>
+    <string name="recipe_no_steps">Keine Zubereitungsschritte hinterlegt.</string>
+    <string name="recipe_source">Quelle: %1$s</string>
+    <string name="recipe_edit">Bearbeiten</string>
+    <string name="recipe_delete">Löschen</string>
+    <string name="recipe_delete_title">Rezept löschen?</string>
+    <string name="recipe_delete_text">Gerichte, die schon daraus übernommen wurden, bleiben unverändert.</string>
+    <string name="recipe_delete_confirm">Löschen</string>
+    <string name="recipe_retry">Neu laden</string>
+    <string name="recipe_title_new">Neues Rezept</string>
+    <string name="recipe_title_edit">Rezept bearbeiten</string>
+    <string name="recipe_name">Name</string>
+    <string name="recipe_servings_label">Portionen</string>
+    <string name="recipe_servings_less">Weniger Portionen</string>
+    <string name="recipe_servings_more">Mehr Portionen</string>
+    <string name="recipe_ingredients_label">Zutaten (eine pro Zeile, z. B. 500 g Spaghetti)</string>
+    <string name="recipe_steps_label">Zubereitung (ein Schritt pro Zeile, optional)</string>
+    <string name="recipe_source_label">Quelle (Link, optional)</string>
+    <string name="recipe_save">Speichern</string>
+    <string name="recipe_cancel">Abbrechen</string>
+    <string name="dish_recipe_pick">Aus Rezept wählen</string>
+    <string name="dish_recipe_other">Anderes Rezept</string>
+    <string name="dish_recipe_from">Aus Rezept „%1$s“</string>
+    <string name="dish_recipe_from_unknown">Aus einem Rezept</string>
+    <string name="dish_recipe_servings_hint">Portionen ändern berechnet die Zutaten neu.</string>
+    <string name="dish_recipe_clear">Rezeptbezug entfernen</string>
+    <string name="dish_recipe_loading">Rezept wird geladen …</string>
+    <string name="plan_recipe">Rezept ›</string>
+    <string name="plan_recipe_description">Rezept zu %1$s ansehen</string>
 </resources>

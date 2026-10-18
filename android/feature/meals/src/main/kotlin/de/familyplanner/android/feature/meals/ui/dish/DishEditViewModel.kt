@@ -11,6 +11,7 @@ import de.familyplanner.android.feature.meals.domain.attendance.mondayOf
 import de.familyplanner.android.feature.meals.domain.plan.CookCandidate
 import de.familyplanner.android.feature.meals.domain.plan.Dish
 import de.familyplanner.android.feature.meals.domain.plan.DishEditorData
+import de.familyplanner.android.feature.meals.domain.plan.DishInput
 import de.familyplanner.android.feature.meals.domain.plan.DishUseCases
 import de.familyplanner.android.feature.meals.domain.plan.EditorMode
 import de.familyplanner.android.feature.meals.domain.plan.PlanLimits
@@ -18,6 +19,8 @@ import de.familyplanner.android.feature.meals.domain.plan.PlanMember
 import de.familyplanner.android.feature.meals.domain.plan.allowedDates
 import de.familyplanner.android.feature.meals.domain.plan.editorMode
 import de.familyplanner.android.feature.meals.domain.plan.preselectDate
+import de.familyplanner.android.feature.meals.domain.recipe.Recipe
+import de.familyplanner.android.feature.meals.domain.recipe.RecipeRef
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,8 +29,6 @@ import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
-
-private const val CHILD_NOT_COOKING = "Du kochst in dieser Woche nicht."
 
 data class DishEditUiState(
     val dishId: String?,
@@ -55,7 +56,15 @@ data class DishEditUiState(
     val now: Instant = Instant.EPOCH,
     /** Gespeichert, freigegeben oder gelöscht → die Route geht zurück. */
     val isDone: Boolean = false,
+    val recipeId: String? = null,
+    val servings: Int? = null,
+    /** Geladenes Rezept (Auswahl oder Rezeptbezug des Gerichts); nur damit lassen sich Portionen neu rechnen. */
+    val recipe: Recipe? = null,
+    val isRecipeLoading: Boolean = false,
+    val presentByDate: Map<LocalDate, Int> = emptyMap(),
 ) {
+    val canUseRecipe: Boolean get() = !isLoading && loadError == null && !fieldsLocked && !isBusy && !isRecipeLoading
+    val recipeRef: RecipeRef? get() = recipeId?.let { id -> servings?.let { RecipeRef(id, it) } }
     val isNew: Boolean get() = dishId == null
     val childCook: CookCandidate? get() = children.firstOrNull { it.memberId == cookId }
     val ingredientsRequired: Boolean get() = childCook != null
@@ -112,6 +121,16 @@ sealed interface DishEditEvent {
     data object ConfirmReject : DishEditEvent
 
     data object Retry : DishEditEvent
+
+    data class RecipePicked(
+        val recipeId: String,
+    ) : DishEditEvent
+
+    data class ServingsChanged(
+        val value: Int,
+    ) : DishEditEvent
+
+    data object ClearRecipe : DishEditEvent
 }
 
 class DishEditViewModel(
@@ -141,7 +160,37 @@ class DishEditViewModel(
             DishEditEvent.CancelDelete -> _state.update { it.copy(showDeleteConfirm = false) }
             DishEditEvent.ConfirmDelete -> delete()
             DishEditEvent.Retry -> load()
+            else -> onRecipe(event)
+        }
+    }
+
+    private fun onRecipe(event: DishEditEvent) {
+        when (event) {
+            is DishEditEvent.RecipePicked -> pickRecipe(event.recipeId)
+            is DishEditEvent.ServingsChanged -> edit { if (it.canUseRecipe) it.withServings(event.value) else it }
+            DishEditEvent.ClearRecipe -> edit { if (it.canUseRecipe) it.withoutRecipe() else it }
             else -> onReview(event)
+        }
+    }
+
+    private fun pickRecipe(recipeId: String) {
+        if (!_state.value.canUseRecipe) return
+        _state.update { it.copy(isRecipeLoading = true, error = null) }
+        viewModelScope.launch {
+            when (val result = dishes.recipe(recipeId)) {
+                is ApiResult.Success -> _state.update { it.withPickedRecipe(result.data) }
+                is ApiResult.Failure -> _state.update { it.copy(isRecipeLoading = false, error = result.error) }
+            }
+        }
+    }
+
+    /** Rezept zum bestehenden Rezeptbezug im Hintergrund laden; schlägt es fehl, bleibt der Bezug, nur der Stepper fehlt. */
+    private fun loadLinkedRecipe(recipeId: String) {
+        viewModelScope.launch {
+            val result = dishes.recipe(recipeId)
+            if (result is ApiResult.Success) {
+                _state.update { if (it.recipeId == recipeId && it.recipe == null) it.copy(recipe = result.data) else it }
+            }
         }
     }
 
@@ -180,7 +229,13 @@ class DishEditViewModel(
         _state.update { it.copy(isLoading = true, loadError = null) }
         viewModelScope.launch {
             when (val result = dishes.load(_state.value.weekStart)) {
-                is ApiResult.Success -> _state.update { it.withLoaded(result.data) }
+                is ApiResult.Success -> {
+                    _state.update { it.withLoaded(result.data) }
+                    _state.value
+                        .takeIf { it.loadError == null }
+                        ?.recipeId
+                        ?.let(::loadLinkedRecipe)
+                }
                 is ApiResult.Failure -> _state.update { it.copy(isLoading = false, loadError = result.error) }
             }
         }
@@ -203,37 +258,18 @@ class DishEditViewModel(
                 existing = existing,
                 takenDates = planned.filter { it.id != dishId }.map { it.date }.toSet(),
                 now = clock.instant(),
+                presentByDate = data.presentByDate,
+                recipeId = existing?.recipeId,
+                servings = existing?.servings,
             )
         val cookId =
             if (isParent) {
-                parentCookId(data, existing, session?.memberId)
+                parentCookId(data, existing, session?.memberId, args.cookId)
             } else {
                 childCookId(data, existing, session?.memberId) ?: return base.copy(loadError = notCooking(existing, session?.memberId))
             }
         return base.withCookAndMode(cookId, isParent, existing)
     }
-
-    private fun parentCookId(
-        data: DishEditorData,
-        existing: Dish?,
-        ownId: String?,
-    ): String? {
-        val parentIds = data.parents.map { it.id }
-        val selectable = parentIds + data.children.map { it.memberId }
-        if (existing != null) return existing.cookId.takeIf { it in selectable }
-        return args.cookId?.takeIf { it in selectable } ?: ownId?.takeIf { it in parentIds } ?: parentIds.firstOrNull()
-    }
-
-    private fun childCookId(
-        data: DishEditorData,
-        existing: Dish?,
-        ownId: String?,
-    ): String? = ownId?.takeIf { id -> data.children.any { it.memberId == id } && (existing == null || existing.cookId == id) }
-
-    private fun notCooking(
-        existing: Dish?,
-        ownId: String?,
-    ): AppError = if (existing != null && existing.cookId != ownId) AppError.Forbidden else AppError.Validation(CHILD_NOT_COOKING)
 
     private fun DishEditUiState.withCookAndMode(
         cookId: String?,
@@ -258,8 +294,8 @@ class DishEditViewModel(
         if (!current.canSave || cookId == null) return
         _state.update { it.copy(isBusy = true, error = null) }
         viewModelScope.launch {
-            val result =
-                dishes.save(dishId, current.date, cookId, current.name, current.ingredientsText, current.ingredientsRequired)
+            val input = DishInput(current.date, cookId, current.name, current.ingredientsText, current.recipeRef)
+            val result = dishes.save(dishId, input, current.ingredientsRequired)
             when (result) {
                 is ApiResult.Success -> _state.update { it.copy(isBusy = false, isDone = true) }
                 is ApiResult.Failure -> _state.update { it.copy(isBusy = false, error = result.error) }

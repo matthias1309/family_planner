@@ -7,6 +7,7 @@ import de.familyplanner.android.feature.meals.data.cooking.RemoteCookingReposito
 import de.familyplanner.android.feature.meals.data.plan.DataStorePlanCache
 import de.familyplanner.android.feature.meals.data.plan.PlanCacheSerializer
 import de.familyplanner.android.feature.meals.data.plan.RemoteMealPlanRepository
+import de.familyplanner.android.feature.meals.data.recipe.RemoteRecipeRepository
 import de.familyplanner.android.feature.meals.domain.attendance.AddExceptionUseCase
 import de.familyplanner.android.feature.meals.domain.attendance.AttendanceRepository
 import de.familyplanner.android.feature.meals.domain.attendance.DeleteExceptionUseCase
@@ -30,10 +31,19 @@ import de.familyplanner.android.feature.meals.domain.plan.LoadWeekPlanUseCase
 import de.familyplanner.android.feature.meals.domain.plan.MealPlanRepository
 import de.familyplanner.android.feature.meals.domain.plan.PlanCache
 import de.familyplanner.android.feature.meals.domain.plan.SaveDishUseCase
+import de.familyplanner.android.feature.meals.domain.recipe.DeleteRecipeUseCase
+import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
+import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipesUseCase
+import de.familyplanner.android.feature.meals.domain.recipe.RecipeRepository
+import de.familyplanner.android.feature.meals.domain.recipe.RecipeUseCases
+import de.familyplanner.android.feature.meals.domain.recipe.SaveRecipeUseCase
 import de.familyplanner.android.feature.meals.ui.dish.DishEditViewModel
 import de.familyplanner.android.feature.meals.ui.plan.WeekPlanViewModel
 import de.familyplanner.android.feature.meals.ui.profile.ProfileEditViewModel
 import de.familyplanner.android.feature.meals.ui.profiles.ProfilesViewModel
+import de.familyplanner.android.feature.meals.ui.recipe.RecipeEditViewModel
+import de.familyplanner.android.feature.meals.ui.recipe.RecipeViewModel
+import de.familyplanner.android.feature.meals.ui.recipes.RecipeListViewModel
 import de.familyplanner.android.feature.meals.ui.settings.DeadlineSettingsViewModel
 import de.familyplanner.android.feature.meals.ui.week.WeekOverviewViewModel
 import de.familyplanner.api.client.MealsApi
@@ -80,10 +90,25 @@ val mealsModule =
                 SaveDishUseCase(get()),
                 DeleteDishUseCase(get()),
                 ReviewDishUseCase(get()),
+                LoadRecipeUseCase(get()),
             )
         }
         viewModel { WeekPlanViewModel(get(), get(), get()) }
         viewModel { params -> DishEditViewModel(params.get(), get(), get()) }
+
+        // recipe
+        single<RecipeRepository> { RemoteRecipeRepository(get(), get()) }
+        factory {
+            RecipeUseCases(
+                LoadRecipesUseCase(get()),
+                LoadRecipeUseCase(get()),
+                SaveRecipeUseCase(get()),
+                DeleteRecipeUseCase(get()),
+            )
+        }
+        viewModel { params -> RecipeListViewModel(params.get(), get(), get()) }
+        viewModel { params -> RecipeViewModel(params.get(), get(), get(), get()) }
+        viewModel { params -> RecipeEditViewModel(params.get(), get(), get()) }
 
         // cooking
         single<CookingRepository> { RemoteCookingRepository(get(), get()) }

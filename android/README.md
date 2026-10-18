@@ -6,7 +6,7 @@ Android-App: Kotlin, Jetpack Compose, Clean Architecture. Entscheidungen: [ADR-0
 ## Module
 
 `app` · `core:api` (aus `api/openapi.yaml` generierter Retrofit-Client) · `core:data` (Netzwerk, Session, Fehlerabbildung) ·
-`core:ui` (Theme, Bausteine) · `core:testing` (Test-Helfer) · `feature:auth` (Einrichten, Koppeln, Familie verwalten) · `feature:meals` (Anwesenheit & Fristen, Essensplan – offline lesbar, Einreichen, Freigeben, Absagen, Wochenstatus).
+`core:ui` (Theme, Bausteine) · `core:testing` (Test-Helfer) · `feature:auth` (Einrichten, Koppeln, Familie verwalten) · `feature:meals` (Anwesenheit & Fristen, Essensplan – offline lesbar, Einreichen, Freigeben, Absagen, Wochenstatus, Rezepte – Liste, Ansicht, Editor, Gericht aus Rezept).
 
 ## Voraussetzungen
 
@@ -111,3 +111,19 @@ Abgenommen am 2026-10-18 durch den Anwender, alle Punkte.
 - [x] Alle Tage belegt und freigegeben → „✓ Bereit zur Bestellung“
 - [x] Zweites Elternhandy gibt gleichzeitig frei → Meldung „Das Gericht wartet nicht auf Freigabe“
 - [x] WLAN aus: Plan mit Badges lesbar, „Wochenstatus nur im Heim-WLAN.“, keine Karten
+
+## Abnahme-Checkliste Phase 5b (manuell, echte Geräte gegen den Pi)
+
+- [ ] Pi läuft mit Image inkl. Migration V5 (5a); Release-APK 0.5.0 (gleiche Signatur) per `adb install -r` auf Eltern- und Kinderhandy
+- [ ] Elternhandy: Startseite → „Rezepte“ → „Neues Rezept“: Lauch-Carbonara mit 4 Portionen und Zutaten als Zeilen
+      („500 g Vollkornspaghetti“, „Salz“, „2 Stange(n) Lauch“, …) und Schritten anlegen; ohne Zutaten/mit 0 Portionen gibt es eine Meldung
+- [ ] Gleicher Name noch einmal → „Ein Rezept mit diesem Namen gibt es schon“
+- [ ] Rezeptliste: Suche „lauch“ findet das Rezept, „xyz“ zeigt „Kein Rezept passt …“
+- [ ] Kinderhandy: Rezepte sichtbar, kein „Neues Rezept“, in der Ansicht kein Bearbeiten/Löschen
+- [ ] Kind reicht über „Mein Kochtag“ ein: „Aus Rezept wählen“ → Carbonara; Portionen vorbelegt mit den Anwesenden des Tages; auf 5 stellen →
+      „625 g Vollkornspaghetti“, „2,5 Stange(n) Lauch“, „Salz“ ohne Menge; einreichen
+- [ ] Essensplan (beide Handys): Gericht mit „Rezept ›“; Ansicht zeigt „Für 5 Portionen“, die Gerichtsmengen und die Schritte
+- [ ] Eltern ändern danach das Rezept (z. B. 600 g) → das eingereichte Gericht bleibt bei 625 g
+- [ ] Eltern löschen das Rezept → Gericht bleibt mit seinen Zutaten, „Rezept ›“ verschwindet nach Neuladen
+- [ ] Elterngericht ohne Rezept mit „500g Mehl“ speichern → Plan zeigt „500 g Mehl“
+- [ ] WLAN aus: Plan ohne „Rezept ›“; Rezeptliste zeigt „Server nicht erreichbar …“

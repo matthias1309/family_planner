@@ -3,7 +3,7 @@
 ## Abgedeckte Anforderungen
 
 REQ-MEAL-010, REQ-MEAL-011, REQ-MEAL-012, REQ-MEAL-013 (Phase 2), REQ-MEAL-001, REQ-MEAL-032 und – auf der App-Seite
-(Phase 3b) – REQ-MEAL-002 (Phase 3) sowie REQ-MEAL-020, -021, -022, -023, -030, -031, -033 (Phase 4, Backend/API) sowie REQ-MEAL-060 und REQ-MEAL-062 (Server-Anteil: Rezeptsammlung, Rezeptbezug und strukturierte Zutaten am Gericht, Phase 5a) — siehe [meals.prd.md](../01-requirements/meals.prd.md).
+(Phase 3b) – REQ-MEAL-002 (Phase 3) sowie REQ-MEAL-020, -021, -022, -023, -030, -031, -033 (Phase 4, Backend/API) sowie REQ-MEAL-060, -062 und -063 (Server-Anteil: Rezeptsammlung, Rezeptbezug und strukturierte Zutaten am Gericht, Phase 5a; App: Phase 5b) — siehe [meals.prd.md](../01-requirements/meals.prd.md).
 Konventionen für Feature-Module: [ADR-0010](../02-architecture/adr/0010-backend-feature-modules.md).
 Fristen ohne Fernzugriff: [ADR-0007](../02-architecture/adr/0007-meal-deadlines-without-remote-access.md).
 Die Eltern-UI in der App (Phase 2b) steht im Abschnitt „App-Seite (Phase 2b)“, Essensplan und Offline-Cache im Abschnitt
@@ -139,7 +139,7 @@ Freigabe und Ablehnung antworten mit 204 ohne Body; die App lädt Plan und Statu
 ## Rezepte & strukturierte Zutaten (Phase 5a)
 
 Architektur und Begründung: [ADR-0012](../02-architecture/adr/0012-recipes-and-rewe-import.md) (Kopie statt Verknüpfung, additive API,
-Rezepte nur durch Eltern). Phase 5a ist Backend/API; Umrechnen der Mengen, REWE-Import und Oberflächen folgen in 5b.
+Rezepte nur durch Eltern). Phase 5a ist Backend/API; Oberflächen und Umrechnung: „App-Seite (Phase 5b)“; REWE-Import: Phase 5c.
 
 | Begriff | Definition |
 |---|---|
@@ -258,3 +258,38 @@ Regeln:
   Status macht die Woche „nicht gespeichert“.
 - **Editor-Daten:** Woche, Mitglieder und Anwesenheit (Kinder, die kochen oder noch ein Gericht der Woche besitzen); schlägt eine
   der drei Anfragen fehl, schlägt das Laden fehl.
+
+## App-Seite (Phase 5b)
+
+Rezepte in `feature:meals`: Pakete `domain/recipe`, `data/recipe`, `ui/recipes` (Liste) und `ui/recipe` (Ansicht, Editor, Portionen-Stepper).
+Der REWE-Import folgt in Phase 5c und nutzt den Zerleger unten wieder. `api/` und `backend/` bleiben unverändert (Vertrag 0.5.0).
+
+| Screen | Rolle | Inhalt |
+|---|---|---|
+| Rezeptliste | alle | Einstieg „Rezepte“ auf der Startseite; Name + Portionen, Suche (clientseitig über die einmal geladene Liste), „Neues Rezept“ nur Eltern; im **Auswahlmodus** („Rezept wählen“) übernimmt Tippen das Rezept, kein Anlegen |
+| Rezeptansicht | alle | Portionen, Zutaten, nummerierte Schritte, Quelle; Eltern: Bearbeiten, Löschen (mit Bestätigung) |
+| Rezeptansicht aus dem Plan | alle | „Rezept ›“ in der Plan-Zeile (nur online) öffnet die Ansicht mit den **Mengen und Portionen des Gerichts**; keine Verwaltungsknöpfe |
+| Rezept-Editor | nur Eltern | Name, Portionen 1–20, Zutaten (eine Zeile je Zutat), Schritte (eine Zeile je Schritt), Quelle; Kinder bekommen „Nur für Eltern.“ ohne Request |
+| Gericht-Editor | Eltern, Kinder | + Abschnitt „Aus Rezept wählen“ (nicht im Modus `PARENT_MOVE`): Portionen-Stepper, „Anderes Rezept“, „Rezeptbezug entfernen“ |
+
+Regeln:
+
+- **Zerleger** (`parseIngredientLine`): Zahl am Anfang (Dezimalpunkt oder -komma, Punkt als Tausendertrenner bei Gruppen aus drei Ziffern,
+  auch direkt am Buchstaben: „500g“), danach eine **bekannte Einheit** (Liste, ohne Groß-/Kleinschreibung, oder Wort mit „(n)“-Endung) und der
+  Name. Alles andere, auch Mengen außerhalb 0,001–10000 oder eine Einheit ohne Namen dahinter, bleibt ganz Name (ADR-0012).
+  Markenbereinigung gehört nicht dazu (Phase 5c).
+- **Anzeigeformat** wie im Backend (`displayText`); Textfeld und Zerleger sind rundtrip-stabil. Ab 0.5.0 sendet die App Gerichte nur noch
+  mit `structuredIngredients` (und `ingredients = []`) sowie `recipeId`/`servings`.
+- **Portionen:** Vorschlag = alle Eltern + an dem Tag anwesende Kinder (Eltern-Anwesenheit kennt das System nicht), begrenzt auf 1–20.
+  Auswahl übernimmt Name und umgerechnete Zutaten; **Portionen ändern rechnet immer neu aus dem Rezept** und überschreibt manuelle
+  Zutaten-Änderungen (Hinweis im Editor). Mengen: Rezeptmenge · Ziel / Rezeptportionen, 3 Nachkommastellen; Zutaten ohne Menge bleiben so.
+- **Rezeptbezug** bleibt nach manuellen Textänderungen erhalten; „Rezeptbezug entfernen“ lässt Name und Zutaten stehen. Ein bestehendes Gericht
+  behält `recipeId`/`servings` beim Ändern, auch wenn das Rezept nicht (mehr) ladbar ist (dann ohne Stepper).
+- **Navigationsergebnis:** Die Rezeptliste im Auswahlmodus schreibt die Rezept-ID in den `SavedStateHandle` des Gericht-Editors; der Editor
+  verbraucht sie einmal (`onRecipeConsumed`), sodass eine Rotation das Rezept nicht erneut übernimmt.
+- **Nicht offline:** Rezepte werden nicht gecacht (PRD „Later“); beim gespeicherten Plan-Stand gibt es kein „Rezept ›“.
+- **Löschen** nur in der Rezeptansicht; 404 gilt als gelöscht. Bestehende Gerichte bleiben unverändert (Server-Regel 5a).
+- **Fehler:** 400/403/404/409 und offline über `ErrorText`; bei 409 (Name vergeben) und 400 gewinnt die Servermeldung.
+
+Unit-Testfälle: `IngredientLinesTest`, `ServingsTest`, `ValidationTest` (recipe), `UseCasesTest` (recipe, plan), `RecipeViewModelsTest`,
+`RecipeScreensTest`; Integration gegen MockWebServer: `RemoteRecipeRepositoryTest`, `RemoteMealPlanRepositoryTest`.

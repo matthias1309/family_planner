@@ -36,6 +36,7 @@ import de.familyplanner.android.feature.meals.domain.plan.DishStatus
 import de.familyplanner.android.feature.meals.domain.plan.PlannedDay
 import de.familyplanner.android.feature.meals.ui.dish.DishEditArgs
 import de.familyplanner.android.feature.meals.ui.formatDeadline
+import de.familyplanner.android.feature.meals.ui.recipe.RecipeViewArgs
 import de.familyplanner.android.feature.meals.ui.weekdayShort
 import org.koin.androidx.compose.koinViewModel
 
@@ -44,6 +45,7 @@ private const val INGREDIENT_PREVIEW_LINES = 2
 @Composable
 fun WeekPlanRoute(
     onOpenEditor: (DishEditArgs) -> Unit,
+    onOpenRecipe: (RecipeViewArgs) -> Unit,
     onBack: () -> Unit,
 ) {
     val viewModel = koinViewModel<WeekPlanViewModel>()
@@ -53,7 +55,13 @@ fun WeekPlanRoute(
         viewModel.onEvent(WeekPlanEvent.Refresh)
         onPauseOrDispose {}
     }
-    WeekPlanScreen(state = state, onEvent = viewModel::onEvent, onOpenEditor = onOpenEditor, onBack = onBack)
+    WeekPlanScreen(
+        state = state,
+        onEvent = viewModel::onEvent,
+        onOpenEditor = onOpenEditor,
+        onOpenRecipe = onOpenRecipe,
+        onBack = onBack,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,6 +70,7 @@ fun WeekPlanScreen(
     state: WeekPlanUiState,
     onEvent: (WeekPlanEvent) -> Unit,
     onOpenEditor: (DishEditArgs) -> Unit,
+    onOpenRecipe: (RecipeViewArgs) -> Unit,
     onBack: () -> Unit,
 ) {
     PullToRefreshBox(
@@ -87,7 +96,13 @@ fun WeekPlanScreen(
             if (state.actionError != null && state.cancelTarget == null) item { ErrorText(state.actionError) }
             state.week?.let { week ->
                 items(week.days, key = { it.date.toString() }) { day ->
-                    PlanDayRow(day, isToday = day.date == state.today, state = state, onOpenEditor = onOpenEditor)
+                    PlanDayRow(
+                        day,
+                        isToday = day.date == state.today,
+                        state = state,
+                        onOpenEditor = onOpenEditor,
+                        onOpenRecipe = onOpenRecipe,
+                    )
                 }
             }
             item { TextButton(onClick = onBack) { Text(stringResource(R.string.back)) } }
@@ -204,6 +219,7 @@ private fun PlanDayRow(
     isToday: Boolean,
     state: WeekPlanUiState,
     onOpenEditor: (DishEditArgs) -> Unit,
+    onOpenRecipe: (RecipeViewArgs) -> Unit,
 ) {
     val editLabel = stringResource(if (day.dish == null) R.string.plan_day_add_action else R.string.plan_day_edit_action)
     val rowModifier =
@@ -217,7 +233,7 @@ private fun PlanDayRow(
         }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = rowModifier.padding(vertical = 4.dp)) {
         DayLabel(day, isToday)
-        DishSummary(day, state.canEdit, modifier = Modifier.weight(1f))
+        DishSummary(day, state.canEdit, showRecipeLink = !state.isOffline, onOpenRecipe = onOpenRecipe, modifier = Modifier.weight(1f))
     }
 }
 
@@ -243,6 +259,8 @@ private fun DayLabel(
 private fun DishSummary(
     day: PlannedDay,
     canEdit: Boolean,
+    showRecipeLink: Boolean,
+    onOpenRecipe: (RecipeViewArgs) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dish = day.dish
@@ -262,6 +280,15 @@ private fun DishSummary(
                 maxLines = INGREDIENT_PREVIEW_LINES,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+        // Rezepte sind nicht offline lesbar (PRD „Later“): beim gespeicherten Stand kein Link.
+        val recipeId = dish.recipeId
+        if (recipeId != null && showRecipeLink) {
+            val description = stringResource(R.string.plan_recipe_description, dish.name)
+            TextButton(
+                onClick = { onOpenRecipe(RecipeViewArgs(recipeId, dish.date, dish.id)) },
+                modifier = Modifier.semantics { contentDescription = description },
+            ) { Text(stringResource(R.string.plan_recipe)) }
         }
     }
 }

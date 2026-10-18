@@ -41,12 +41,22 @@ private const val INGREDIENT_MIN_LINES = 4
 @Composable
 fun DishEditRoute(
     args: DishEditArgs,
+    pickedRecipeId: String?,
+    onRecipeConsumed: () -> Unit,
+    onPickRecipe: () -> Unit,
     onDone: () -> Unit,
 ) {
     val viewModel = koinViewModel<DishEditViewModel> { parametersOf(args) }
     val state by viewModel.state.collectAsStateWithLifecycle()
-    DishEditScreen(state = state, onEvent = viewModel::onEvent, onBack = onDone)
+    DishEditScreen(state = state, onEvent = viewModel::onEvent, onPickRecipe = onPickRecipe, onBack = onDone)
     LaunchedEffect(state.isDone) { if (state.isDone) onDone() }
+    // Das Ergebnis wird einmal verbraucht, sonst übernähme eine Rotation das Rezept erneut und überschriebe Eingaben.
+    LaunchedEffect(pickedRecipeId) {
+        pickedRecipeId?.let {
+            viewModel.onEvent(DishEditEvent.RecipePicked(it))
+            onRecipeConsumed()
+        }
+    }
 }
 
 @Composable
@@ -74,6 +84,7 @@ private fun saveLabelOf(state: DishEditUiState): String =
 fun DishEditScreen(
     state: DishEditUiState,
     onEvent: (DishEditEvent) -> Unit,
+    onPickRecipe: () -> Unit,
     onBack: () -> Unit,
 ) {
     Column(
@@ -85,7 +96,7 @@ fun DishEditScreen(
             ErrorText(state.loadError)
             OutlinedButton(onClick = { onEvent(DishEditEvent.Retry) }) { Text(stringResource(R.string.dish_retry)) }
         } else if (!state.isLoading) {
-            EditorBody(state, onEvent)
+            EditorBody(state, onEvent, onPickRecipe)
         }
         TextButton(onClick = onBack) { Text(stringResource(R.string.dish_cancel)) }
     }
@@ -96,6 +107,7 @@ fun DishEditScreen(
 private fun EditorBody(
     state: DishEditUiState,
     onEvent: (DishEditEvent) -> Unit,
+    onPickRecipe: () -> Unit,
 ) {
     when (state.mode) {
         EditorMode.PARENT_REVIEW -> ReviewSection(state, onEvent)
@@ -108,6 +120,7 @@ private fun EditorBody(
     }
     DayChips(state, onEvent)
     CookSection(state, onEvent)
+    RecipeSection(state, onEvent, onPickRecipe)
     DishFields(state, onEvent)
     if (!state.showRejectDialog) ErrorText(state.error)
     SubmitButton(

@@ -2,6 +2,7 @@ package de.familyplanner.android.feature.meals.data.plan
 
 import de.familyplanner.android.feature.meals.data.mapAllOrNull
 import de.familyplanner.android.feature.meals.data.parseDate
+import de.familyplanner.android.feature.meals.data.recipe.toApi
 import de.familyplanner.android.feature.meals.domain.plan.Dish
 import de.familyplanner.android.feature.meals.domain.plan.DishDraft
 import de.familyplanner.android.feature.meals.domain.plan.DishStatus
@@ -21,7 +22,7 @@ internal fun ApiDishStatus.toDomain(): DishStatus? = DishStatus.entries.firstOrN
 internal fun ApiDish.toDomain(): Dish? {
     val day = parseDate(date) ?: return null
     val mappedStatus = status.toDomain() ?: return null
-    return Dish(id, day, cookId, name, ingredients, mappedStatus, rejectionReason, late, dayValid)
+    return Dish(id, day, cookId, name, ingredients, mappedStatus, rejectionReason, late, dayValid, recipeId, servings)
 }
 
 internal fun ApiPlanDay.toDomain(): PlanDay? {
@@ -37,4 +38,14 @@ internal fun ApiWeekPlan.toDomain(): WeekPlan? {
     return if (mapped.size == DAYS_PER_WEEK) WeekPlan(start, mapped) else null
 }
 
-internal fun DishDraft.toApi() = SaveDishRequest(date.toString(), cookId, name, ingredients)
+/** Ab 5b immer strukturiert; `ingredients` muss dann leer sein (Server: sonst 400). */
+internal fun DishDraft.toApi() =
+    SaveDishRequest(
+        date = date.toString(),
+        cookId = cookId,
+        name = name,
+        ingredients = emptyList(),
+        structuredIngredients = ingredients.map { it.toApi() },
+        recipeId = recipe?.recipeId,
+        servings = recipe?.servings,
+    )

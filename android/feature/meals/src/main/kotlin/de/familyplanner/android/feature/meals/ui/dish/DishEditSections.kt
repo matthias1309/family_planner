@@ -11,6 +11,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,6 +25,7 @@ import de.familyplanner.android.feature.meals.R
 import de.familyplanner.android.feature.meals.domain.plan.DishStatus
 import de.familyplanner.android.feature.meals.domain.plan.EditorMode
 import de.familyplanner.android.feature.meals.ui.formatDeadline
+import de.familyplanner.android.feature.meals.ui.recipe.ServingsStepper
 import de.familyplanner.android.feature.meals.ui.weekdayShort
 
 @Composable
@@ -149,4 +151,36 @@ private fun CookItem(
             onEvent(DishEditEvent.CookSelected(memberId))
         },
     )
+}
+
+/** Rezeptbezug des Gerichts (REQ-MEAL-062): Rezept wählen, Portionen umrechnen, Bezug entfernen. */
+@Composable
+internal fun RecipeSection(
+    state: DishEditUiState,
+    onEvent: (DishEditEvent) -> Unit,
+    onPickRecipe: () -> Unit,
+) {
+    if (state.fieldsLocked) return
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (state.recipeId == null) {
+            OutlinedButton(onClick = onPickRecipe, enabled = state.canUseRecipe, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.dish_recipe_pick))
+            }
+        } else {
+            val from =
+                state.recipe?.let { stringResource(R.string.dish_recipe_from, it.name) }
+                    ?: stringResource(R.string.dish_recipe_from_unknown)
+            Text(from, style = MaterialTheme.typography.titleSmall)
+            val servings = state.servings
+            if (state.recipe != null && servings != null) {
+                ServingsStepper(value = servings, onChange = { onEvent(DishEditEvent.ServingsChanged(it)) }, enabled = state.canUseRecipe)
+                Text(stringResource(R.string.dish_recipe_servings_hint), style = MaterialTheme.typography.bodySmall)
+            }
+            TextButton(onClick = onPickRecipe, enabled = state.canUseRecipe) { Text(stringResource(R.string.dish_recipe_other)) }
+            TextButton(onClick = { onEvent(DishEditEvent.ClearRecipe) }, enabled = state.canUseRecipe) {
+                Text(stringResource(R.string.dish_recipe_clear))
+            }
+        }
+        if (state.isRecipeLoading) Text(stringResource(R.string.dish_recipe_loading), style = MaterialTheme.typography.bodySmall)
+    }
 }
