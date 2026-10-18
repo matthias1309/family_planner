@@ -20,7 +20,9 @@ verlässlich, wann es was gibt — besonders wichtig für das mittlere Kind (lei
 
 Ein Modul `meals` im Familienplaner: ein gemeinsamer Wochenplan (Mo–So), in dem die Eltern ihre Gerichte planen und
 die kochenden Kinder ihr Gericht samt Zutaten einreichen. Die Eltern geben Kindergerichte frei (Qualitätsregeln wie
-„enthält Gemüse“ zunächst manuell). Aus freigegebenen Gerichten entsteht eine Einkaufsliste für die Picnic-Bestellung.
+„enthält Gemüse“ zunächst manuell). Lieblingsgerichte liegen als Rezepte mit strukturierten Zutaten vor (auch aus der
+REWE-Rezeptwelt importierbar) und lassen sich beim Planen direkt auswählen. Aus freigegebenen Gerichten entsteht eine
+Einkaufsliste mit zusammengeführten Mengen für die Picnic-Bestellung.
 Ein Anwesenheitskalender je Kind bestimmt Kochtage und Einreichfrist; die App erinnert die Kinder lokal vorher.
 Eigenbau statt Mealie, weil die familienspezifische Logik (Rollen, Fristen, Freigabe) der Kern ist und sich ohnehin
 nicht in vorhandene Tools einbauen lässt.
@@ -56,7 +58,10 @@ Wir wissen, dass wir richtig liegen, wenn wir **4 Wochen in Folge** die Picnic-B
 - [x] Nach Ablauf der Kind-Frist: **keine Sperre** — Einreichen bleibt möglich, wird als „nach Frist“ markiert.
 - [x] Uhrzeiten: Bestellfrist und Kind-Frist jeweils **16:00 Uhr** (konfigurierbar).
 - [x] Ferien/Abweichungen: Anwesenheit **frei eintragbar und überschreibbar** (beliebige Zeiträume).
-- [x] Zutaten: zunächst **Freitext**; später Übernahme aus hinterlegten Rezepten.
+- [x] Zutaten: zunächst **Freitext**; Übernahme aus hinterlegten Rezepten **vor** der Einkaufsliste (Phase 5, ADR-0012).
+- [x] Rezepte anlegen, importieren, ändern und löschen dürfen **nur Eltern**; Kinder sehen alle Rezepte und wählen sie
+  für ihr Gericht aus (Anwender, 2026-10-18).
+- [x] Portionen-Vorschlag beim Übernehmen: **Anzahl der an dem Tag anwesenden Mitglieder**, änderbar (Anwender, 2026-10-18).
 - [x] Kind darf das Kochen einer Woche **absagen** (z. B. Krankheit, Termin).
 - [x] Absage muss mit **Freitext begründet** werden; keine Bestätigung durch Eltern nötig (sie sehen sie im Wochenstatus).
 
@@ -95,7 +100,11 @@ Alle außer den fünf Familienmitgliedern (anderer Elternhaushalt, Großeltern, 
   Bestellfrist (Standard: Sonntag 16:00 Uhr). Für das dauerhaft anwesende Kind gilt die Bestellfrist.
   Nach der Frist bleibt Einreichen möglich, wird aber als „nach Frist“ markiert.
 - **Absage:** Ein Kind kann sein Kochen für eine Woche absagen; der Tag fällt dann den Eltern zu.
-- **Zutaten:** Freitext (eine Zeile pro Zutat); keine automatische Zusammenführung im MVP.
+- **Zutaten:** je Zutat Name (Pflicht), Menge und Einheit (optional). Freitext-Zeilen bleiben möglich (nur Name).
+- **Rezepte:** Name, Basis-Portionen, Zutaten, optional Zubereitungsschritte und Quelle. Ein Gericht kann aus einem Rezept
+  entstehen: Name und Zutaten werden auf die gewählten Portionen umgerechnet und **kopiert** (ADR-0012); danach ist das
+  Gericht frei änderbar, spätere Rezeptänderungen wirken nicht auf bestehende Gerichte.
+- **Einkaufsliste:** führt Zutaten mit gleichem Namen und gleicher Einheit zusammen; keine Einheiten-Umrechnung.
 - **Kochtage:** Ein Kind kann nur an einem Tag kochen, an dem es in der Planwoche anwesend ist.
 - **Qualitätsregeln** (z. B. „enthält Gemüse“): zunächst durch Elternfreigabe geprüft, nicht automatisch.
 
@@ -228,14 +237,72 @@ Als Elternteil möchte ich auf einen Blick sehen, was vor der Bestellung noch fe
 - Given alle Tage sind belegt und alle Kindergerichte freigegeben, When ich den Status öffne, Then ist die Woche
   „bereit zur Bestellung“.
 
+#### Rezepte
+
+##### REQ-MEAL-060 Rezepte anlegen und pflegen
+Als Elternteil möchte ich unsere Lieblingsrezepte mit Zutaten hinterlegen, damit wir sie nicht jede Woche neu
+abtippen.
+
+**Abnahmekriterien**
+- Given ich bin ein Kind, When ich die Rezeptliste öffne, Then kann ich alle Rezepte ansehen, aber keine anlegen,
+  ändern, löschen oder importieren (Server lehnt mit 403 ab).
+- Given ich lege ein Rezept mit Name, Basis-Portionen und Zutaten (Name, optional Menge und Einheit) an, When ich
+  speichere, Then erscheint es in der Rezeptliste aller Familienmitglieder.
+- Given ein Rezept ohne Name, ohne Zutaten oder mit Portionen < 1, When ich speichere, Then wird der Fehler gemeldet.
+- Given ein Rezept, When ich es ändere oder lösche, Then bleiben Gerichte, die schon daraus übernommen wurden, unverändert.
+- Given die Rezeptliste, When ich einen Suchbegriff eingebe, Then sehe ich nur Rezepte, deren Name ihn enthält.
+
+##### REQ-MEAL-061 Rezept aus der REWE-Rezeptwelt importieren
+Als Elternteil möchte ich ein Rezept von rewe.de über „Teilen“ oder per Link übernehmen, damit Lieblingsrezepte
+mit wenigen Tippern in der App sind.
+
+**Abnahmekriterien**
+- Given die Seite `rewe.de/rezepte/spaghetti-lauch-carbonara-mit-ohne-speck/`, When ich sie mit der App teile, Then sehe
+  ich einen vorausgefüllten Rezept-Editor mit Name, 4 Portionen, 11 Zutaten (u. a. „500 g Vollkornspaghetti“,
+  „2 Stange(n) Lauch“, „Salz“ ohne Menge), den Zubereitungsschritten und der Quell-URL.
+- Given ein importiertes Rezept, When ich im Editor Zutaten korrigiere und speichere, Then wird es wie ein manuell
+  angelegtes Rezept gespeichert; ohne Speichern wird nichts übernommen.
+- Given Zutaten mit Eigenmarken-Präfix wie „REWE Bio Rapsöl“, „REWE Beste Wahl Kidney-Bohnen“ oder „ja! Gouda
+  gerieben“, When importiert wird, Then lauten die Namen „Rapsöl“, „Kidney-Bohnen“ und „Gouda gerieben“ (Menge und
+  Einheit bleiben erhalten, z. B. „1 Dose(n) Kidney-Bohnen“).
+- Given eine Zutatenzeile, die sich nicht in Menge/Einheit/Name zerlegen lässt (z. B. „Saft von 1 Limette“), When
+  importiert wird, Then wird die ganze Zeile als Name übernommen.
+- Given eine Seite ohne erkennbares Rezept oder ohne Internetverbindung, When ich importiere, Then erhalte ich eine
+  verständliche Meldung und kann das Rezept manuell anlegen.
+
+##### REQ-MEAL-062 Gericht aus Rezept auswählen
+Als kochendes Kind oder Elternteil möchte ich beim Planen ein Rezept aus einer Liste wählen, damit Name und richtige
+Mengen automatisch übernommen werden.
+
+**Abnahmekriterien**
+- Given der Gericht-Editor (Kind einreichen, Eltern planen oder stellvertretend eintragen), When ich ein Rezept wähle,
+  Then sind Name und Zutaten übernommen und die Portionen mit der Anzahl der an dem Tag anwesenden Mitglieder vorbelegt.
+- Given ein Rezept für 4 Portionen mit „500 g Vollkornspaghetti“, When ich 5 Portionen wähle, Then steht im Gericht
+  „625 g Vollkornspaghetti“; Zutaten ohne Menge bleiben ohne Menge.
+- Given ein aus einem Rezept übernommenes Gericht, When ich Zutaten ändere, Then gelten die Regeln aus REQ-MEAL-020–032
+  (Freigabe, erneute Freigabe) unverändert.
+- Given ich wähle kein Rezept, When ich das Gericht anlege, Then kann ich Name und Zutaten wie bisher frei eingeben.
+
+##### REQ-MEAL-063 Rezept beim Kochen ansehen
+Als kochendes Kind möchte ich zu meinem Gericht das Rezept mit Zubereitungsschritten sehen.
+
+**Abnahmekriterien**
+- Given ein Gericht, das aus einem Rezept mit Schritten übernommen wurde, When ich es öffne, Then kann ich die
+  Zubereitungsschritte und die Zutaten mit den Mengen des Gerichts ansehen.
+
 #### Einkaufsliste
 
 ##### REQ-MEAL-040 Einkaufsliste erzeugen
 Als Elternteil möchte ich eine Einkaufsliste mit den Zutaten aller freigegebenen Gerichte der Planwoche.
 
 **Abnahmekriterien**
-- Given freigegebene Gerichte mit Freitext-Zutaten, When ich die Einkaufsliste öffne, Then sind alle Zutatenzeilen
-  aufgeführt, gruppiert nach Gericht (keine automatische Zusammenführung im MVP).
+- Given freigegebene Gerichte, When ich die Einkaufsliste öffne, Then sind Zutaten mit gleichem Namen und gleicher
+  Einheit zu einem Eintrag mit addierter Menge zusammengeführt, und je Eintrag ist sichtbar, aus welchen Gerichten er
+  stammt.
+- Given Zutaten ohne Menge (z. B. „Salz“) oder Freitext-Zeilen, When die Liste erzeugt wird, Then erscheinen sie einmal
+  je Name, ohne Menge.
+- Given gleiche Zutat mit verschiedenen Einheiten (z. B. „200 g Sahne“ und „1 Becher Sahne“), When die Liste erzeugt
+  wird, Then bleiben es getrennte Einträge.
 - Given ein Gericht „wartet auf Freigabe“, When ich die Liste öffne, Then sind seine Zutaten nicht enthalten.
 
 ##### REQ-MEAL-041 Einkaufsliste bearbeiten
@@ -285,11 +352,13 @@ Als kochendes Kind möchte ich benachrichtigt werden, wenn mein Gericht freigege
 | Must | Anwesenheitskalender + Fristen (REQ-MEAL-010–013) | Ohne ihn keine korrekten Kochtage/Fristen im 50 %-Modell |
 | Must | Kindergericht einreichen, absagen + Elternfreigabe (REQ-MEAL-020–031) | Kern des Kochtag-Prozesses, Qualitätsregeln |
 | Must | Elterngerichte + Wochenstatus (REQ-MEAL-032/033) | „Bereit zur Bestellung“ ist das Erfolgskriterium |
-| Must | Einkaufsliste (REQ-MEAL-040/041) | Grundlage für die Picnic-Bestellung |
+| Must | Rezeptsammlung, REWE-Import, Gericht aus Rezept (REQ-MEAL-060–062) | Kein Abtippen; richtige Mengen; Grundlage der Einkaufsliste (ADR-0012) |
+| Must | Einkaufsliste mit Zusammenführung (REQ-MEAL-040/041) | Grundlage für die Picnic-Bestellung |
+| Should | Rezept beim Kochen ansehen (REQ-MEAL-063) | Kinder kochen nach Rezept; Daten liegen ohnehin vor |
 | Must | Erinnerungen (REQ-MEAL-050–052) | Ersetzt das Hinterherlaufen |
 | Later | Vorschläge der Kinder für Elterngerichte | Mitsprache — nach MVP |
-| Later | Rezeptsammlung; Gericht + Zutaten aus hinterlegtem Rezept übernehmen | Komfort, nicht nötig zur Validierung |
-| Later | Strukturierte Zutaten (Menge/Einheit) + Zusammenführung | Voraussetzung für Picnic-Übergabe |
+| Later | Einheiten-Umrechnung auf der Einkaufsliste (g/kg, ml/l) | Erst wenn Mischungen in der Praxis stören |
+| Later | Rezepte offline lesen | Gericht samt Zutaten ist schon offline sichtbar (ADR-0011) |
 | Later | Automatische Qualitätsprüfung (z. B. Gemüse) | Erst wenn manuelle Freigabe Muster zeigt |
 | Later | Übergabe an Picnic (Home Assistant `picnic.add_product`) | Ziel, braucht strukturierte Zutaten + Produktzuordnung |
 | Later | Widget/Startbildschirm „Heute gibt es …“ | Vorhersehbarkeit fürs mittlere Kind weiter erhöhen |
@@ -304,7 +373,7 @@ von der Einreichung bis zur Bestellung ohne WhatsApp-Abstimmung abbilden und die
 
 1. Eltern pflegen einmalig Mitglieder, Kochkinder und Anwesenheitsmuster.
 2. Montag–Sonntag: App plant Erinnerungen je Kind 2 Tage und 1 Tag vor dessen Frist.
-3. Kind reicht Gericht + Zutaten für einen Anwesenheitstag der kommenden Woche ein (oder schickt es außer Haus per
+3. Kind reicht Gericht + Zutaten (frei oder aus einem Rezept) für einen Anwesenheitstag der kommenden Woche ein (oder schickt es außer Haus per
    WhatsApp → Eltern tragen es ein).
 4. Eltern geben frei oder lehnen mit Begründung ab; Kind überarbeitet.
 5. Eltern belegen die übrigen Tage.
@@ -326,7 +395,9 @@ stehen muss.
 - Benachrichtigungen **lokal** in der App (WorkManager/AlarmManager), eingeplant beim Sync anhand der berechneten
   Fristen; Statusänderungen per Hintergrund-Sync im Heimnetz. Keine zweite App, kein Firebase.
 - Zugriff bleibt LAN-only; Fristen sind so gelegt, dass Kinder vor der Abreise einreichen (ADR-0007).
-- Zutaten im MVP als Freitext; Datenmodell so anlegen, dass später strukturierte Zutaten aus Rezepten möglich sind.
+- Zutaten seit Phase 5 strukturiert (Name, optional Menge/Einheit); Freitext bleibt als Zutat nur mit Name (ADR-0012).
+- Rezept-Import in der App (Teilen-Menü → unsichtbare WebView → schema.org-`Recipe` aus JSON-LD → Editor zur Prüfung);
+  das Backend lädt keine externen Seiten (ADR-0012).
 
 **Technical Risks**
 
@@ -336,7 +407,10 @@ stehen muss.
 | Lokale Erinnerungen werden von Android (Doze, Herstelleroptimierung) verzögert | M | Exakte Alarme anfragen, auf Testgeräten der Familie prüfen |
 | Kind außer Haus kann nicht einreichen | M | Frist vor Abreise (ADR-0007) + WhatsApp-Fallback mit Eltern-Eintrag |
 | `AUTH` verzögert den Start | M | Minimal halten (5 feste Mitglieder, Geräte-Anmeldung) |
-| Freitext-Zutaten erschweren spätere Picnic-Übergabe | M | Rezepte mit strukturierten Zutaten als eigener Schritt vor Picnic |
+| Freitext-Zutaten erschweren spätere Picnic-Übergabe | M | Strukturierte Zutaten mit Phase 5 (ADR-0012) |
+| REWE ändert das Seitenformat oder sperrt auch die WebView | M | Allgemeiner schema.org-Leser statt HTML-Scraping; manuelles Anlegen bleibt immer möglich |
+| Zutatenzeilen falsch zerlegt (z. B. „Saft von 1 Limette“) | H | Reine Zerlege-Funktion mit Tests an echten REWE-Zeilen; Editor zur Prüfung vor dem Speichern |
+| Umstellung der Zutaten bricht ältere App-Versionen | M | API additiv erweitern, `ingredients: string[]` bleibt bis zur Ablösung lesbar |
 
 ---
 
@@ -355,9 +429,10 @@ stehen muss.
 | 2 | Anwesenheit & Fristen | Muster, Ausnahmen, Fristberechnung (REQ-MEAL-010–013) — aufgeteilt in 2a Backend/API und 2b Android-Eltern-UI | complete | with 3 | 1 | 2a: `.claude/PRPs/plans/completed/anwesenheit-fristen-backend.plan.md` (Backend umgesetzt, Report: `.claude/PRPs/reports/anwesenheit-fristen-backend-report.md`); 2b: `.claude/PRPs/plans/completed/anwesenheit-fristen-android.plan.md` (umgesetzt, Report: `.claude/PRPs/reports/anwesenheit-fristen-android-report.md`; Geräte-Abnahme 2026-10-18 durch den Anwender, alle Punkte der Checkliste außer dem Offline-Test) |
 | 3 | Wochenplan & Elterngerichte | Plan ansehen, Elterngerichte, Offline-Cache (REQ-MEAL-001/002/032) — aufgeteilt in 3a Backend/API und 3b App inkl. Offline-Cache | complete | with 2 | 1 | 3a: `.claude/PRPs/plans/completed/wochenplan-elterngerichte-backend.plan.md` (Backend umgesetzt, Report: `.claude/PRPs/reports/wochenplan-elterngerichte-backend-report.md`); 3b: `.claude/PRPs/plans/completed/wochenplan-elterngerichte-android.plan.md` (umgesetzt, Report: `.claude/PRPs/reports/wochenplan-elterngerichte-android-report.md`; Geräte-Abnahme 2026-10-18 durch den Anwender, alle Punkte der Checkliste) |
 | 4 | Einreichung & Freigabe | Kindergericht, Absage, Freigabe, Stellvertretung, Wochenstatus (REQ-MEAL-020–031/033) — aufgeteilt in 4a Backend/API und 4b App | complete | - | 2, 3 | 4a: `.claude/PRPs/plans/completed/einreichung-freigabe-backend.plan.md` (Backend umgesetzt, Report: `.claude/PRPs/reports/einreichung-freigabe-backend-report.md`); 4b: `.claude/PRPs/plans/completed/einreichung-freigabe-android.plan.md` (umgesetzt, Report: `.claude/PRPs/reports/einreichung-freigabe-android-report.md`) |
-| 5 | Einkaufsliste | Zutaten nach Gericht, ergänzen, abhaken (REQ-MEAL-040/041) | pending | with 6 | 4 | - |
-| 6 | Erinnerungen | Lokale Erinnerungen, WhatsApp-Hinweis, Status-Sync (REQ-MEAL-050–052) | pending | with 5 | 4 | - |
-| 7 | Pilot | 4 Wochen Echtbetrieb, Messung der Hypothese | pending | - | 5, 6 | - |
+| 5 | Rezeptsammlung | Rezepte mit strukturierten Zutaten, REWE-Import über die App, Gericht aus Rezept (REQ-MEAL-060–063, ADR-0012) — aufgeteilt in 5a Backend/API und 5b App inkl. Import | pending | with 7 | 4 | - |
+| 6 | Einkaufsliste | Zusammengeführte Zutaten, ergänzen, abhaken (REQ-MEAL-040/041) | pending | with 7 | 5 | - |
+| 7 | Erinnerungen | Lokale Erinnerungen, WhatsApp-Hinweis, Status-Sync (REQ-MEAL-050–052) | pending | with 5, 6 | 4 | - |
+| 8 | Pilot | 4 Wochen Echtbetrieb, Messung der Hypothese | pending | - | 6, 7 | - |
 
 ### Phase Details
 
@@ -381,17 +456,25 @@ stehen muss.
 - **Scope**: Einreichen/Ändern/Absagen, Freigabe/Ablehnung, Stellvertretung, Wochenstatus.
 - **Success signal**: Eine Woche lässt sich bis „bereit zur Bestellung“ durchspielen.
 
-**Phase 5: Einkaufsliste**
+**Phase 5: Rezeptsammlung**
+- **Goal**: Lieblingsgerichte mit einem Tipper planen, mit richtigen Mengen.
+- **Scope**: 5a — Rezepte (CRUD, Suche), strukturierte Zutaten inkl. Migration der Freitext-Zeilen, Gericht mit
+  `recipeId`/`servings`, additive API-Erweiterung. 5b — Rezeptliste und -Editor, Rezeptauswahl im Gericht-Editor mit
+  Portionen-Umrechnung, Import über Teilen-Menü/Link per WebView und schema.org-Leser, Rezeptansicht beim Kochen.
+- **Success signal**: Die beiden REWE-Lieblingsrezepte (Lauch-Carbonara, Gemüse-Quesadilla) sind importiert, und ein
+  Kind reicht eines davon mit umgerechneten Mengen ein.
+
+**Phase 6: Einkaufsliste**
 - **Goal**: Bestellung ohne Nachrechnen.
-- **Scope**: Liste der Zutaten nach Gericht, freie Einträge, Abhaken.
+- **Scope**: Zusammengeführte Zutaten der freigegebenen Gerichte mit Herkunft, freie Einträge, Abhaken.
 - **Success signal**: Eltern bestellen bei Picnic nur anhand der Liste.
 
-**Phase 6: Erinnerungen**
+**Phase 7: Erinnerungen**
 - **Goal**: Kein Hinterherlaufen mehr.
 - **Scope**: Lokale Erinnerungen 2 Tage/1 Tag vor Frist, WhatsApp-Hinweis, Benachrichtigung bei Statusänderung.
 - **Success signal**: Kinder erhalten Erinnerungen auch außer Haus pünktlich.
 
-**Phase 7: Pilot**
+**Phase 8: Pilot**
 - **Goal**: Hypothese prüfen.
 - **Scope**: 4 Wochen Echtbetrieb, wöchentliche Notiz „Rückfrage ja/nein“.
 - **Success signal**: 4 Wochen in Folge ohne Rückfrage bestellt.
@@ -399,8 +482,9 @@ stehen muss.
 ### Parallelism Notes
 
 Phase 2 (reine Domänenlogik Anwesenheit/Fristen) und Phase 3 (Plananzeige/Elterngerichte) berühren getrennte Teile
-des Moduls und können parallel laufen. Phase 5 (Einkaufsliste, Backend-lastig) und Phase 6 (Erinnerungen,
-Android-lastig) hängen beide nur an Phase 4 und können ebenfalls parallel laufen.
+des Moduls und können parallel laufen. Phase 6 (Einkaufsliste) braucht die strukturierten Zutaten und Portionen aus
+Phase 5 und folgt ihr deshalb. Phase 7 (Erinnerungen, Android-lastig) hängt nur an Phase 4 und kann parallel zu 5 und 6
+laufen — Achtung: 5b und 7 ändern beide die App; nicht gleichzeitig dieselben Dateien bearbeiten.
 
 ---
 
@@ -420,6 +504,11 @@ Android-lastig) hängen beide nur an Phase 4 und können ebenfalls parallel lauf
 | Fristuhrzeit | 16:00 Uhr (Bestellung und Kind) | Abend | Vor der Abreise erreichbar, Zeit für Rückfragen |
 | Anwesenheit | Muster + frei eintragbare Zeiträume | Nur Einzeltage | Ferien und Sonderregeln flexibel abbildbar |
 | Zutaten | Freitext | Menge/Einheit/Name | Einfach für Kinder; Struktur kommt mit Rezepten |
+| Reihenfolge Rezepte/Einkaufsliste (2026-10-18) | Rezepte mit strukturierten Zutaten vor der Einkaufsliste (ADR-0012) | Einkaufsliste aus Freitext zuerst | Auswahl statt Abtippen; Liste kann Mengen zusammenführen und auf Esser umrechnen |
+| Rezept-Import (2026-10-18) | In der App über WebView und schema.org-JSON-LD, mit Prüfung im Editor | Server lädt die URL; Mealie daneben | Server-Abruf wird von REWE mit 403/Captcha abgewiesen; kein zweites System |
+| Rezeptrechte (2026-10-18) | Nur Eltern legen an, importieren, ändern, löschen | Alle dürfen anlegen | Eltern halten die Sammlung sauber; Kinder wählen nur aus |
+| Eigenmarken beim Import (2026-10-18) | Bekannte Marken-Präfixe entfernen („REWE Bio“, „REWE Beste Wahl“, „ja!“, „REWE“) | Namen unverändert übernehmen | Allgemeine Namen lesen sich besser, lassen sich zusammenführen und später bei Picnic finden |
+| Gericht aus Rezept (2026-10-18) | Kopie, umgerechnet auf Portionen | Live-Verknüpfung | Rezeptänderungen dürfen freigegebene Gerichte nicht verändern |
 | Absage | Kind darf mit Freitext-Begründung absagen, ohne Elternbestätigung | Nur Eltern; Bestätigung nötig | Krankheit/Termine kommen vor; Eltern sehen Begründung |
 
 ---
@@ -437,6 +526,10 @@ Android-lastig) hängen beide nur an Phase 4 und können ebenfalls parallel lauf
   ([Integration](https://home-assistant.io/integrations/picnic),
   [Aktion](https://www.home-assistant.io/actions/picnic.add_product/))
 
+- REWE-Rezeptwelt (geprüft 2026-10-18): Rezeptseiten enthalten ein schema.org-`Recipe` als JSON-LD
+  (`mainEntity` eines `Webpage`-Objekts) mit Zutaten als Zeichenketten wie „500.0 g Vollkornspaghetti“. Abruf ohne
+  Browser liefert 403 mit Captcha (ADR-0012).
+
 **Technical Context**
 - Repository enthält bisher nur Dokumentation und ADRs, keinen Code; `AUTH` muss zuerst entstehen.
 - Pi stellt Home Assistant, ntfy, Pi-hole bereit; App ist LAN-only (ADR-0006).
@@ -446,7 +539,8 @@ Android-lastig) hängen beide nur an Phase 4 und können ebenfalls parallel lauf
 ## Später (Backlog aus der PRD-Erarbeitung)
 
 - Vorschläge der Kinder für Elterngerichte (Mitsprache).
-- Rezeptsammlung; Gericht und Zutaten aus hinterlegten Rezepten übernehmen; strukturierte Zutaten.
+- ~~Rezeptsammlung; Gericht und Zutaten aus hinterlegten Rezepten übernehmen; strukturierte Zutaten.~~ → Phase 5.
+- Einheiten-Umrechnung auf der Einkaufsliste; Rezepte offline lesen.
 - Automatische Qualitätsprüfung (z. B. „enthält Gemüse“).
 - Picnic-Übergabe der Einkaufsliste über Home Assistant.
 - Widget/Startbildschirm „Heute gibt es …“.
@@ -454,5 +548,5 @@ Android-lastig) hängen beide nur an Phase 4 und können ebenfalls parallel lauf
 
 ---
 
-*Generated: 2026-10-11*
+*Generated: 2026-10-11 — Updated: 2026-10-18 (Rezepte vor Einkaufsliste, ADR-0012)*
 *Status: DRAFT - needs validation*

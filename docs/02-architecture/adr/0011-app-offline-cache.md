@@ -34,5 +34,5 @@ nachsehen, was es gibt. Nötig ist nur **Lesen**; es geht um wenige Wochen klein
 
 - Das Dateiformat trägt eine Version (`version = 1`); eine unbekannte Version oder eine beschädigte Datei gilt als leer.
 - Cache-Fehler sind nie ein Nutzerfehler: Lesen liefert „nichts gespeichert“, Schreiben wird nur protokolliert.
-- Spätere Module können das Muster übernehmen; ein Hintergrund-Sync (Phase 6, Erinnerungen) schreibt in denselben Cache.
+- Spätere Module können das Muster übernehmen; ein Hintergrund-Sync (Phase 7, Erinnerungen) schreibt in denselben Cache.
 - Es gibt genau eine `DataStore`-Instanz je Datei und Prozess (Koin-`single`).
