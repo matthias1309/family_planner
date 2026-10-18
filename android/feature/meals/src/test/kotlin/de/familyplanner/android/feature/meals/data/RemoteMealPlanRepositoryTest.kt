@@ -61,6 +61,7 @@ class RemoteMealPlanRepositoryTest {
 
     private val dishJson =
         """{"id":"d-1","date":"2026-10-12","cookId":"p-1","name":"Spaghetti","ingredients":["Nudeln","Hackfleisch"],""" +
+            """"structuredIngredients":[{"name":"Nudeln"},{"name":"Hackfleisch"}],""" +
             """"status":"APPROVED","late":false,"dayValid":true}"""
 
     private fun weekJson(

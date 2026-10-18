@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Family Planner API
-  version: 0.4.0
+  version: 0.5.0
   description: Vertrag zwischen Android-App und Backend (ADR-0004). Alle Antworten nutzen den Envelope {success, data, error}.
 servers:
   - url: https://planner.home.arpa:8095
@@ -394,6 +394,102 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
+  /api/v1/meals/recipes:
+    get:
+      operationId: listRecipes
+      tags: [meals]
+      summary: Rezepte auflisten und suchen
+      description: Ohne query alle Rezepte, sonst Name enthält query (ohne Groß-/Kleinschreibung); sortiert nach Name.
+      parameters:
+        - name: query
+          in: query
+          required: false
+          schema: { type: string, maxLength: 60 }
+      responses:
+        '200':
+          description: Rezepte
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecipeListResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    post:
+      operationId: createRecipe
+      tags: [meals]
+      summary: Rezept anlegen (nur Eltern)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveRecipeRequest' }
+      responses:
+        '201':
+          description: Rezept angelegt
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecipeResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/recipes/{recipeId}:
+    get:
+      operationId: getRecipe
+      tags: [meals]
+      summary: Rezept mit Zutaten und Schritten
+      parameters:
+        - $ref: '#/components/parameters/RecipeId'
+      responses:
+        '200':
+          description: Rezept
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecipeResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    put:
+      operationId: updateRecipe
+      tags: [meals]
+      summary: Rezept ändern (nur Eltern); übernommene Gerichte bleiben unverändert
+      parameters:
+        - $ref: '#/components/parameters/RecipeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveRecipeRequest' }
+      responses:
+        '200':
+          description: Rezept geändert
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RecipeResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    delete:
+      operationId: deleteRecipe
+      tags: [meals]
+      summary: Rezept löschen (nur Eltern); übernommene Gerichte bleiben
+      parameters:
+        - $ref: '#/components/parameters/RecipeId'
+      responses:
+        '204':
+          description: Rezept gelöscht
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
   /api/v1/meals/dishes:
     post:
       operationId: createDish
@@ -520,6 +616,11 @@ components:
       schema: { type: string, format: uuid }
     DishId:
       name: dishId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    RecipeId:
+      name: recipeId
       in: path
       required: true
       schema: { type: string, format: uuid }
@@ -968,7 +1069,7 @@ components:
 
     Dish:
       type: object
-      required: [id, date, cookId, name, ingredients, status, late, dayValid]
+      required: [id, date, cookId, name, ingredients, structuredIngredients, status, late, dayValid]
       properties:
         id: { type: string, format: uuid }
         date: { type: string, format: date }
@@ -976,8 +1077,15 @@ components:
         name: { type: string, minLength: 1, maxLength: 60 }
         ingredients:
           type: array
+          description: Anzeigetexte der Zutaten ("500 g Spaghetti"); für ältere App-Versionen.
           maxItems: 30
-          items: { type: string, minLength: 1, maxLength: 80 }
+          items: { type: string, minLength: 1, maxLength: 120 }
+        structuredIngredients:
+          type: array
+          maxItems: 30
+          items: { $ref: '#/components/schemas/Ingredient' }
+        recipeId: { type: string, format: uuid, nullable: true }
+        servings: { type: integer, minimum: 1, maximum: 20, nullable: true }
         status: { $ref: '#/components/schemas/DishStatus' }
         rejectionReason: { type: string, maxLength: 200, nullable: true }
         late: { type: boolean, description: Vom Kind nach seiner Frist gespeichert }
@@ -995,6 +1103,56 @@ components:
           description: Eine Zeile pro Zutat; Leerzeilen werden entfernt, danach höchstens 30 Zeilen.
           maxItems: 100
           items: { type: string, maxLength: 80 }
+        structuredIngredients:
+          type: array
+          nullable: true
+          description: Wenn gesetzt, gelten diese Zutaten und `ingredients` muss leer sein.
+          maxItems: 30
+          items: { $ref: '#/components/schemas/Ingredient' }
+        recipeId: { type: string, format: uuid, nullable: true }
+        servings: { type: integer, nullable: true }
+
+    Ingredient:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        quantity: { type: number, format: double, minimum: 0, exclusiveMinimum: true, maximum: 10000, nullable: true }
+        unit: { type: string, maxLength: 20, nullable: true }
+
+    Recipe:
+      type: object
+      required: [id, name, servings, ingredients, steps, createdBy]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 60 }
+        servings: { type: integer, minimum: 1, maximum: 20 }
+        ingredients: { type: array, minItems: 1, maxItems: 30, items: { $ref: '#/components/schemas/Ingredient' } }
+        steps: { type: array, maxItems: 30, items: { type: string, minLength: 1, maxLength: 1000 } }
+        sourceUrl: { type: string, maxLength: 500, nullable: true }
+        createdBy: { type: string, format: uuid }
+
+    RecipeSummary:
+      type: object
+      required: [id, name, servings]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 60 }
+        servings: { type: integer, minimum: 1, maximum: 20 }
+
+    SaveRecipeRequest:
+      type: object
+      required: [name, servings, ingredients, steps]
+      properties:
+        name: { type: string, maxLength: 60 }
+        servings: { type: integer }
+        ingredients: { type: array, maxItems: 30, items: { $ref: '#/components/schemas/Ingredient' } }
+        steps:
+          type: array
+          description: Ein Eintrag pro Schritt; leere Einträge werden entfernt, danach höchstens 30.
+          maxItems: 100
+          items: { type: string, maxLength: 1000 }
+        sourceUrl: { type: string, maxLength: 500, nullable: true }
 
     PlanDay:
       type: object
@@ -1026,6 +1184,34 @@ components:
           allOf:
             - $ref: '#/components/schemas/Dish'
           nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    RecipeResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Recipe'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    RecipeListResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          type: array
+          nullable: true
+          items: { $ref: '#/components/schemas/RecipeSummary' }
         error:
           allOf:
             - $ref: '#/components/schemas/ApiError'

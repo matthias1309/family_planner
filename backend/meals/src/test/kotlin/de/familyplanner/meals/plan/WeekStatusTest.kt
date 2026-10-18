@@ -4,6 +4,7 @@ import de.familyplanner.core.member.MemberId
 import de.familyplanner.meals.attendance.MemberWeekAttendance
 import de.familyplanner.meals.attendance.PlanWeek
 import de.familyplanner.meals.attendance.WeekAttendance
+import de.familyplanner.meals.fakes.lines
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
@@ -24,7 +25,7 @@ class WeekStatusTest {
         offset: Long,
         cook: MemberId = parent,
         status: DishStatus = DishStatus.APPROVED,
-    ) = Dish(DishId("d$offset"), week.monday.plusDays(offset), cook, "Suppe", listOf("Lauch"), status)
+    ) = Dish(DishId("d$offset"), week.monday.plusDays(offset), cook, "Suppe", lines("Lauch"), status)
 
     private fun cancellation(reason: String = "krank") = Cancellation(child, week, reason, deadline)
 

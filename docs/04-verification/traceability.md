@@ -22,9 +22,9 @@
 | REQ-MEAL-033 | Wochenstatus | [meals](../03-design/meals.md) | `WeekStatusTest`, `CookingWeekServiceTest` (`REQ-MEAL-033 …`); App: `UseCasesTest` (cooking), `CookingViewModelsTest`, `CookingScreensTest` | `MealsSubmissionApiTest` (`REQ-MEAL-033 …`); App: `RemoteCookingRepositoryTest` | manuell: Abnahme Phase 4b ([android/README.md](../../android/README.md)) | abgenommen (2026-10-18, Geräte-Abnahme 4b) – umgesetzt (Backend + App) |
 | REQ-MEAL-040 | Einkaufsliste erzeugen | | | | | offen |
 | REQ-MEAL-041 | Einkaufsliste bearbeiten | | | | | offen |
-| REQ-MEAL-060 | Rezepte anlegen und pflegen | [ADR-0012](../02-architecture/adr/0012-recipes-and-rewe-import.md) | | | | offen |
+| REQ-MEAL-060 | Rezepte anlegen und pflegen | [meals](../03-design/meals.md), [ADR-0012](../02-architecture/adr/0012-recipes-and-rewe-import.md) | `RecipeRulesTest`, `RecipeServiceTest`, `ExposedRecipeRepositoryTest` (`REQ-MEAL-060 …`) | `MealsRecipeApiTest` (`REQ-MEAL-060 …`) | | Backend umgesetzt (App folgt in 5b) |
 | REQ-MEAL-061 | Rezept aus REWE importieren | [ADR-0012](../02-architecture/adr/0012-recipes-and-rewe-import.md) | | | | offen |
-| REQ-MEAL-062 | Gericht aus Rezept auswählen | [ADR-0012](../02-architecture/adr/0012-recipes-and-rewe-import.md) | | | | offen |
+| REQ-MEAL-062 | Gericht aus Rezept auswählen | [meals](../03-design/meals.md), [ADR-0012](../02-architecture/adr/0012-recipes-and-rewe-import.md) | `IngredientTest`, `MealPlanServiceTest`, `ExposedMealPlanRepositoryTest`, `MealsMigrationV5Test` (`REQ-MEAL-062 …`) | `MealsRecipeApiTest` (`REQ-MEAL-062 …`) | | Backend-Anteil umgesetzt (Übernahme/Umrechnung in 5b) |
 | REQ-MEAL-063 | Rezept beim Kochen ansehen | [ADR-0012](../02-architecture/adr/0012-recipes-and-rewe-import.md) | | | | offen |
 | REQ-MEAL-050 | Erinnerung vor Frist | | | | | offen |
 | REQ-MEAL-051 | WhatsApp-Hinweis außer Haus | | | | | offen |

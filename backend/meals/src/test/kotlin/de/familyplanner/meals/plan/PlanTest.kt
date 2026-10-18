@@ -2,6 +2,7 @@ package de.familyplanner.meals.plan
 
 import de.familyplanner.core.member.MemberId
 import de.familyplanner.meals.attendance.PlanWeek
+import de.familyplanner.meals.fakes.lines
 import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -11,7 +12,7 @@ import kotlin.test.assertTrue
 class PlanTest {
     private val week = PlanWeek(LocalDate.parse("2026-10-19"))
 
-    private fun dish(date: String) = Dish(DishId("d-$date"), LocalDate.parse(date), MemberId("cook"), "Suppe", listOf("Lauch"))
+    private fun dish(date: String) = Dish(DishId("d-$date"), LocalDate.parse(date), MemberId("cook"), "Suppe", lines("Lauch"))
 
     @Test
     fun `REQ-MEAL-001 week plan has seven days Monday to Sunday`() {

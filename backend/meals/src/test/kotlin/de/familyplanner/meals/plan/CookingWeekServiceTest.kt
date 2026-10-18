@@ -3,6 +3,7 @@ package de.familyplanner.meals.plan
 import de.familyplanner.core.error.AppException
 import de.familyplanner.meals.attendance.PlanWeek
 import de.familyplanner.meals.fakes.PlanFixture
+import de.familyplanner.meals.fakes.lines
 import kotlinx.coroutines.test.runTest
 import java.time.LocalDate
 import kotlin.test.Test
@@ -16,7 +17,7 @@ class CookingWeekServiceTest {
     private val week = PlanWeek(LocalDate.parse("2026-10-19"))
     private val tuesday = LocalDate.parse("2026-10-20")
 
-    private suspend fun dishOf(child: Actor) = fixture.mealPlan.create(child, tuesday, child.id, "Spaghetti", listOf("Nudeln"))
+    private suspend fun dishOf(child: Actor) = fixture.mealPlan.create(child, tuesday, child.id, "Spaghetti", lines("Nudeln"))
 
     @Test
     fun `REQ-MEAL-023 child cancels own week`() =

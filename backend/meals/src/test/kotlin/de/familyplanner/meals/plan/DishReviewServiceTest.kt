@@ -2,6 +2,7 @@ package de.familyplanner.meals.plan
 
 import de.familyplanner.core.error.AppException
 import de.familyplanner.meals.fakes.PlanFixture
+import de.familyplanner.meals.fakes.lines
 import kotlinx.coroutines.test.runTest
 import java.time.LocalDate
 import kotlin.test.Test
@@ -15,7 +16,7 @@ class DishReviewServiceTest {
 
     private suspend fun submittedDish(): Dish {
         val child = fixture.child()
-        return fixture.mealPlan.create(child, date, child.id, "Spaghetti", listOf("Nudeln"))
+        return fixture.mealPlan.create(child, date, child.id, "Spaghetti", lines("Nudeln"))
     }
 
     private suspend fun stored(id: DishId) = fixture.planRepository.findById(id)
@@ -58,7 +59,7 @@ class DishReviewServiceTest {
             val approved = submittedDish().also { service.approve(it.id) }
             val parent = fixture.parent()
             val parentDish = fixture.mealPlan.create(parent, date.plusDays(1), parent.id, "Suppe", emptyList())
-            val rejected = fixture.child().let { fixture.mealPlan.create(it, date.plusDays(2), it.id, "Pizza", listOf("Teig")) }
+            val rejected = fixture.child().let { fixture.mealPlan.create(it, date.plusDays(2), it.id, "Pizza", lines("Teig")) }
             service.reject(rejected.id, "nein")
 
             // Act + Assert

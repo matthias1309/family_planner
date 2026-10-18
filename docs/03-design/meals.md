@@ -1,9 +1,9 @@
-# Moduldesign: `meals` – Anwesenheit, Fristen, Wochenplan & Einreichung
+# Moduldesign: `meals` – Anwesenheit, Fristen, Wochenplan, Einreichung & Rezepte
 
 ## Abgedeckte Anforderungen
 
 REQ-MEAL-010, REQ-MEAL-011, REQ-MEAL-012, REQ-MEAL-013 (Phase 2), REQ-MEAL-001, REQ-MEAL-032 und – auf der App-Seite
-(Phase 3b) – REQ-MEAL-002 (Phase 3) sowie REQ-MEAL-020, -021, -022, -023, -030, -031, -033 (Phase 4, Backend/API) — siehe [meals.prd.md](../01-requirements/meals.prd.md).
+(Phase 3b) – REQ-MEAL-002 (Phase 3) sowie REQ-MEAL-020, -021, -022, -023, -030, -031, -033 (Phase 4, Backend/API) sowie REQ-MEAL-060 und REQ-MEAL-062 (Server-Anteil: Rezeptsammlung, Rezeptbezug und strukturierte Zutaten am Gericht, Phase 5a) — siehe [meals.prd.md](../01-requirements/meals.prd.md).
 Konventionen für Feature-Module: [ADR-0010](../02-architecture/adr/0010-backend-feature-modules.md).
 Fristen ohne Fernzugriff: [ADR-0007](../02-architecture/adr/0007-meal-deadlines-without-remote-access.md).
 Die Eltern-UI in der App (Phase 2b) steht im Abschnitt „App-Seite (Phase 2b)“, Essensplan und Offline-Cache im Abschnitt
@@ -47,6 +47,8 @@ Endpunkte siehe `api/openapi.yaml` (Tag `meals`), Lesen für alle Mitglieder, Sc
 - `POST /api/v1/meals/dishes/{dishId}/approval`, `POST …/rejection` (Phase 4, nur Eltern, 204)
 - `PUT|DELETE /api/v1/meals/weeks/{weekStart}/cancellations/{memberId}` (Absage und Rücknahme, Kind für sich, Eltern für jedes Kind)
 - `GET /api/v1/meals/weeks/{weekStart}/status` (Wochenstatus, alle Mitglieder)
+- `GET /api/v1/meals/recipes?query=` (suchen, alle), `GET /api/v1/meals/recipes/{recipeId}` (alle), `POST /api/v1/meals/recipes`, `PUT|DELETE /api/v1/meals/recipes/{recipeId}` (nur Eltern, Phase 5a)
+- Gericht (`Dish`) zusätzlich mit `structuredIngredients`, `recipeId`, `servings`; `ingredients: string[]` bleibt als Anzeigetext erhalten
 
 ## DB-Tabellen
 
@@ -58,6 +60,10 @@ Constraint, damit Phase 4 ihn ersetzen kann) und `meal_dish_ingredients` (`dish_
 
 Migration `V4__meals_submissions.sql`: `meal_dishes` + `status` (Default `APPROVED`), `rejection_reason`, `late`; Index
 `(cook_member_id, meal_date)`; Tabelle `meal_cooking_cancellations` (`member_id`, `week_start`, `reason`, `created_at`).
+
+Migration `V5__meals_recipes.sql`: `meal_recipes` (eindeutiger `name_key` = Name in Kleinbuchstaben), `meal_recipe_ingredients`,
+`meal_recipe_steps`; `meal_dish_ingredients` + `quantity`, `unit` (Spalte `text` bleibt und bedeutet „Name“); `meal_dishes` + `recipe_id`
+(`ON DELETE SET NULL`), `servings`.
 
 ## Unit-Testfälle
 
@@ -81,7 +87,7 @@ von `ZonedDateTime` nach vorn verschoben; praktisch irrelevant.
 | `PlanDay` / `WeekPlan` | Woche = genau 7 Tage Mo–So, je Tag Gericht oder `null` („noch offen“, REQ-MEAL-001) |
 | Woche lesen | jede Woche (Montag 2000–2100), alle Mitglieder; welche Woche die App zeigt, entscheidet die App (3b) |
 | Name | getrimmt, 1–60 Zeichen |
-| Zutaten | Freitext, eine Zeile je Zutat; Zeilen getrimmt, Leerzeilen entfernt, max. 80 Zeichen je Zeile, max. 30 Zeilen (nach dem Entfernen); roh höchstens 100 Zeilen inkl. Leerzeilen, damit die Eingabe begrenzt bleibt |
+| Zutaten | (ab Phase 5: strukturiert, siehe „Rezepte & strukturierte Zutaten“) Freitext, eine Zeile je Zutat; Zeilen getrimmt, Leerzeilen entfernt, max. 80 Zeichen je Zeile, max. 30 Zeilen (nach dem Entfernen); roh höchstens 100 Zeilen inkl. Leerzeilen, damit die Eingabe begrenzt bleibt |
 | Koch/Köchin | muss existieren (404); Elternteil → Regeln dieses Abschnitts, Kind → siehe „Einreichung & Freigabe (Phase 4)“ |
 | Ändern | ersetzt Datum, Koch/Köchin, Name, Zutaten vollständig |
 | Vergangene Tage | erlaubt, keine Sperre |
@@ -129,6 +135,43 @@ Statusübergänge:
 
 Freigabe und Ablehnung antworten mit 204 ohne Body; die App lädt Plan und Status danach neu. Benachrichtigungen
 (REQ-MEAL-052) und Einkaufsliste (Phase 6) sind nicht Teil von 4a.
+
+## Rezepte & strukturierte Zutaten (Phase 5a)
+
+Architektur und Begründung: [ADR-0012](../02-architecture/adr/0012-recipes-and-rewe-import.md) (Kopie statt Verknüpfung, additive API,
+Rezepte nur durch Eltern). Phase 5a ist Backend/API; Umrechnen der Mengen, REWE-Import und Oberflächen folgen in 5b.
+
+| Begriff | Definition |
+|---|---|
+| `Ingredient` | `name`, optional `quantity` (Double) und `unit` |
+| `Recipe` | `id`, `name`, `servings`, `ingredients`, `steps`, `sourceUrl`, `createdBy`; `RecipeSummary` = `id`, `name`, `servings` |
+| `RecipeRef` | am Gericht: `recipeId` und `servings` („übernommen aus Rezept X für N Portionen“) |
+| Anzeigetext | `displayText()`: Menge ohne überflüssige Nullen mit Dezimalkomma, dann Einheit, dann Name, getrennt durch Leerzeichen; fehlende Teile entfallen (`500 g Vollkornspaghetti`, `2,5 Stange(n) Lauch`, `Salz`) |
+
+| Thema | Regel |
+|---|---|
+| Zutat | `name` 1–80 nach Trim; `unit` nach Trim leer → `null`, sonst ≤ 20; `quantity` `null` oder endlich und `0 < q ≤ 10000`; höchstens 30 Zutaten |
+| Freitextzeilen (alt) | roh ≤ 100 Zeilen, getrimmt, Leerzeilen entfernt → Zutaten nur mit Name |
+| Dish-Request | `structuredIngredients` gesetzt → diese gelten, `ingredients` muss leer sein (sonst 400); sonst gelten die Zeilen |
+| Rezeptbezug am Gericht | `recipeId` und `servings` nur zusammen (sonst 400); `servings` 1–20; Rezept muss existieren (404); Kinder dürfen `recipeId` setzen |
+| Reihenfolge der Prüfungen (Gericht) | 403 fremdes Gericht → 400 Eingaben → 404 Mitglied/Rezept → Kind-Regeln aus Phase 4 → 409 Repository |
+| Gericht ändern | ersetzt auch den Rezeptbezug vollständig (fehlt er im Request → `null`) |
+| Mengen am Gericht | Der Server speichert, was kommt; keine Umrechnung auf dem Server |
+| Rezept schreiben | nur Eltern (403 „Nur für Eltern“), lesen/suchen alle Mitglieder |
+| Rezept-Name | getrimmt, 1–60, eindeutig ohne Groß-/Kleinschreibung (`name_key`), sonst 409 |
+| Rezept-Portionen | 1–20, sonst 400 |
+| Rezept-Zutaten | mindestens 1, sonst 400 |
+| Schritte | roh ≤ 100, getrimmt, leere entfernt, danach ≤ 30, je ≤ 1000 Zeichen; 0 Schritte erlaubt |
+| Quell-URL | getrimmt, leer → `null`; ≤ 500; parsebar, Schema `http`/`https`, Host nicht leer, sonst 400 |
+| Suche | `query` getrimmt, leer → alle, > 60 → 400; Treffer = Name enthält Query (ohne Groß-/Kleinschreibung); sortiert nach Name |
+| Rezept ändern | ersetzt Inhalt vollständig, `createdBy` bleibt; bestehende Gerichte bleiben unverändert |
+| Rezept löschen | löscht Zutaten/Schritte; `meal_dishes.recipe_id` der Gerichte → `NULL`; Gerichte bleiben; unbekannt → 404 |
+
+Der Server lädt nie externe URLs (ADR-0012). Die `servings` eines Gerichts gehen mit dem Rezeptbezug verloren, wenn das Rezept
+gelöscht wird (die API liefert dann `servings: null`; die Mengen stehen bereits im Gericht).
+
+Unit-Testfälle: `IngredientTest`, `RecipeRulesTest`, `RecipeServiceTest`, `MealPlanServiceTest`; Persistenz gegen echte SQLite
+(`ExposedRecipeRepositoryTest`, `ExposedMealPlanRepositoryTest`, `MealsMigrationV5Test`); Integration/Contract `MealsRecipeApiTest`.
 
 ## App-Seite (Phase 2b)
 

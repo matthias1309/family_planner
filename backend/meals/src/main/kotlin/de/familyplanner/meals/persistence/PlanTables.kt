@@ -10,6 +10,8 @@ object MealDishesTable : Table("meal_dishes") {
     val status = varchar("status", STATUS_LENGTH)
     val rejectionReason = varchar("rejection_reason", REASON_LENGTH).nullable()
     val late = bool("late")
+    val recipeId = varchar("recipe_id", ID_LENGTH).nullable()
+    val servings = integer("servings").nullable()
     val createdAt = long("created_at")
     val updatedAt = long("updated_at")
 
@@ -19,7 +21,11 @@ object MealDishesTable : Table("meal_dishes") {
 object MealDishIngredientsTable : Table("meal_dish_ingredients") {
     val dishId = varchar("dish_id", ID_LENGTH)
     val position = integer("position")
+
+    /** Ingredient name (column kept from V3). */
     val text = varchar("text", INGREDIENT_LENGTH)
+    val quantity = double("quantity").nullable()
+    val unit = varchar("unit", UNIT_LENGTH).nullable()
 
     override val primaryKey = PrimaryKey(dishId, position)
 }
@@ -39,3 +45,4 @@ private const val ID_LENGTH = 36
 private const val DATE_LENGTH = 10
 private const val NAME_LENGTH = 60
 private const val INGREDIENT_LENGTH = 80
+private const val UNIT_LENGTH = 20

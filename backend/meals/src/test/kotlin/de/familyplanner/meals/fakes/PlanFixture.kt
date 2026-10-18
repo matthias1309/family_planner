@@ -10,7 +10,9 @@ import de.familyplanner.meals.attendance.AttendanceProfile
 import de.familyplanner.meals.attendance.AttendanceService
 import de.familyplanner.meals.attendance.DeadlineSettingsService
 import de.familyplanner.meals.plan.Actor
+import de.familyplanner.meals.plan.Ingredient
 import de.familyplanner.meals.plan.MealPlanService
+import de.familyplanner.meals.recipe.RecipeService
 import java.time.Instant
 
 /** Wires the in-memory fakes that the meal plan services share in unit tests. */
@@ -23,8 +25,11 @@ class PlanFixture(
     val attendanceRepository = InMemoryAttendanceRepository()
     val attendance =
         AttendanceService(members, attendanceRepository, DeadlineSettingsService(InMemoryDeadlineSettingsRepository(), clock), clock)
+    val recipeRepository = InMemoryRecipeRepository()
     private var nextId = 0
-    val mealPlan = MealPlanService(members, planRepository, attendance, clock) { "dish-${++nextId}" }
+    private var nextRecipeId = 0
+    val mealPlan = MealPlanService(members, planRepository, attendance, recipeRepository, clock) { "dish-${++nextId}" }
+    val recipes = RecipeService(recipeRepository, clock) { "recipe-${++nextRecipeId}" }
 
     suspend fun parent(): Actor = Actor(members.create(aMember(role = Role.PARENT)).id, Role.PARENT)
 
@@ -38,3 +43,6 @@ class PlanFixture(
         return Actor(id, Role.CHILD)
     }
 }
+
+/** Name-only ingredients, as produced from free-text lines. */
+fun lines(vararg names: String): List<Ingredient> = names.map { Ingredient(it) }
