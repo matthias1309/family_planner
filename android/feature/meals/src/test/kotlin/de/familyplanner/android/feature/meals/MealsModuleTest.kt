@@ -6,7 +6,9 @@ import de.familyplanner.android.core.data.network.createRetrofit
 import de.familyplanner.android.core.data.session.SessionStore
 import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.core.testing.MainDispatcherRule
+import de.familyplanner.android.feature.meals.data.recipe.PageScriptLoader
 import de.familyplanner.android.feature.meals.domain.plan.PlanCache
+import de.familyplanner.android.feature.meals.fakes.FakePageScriptLoader
 import de.familyplanner.android.feature.meals.fakes.InMemoryPlanCache
 import de.familyplanner.android.feature.meals.fakes.parentSession
 import de.familyplanner.android.feature.meals.ui.dish.DishEditArgs
@@ -47,7 +49,11 @@ class MealsModuleTest {
         }
 
     /** Ersetzt den DataStore-Cache (braucht einen Android-`Context`); muss nach `mealsModule` geladen werden. */
-    private val testOverrides = module { single<PlanCache> { InMemoryPlanCache() } }
+    private val testOverrides =
+        module {
+            single<PlanCache> { InMemoryPlanCache() }
+            single<PageScriptLoader> { FakePageScriptLoader() }
+        }
 
     @Test
     fun `every view model can be built from the koin graph`() {
@@ -63,5 +69,7 @@ class MealsModuleTest {
         assertNotNull(koin.get<RecipeListViewModel> { parametersOf(RecipeListArgs()) })
         assertNotNull(koin.get<RecipeViewModel> { parametersOf(RecipeViewArgs("r-1")) })
         assertNotNull(koin.get<RecipeEditViewModel> { parametersOf(RecipeEditArgs()) })
+        assertNotNull(koin.get<RecipeEditViewModel> { parametersOf(RecipeEditArgs(importText = "https://www.rewe.de/rezepte/x/")) })
+        assertNotNull(koin.get<SharedRecipeInbox>())
     }
 }

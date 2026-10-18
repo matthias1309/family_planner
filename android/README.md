@@ -127,3 +127,19 @@ Abgenommen am 2026-10-18 durch den Anwender, alle Punkte.
 - [ ] Eltern löschen das Rezept → Gericht bleibt mit seinen Zutaten, „Rezept ›“ verschwindet nach Neuladen
 - [ ] Elterngericht ohne Rezept mit „500g Mehl“ speichern → Plan zeigt „500 g Mehl“
 - [ ] WLAN aus: Plan ohne „Rezept ›“; Rezeptliste zeigt „Server nicht erreichbar …“
+
+## Abnahme-Checkliste Phase 5c (manuell, echtes Gerät mit Internet)
+
+- [ ] Release-APK 0.5.1 per `adb install -r` auf Eltern- und Kinderhandy
+- [ ] Elternhandy, Chrome: `rewe.de/rezepte/spaghetti-lauch-carbonara-mit-ohne-speck/` → Teilen → Family Planner → Editor mit Name, 4 Portionen,
+      11 Zutaten („500 g Vollkornspaghetti“, „2 Stange(n) Lauch“, „Salz“ ohne Menge), Schritten und Quelle
+- [ ] Zurück ohne Speichern → Rezept ist nicht in der Liste
+- [ ] Erneut teilen, eine Zutat korrigieren, Speichern → Rezept in der Liste, Ansicht zeigt die Korrektur
+- [ ] „Neues Rezept“ → Link `rewe.de/rezepte/bunte-gemuese-quesadilla/` einfügen → „Übernehmen“ → „2 EL Rapsöl“, „1 Dose(n) Kidney-Bohnen“,
+      „200 g Gouda gerieben“, „Saft von 1 Limette“ als Name; speichern
+- [ ] Teilen aus der REWE-App (falls installiert) funktioniert ebenso
+- [ ] Link zu einer Seite ohne Rezept (z. B. `https://www.rewe.de/`) → „Auf dieser Seite wurde kein Rezept gefunden …“, Formular nutzbar
+- [ ] Flugmodus + WLAN aus → „Die Seite ließ sich nicht laden …“
+- [ ] Kinderhandy: Link teilen → „Nur für Eltern.“
+- [ ] Abgemeldetes Gerät (falls verfügbar, sonst entfällt): Link teilen → nach Anmeldung öffnet der Editor
+- [ ] Erfolgssignal Phase 5: Kind reicht eines der importierten Rezepte mit umgerechneten Mengen ein

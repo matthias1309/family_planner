@@ -14,7 +14,8 @@ data class RecipeViewArgs(
     val dishId: String? = null,
 )
 
-/** [recipeId] `null` = neues Rezept. */
+/** [recipeId] `null` = neues Rezept. [importText]: geteilter Text/Link, der Import startet sofort (nur neu, nur Eltern). */
 data class RecipeEditArgs(
     val recipeId: String? = null,
+    val importText: String? = null,
 )

@@ -7,7 +7,10 @@ import de.familyplanner.android.feature.meals.data.cooking.RemoteCookingReposito
 import de.familyplanner.android.feature.meals.data.plan.DataStorePlanCache
 import de.familyplanner.android.feature.meals.data.plan.PlanCacheSerializer
 import de.familyplanner.android.feature.meals.data.plan.RemoteMealPlanRepository
+import de.familyplanner.android.feature.meals.data.recipe.PageScriptLoader
 import de.familyplanner.android.feature.meals.data.recipe.RemoteRecipeRepository
+import de.familyplanner.android.feature.meals.data.recipe.WebRecipeSource
+import de.familyplanner.android.feature.meals.data.recipe.WebViewPageScriptLoader
 import de.familyplanner.android.feature.meals.domain.attendance.AddExceptionUseCase
 import de.familyplanner.android.feature.meals.domain.attendance.AttendanceRepository
 import de.familyplanner.android.feature.meals.domain.attendance.DeleteExceptionUseCase
@@ -32,9 +35,11 @@ import de.familyplanner.android.feature.meals.domain.plan.MealPlanRepository
 import de.familyplanner.android.feature.meals.domain.plan.PlanCache
 import de.familyplanner.android.feature.meals.domain.plan.SaveDishUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.DeleteRecipeUseCase
+import de.familyplanner.android.feature.meals.domain.recipe.ImportRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipesUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeRepository
+import de.familyplanner.android.feature.meals.domain.recipe.RecipeSource
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeUseCases
 import de.familyplanner.android.feature.meals.domain.recipe.SaveRecipeUseCase
 import de.familyplanner.android.feature.meals.ui.dish.DishEditViewModel
@@ -108,7 +113,11 @@ val mealsModule =
         }
         viewModel { params -> RecipeListViewModel(params.get(), get(), get()) }
         viewModel { params -> RecipeViewModel(params.get(), get(), get(), get()) }
-        viewModel { params -> RecipeEditViewModel(params.get(), get(), get()) }
+        viewModel { params -> RecipeEditViewModel(params.get(), get(), get(), get()) }
+        single { SharedRecipeInbox() }
+        single<PageScriptLoader> { WebViewPageScriptLoader(androidContext()) }
+        single<RecipeSource> { WebRecipeSource(get()) }
+        factory { ImportRecipeUseCase(get()) }
 
         // cooking
         single<CookingRepository> { RemoteCookingRepository(get(), get()) }
