@@ -274,15 +274,15 @@ Der REWE-Import folgt in Phase 5c und nutzt den Zerleger unten wieder. `api/` un
 
 Regeln:
 
-- **Zerleger** (`parseIngredientLine`): Zahl am Anfang (Dezimalpunkt oder -komma, Punkt als Tausendertrenner bei Gruppen aus drei Ziffern,
-  auch direkt am Buchstaben: „500g“), danach eine **bekannte Einheit** (Liste, ohne Groß-/Kleinschreibung, oder Wort mit „(n)“-Endung) und der
+- **Zerleger** (`parseIngredientLine`): Zahl am Anfang (Dezimalpunkt oder -komma, Punkt als Tausendertrenner bei Gruppen aus drei Ziffern nur bei g/mg/ml, sonst Dezimalpunkt,
+  direkt am Buchstaben nur vor bekannter Einheit: „500g“), danach eine **bekannte Einheit** (Liste, ohne Groß-/Kleinschreibung, oder Wort mit „(n)“-Endung) und der
   Name. Alles andere, auch Mengen außerhalb 0,001–10000 oder eine Einheit ohne Namen dahinter, bleibt ganz Name (ADR-0012).
   Markenbereinigung gehört nicht dazu (Phase 5c).
 - **Anzeigeformat** wie im Backend (`displayText`); Textfeld und Zerleger sind rundtrip-stabil. Ab 0.5.0 sendet die App Gerichte nur noch
   mit `structuredIngredients` (und `ingredients = []`) sowie `recipeId`/`servings`.
 - **Portionen:** Vorschlag = alle Eltern + an dem Tag anwesende Kinder (Eltern-Anwesenheit kennt das System nicht), begrenzt auf 1–20.
   Auswahl übernimmt Name und umgerechnete Zutaten; **Portionen ändern rechnet immer neu aus dem Rezept** und überschreibt manuelle
-  Zutaten-Änderungen (Hinweis im Editor). Mengen: Rezeptmenge · Ziel / Rezeptportionen, 3 Nachkommastellen; Zutaten ohne Menge bleiben so.
+  Zutaten-Änderungen (Hinweis im Editor). Mengen: Rezeptmenge · Ziel / Rezeptportionen, 3 Nachkommastellen; Zutaten ohne Menge bleiben so; Ergebnisse werden auf 0,001–10000 begrenzt, damit sie beim Zerlegen nicht verloren gehen.
 - **Rezeptbezug** bleibt nach manuellen Textänderungen erhalten; „Rezeptbezug entfernen“ lässt Name und Zutaten stehen. Ein bestehendes Gericht
   behält `recipeId`/`servings` beim Ändern, auch wenn das Rezept nicht (mehr) ladbar ist (dann ohne Stepper).
 - **Navigationsergebnis:** Die Rezeptliste im Auswahlmodus schreibt die Rezept-ID in den `SavedStateHandle` des Gericht-Editors; der Editor

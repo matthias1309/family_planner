@@ -60,34 +60,65 @@ private val KNOWN_UNITS =
     )
 private val PLURAL_UNIT = Regex("""^\p{L}+\.?\(\p{L}{1,3}\)$""")
 
-// Zahl am Anfang, danach Leerzeichen oder direkt ein Buchstabe („500g Mehl“); Rest ist Einheit+Name oder Name.
-private val LEADING_NUMBER = Regex("""^(\d+(?:[.,]\d+)*)(?:\s+|(?=\p{L}))(.+)$""")
+private const val NUMBER = """(\d+(?:[.,]\d+)*)"""
 
-// „1.000“, „12.500“: Punkt als Tausendertrenner (erste Gruppe ohne führende 0); „0.125“, „500.0“, „2.5“ bleiben Dezimalzahlen.
+// Zahl, Leerzeichen, Rest („500 g Mehl“, „2 Eier“) – oder Zahl direkt vor einer Einheit („500g Mehl“, nur bei bekannter Einheit).
+private val SPACED_NUMBER = Regex("""^$NUMBER\s+(.+)$""")
+private val GLUED_NUMBER = Regex("""^$NUMBER(?<unit>\p{L}[\p{L}.()]*)\s+(?<name>.+)$""")
+
+// „1.000 g“, „12.500 ml“: Punkt als Tausendertrenner (erste Gruppe ohne führende 0), aber nur bei g/mg/ml – bei „2.250 l“ oder
+// „1.500 kg“ ist ein Dezimalpunkt gemeint. „0.125“, „500.0“, „2.5“ bleiben Dezimalzahlen.
 private val THOUSANDS = Regex("""^[1-9]\d{0,2}(\.\d{3})+$""")
+private val THOUSANDS_UNITS = setOf("g", "mg", "ml")
 
 /** Zerlegt eine Zeile in Menge/Einheit/Name; alles, was nicht sicher passt, wird ganz zum Namen (ADR-0012). */
 fun parseIngredientLine(line: String): Ingredient {
     val text = line.trim()
-    val match = LEADING_NUMBER.matchEntire(text) ?: return Ingredient(text)
-    val quantity =
-        parseQuantity(match.groupValues[1])?.takeIf { it in RecipeLimits.QUANTITY_MIN..RecipeLimits.QUANTITY_MAX }
-            ?: return Ingredient(text)
+    val glued = GLUED_NUMBER.matchEntire(text)
+    val gluedUnit = glued?.groups?.get("unit")?.value
+    if (glued != null && gluedUnit != null && isUnit(gluedUnit)) {
+        return withQuantity(
+            text,
+            glued.groupValues[1],
+            gluedUnit,
+            glued.groups["name"]
+                ?.value
+                .orEmpty()
+                .trim(),
+        )
+    }
+    val match = SPACED_NUMBER.matchEntire(text) ?: return Ingredient(text)
     val rest = match.groupValues[2].trim()
     val first = rest.substringBefore(' ')
     val afterFirst = rest.substringAfter(' ', missingDelimiterValue = "").trim()
     return if (isUnit(first) && afterFirst.isNotEmpty()) {
-        Ingredient(afterFirst, quantity, first)
+        withQuantity(text, match.groupValues[1], first, afterFirst)
     } else {
-        Ingredient(rest, quantity)
+        withQuantity(text, match.groupValues[1], null, rest)
     }
+}
+
+private fun withQuantity(
+    text: String,
+    rawQuantity: String,
+    unit: String?,
+    name: String,
+): Ingredient {
+    val quantity =
+        parseQuantity(rawQuantity, unit)?.takeIf { it in RecipeLimits.QUANTITY_MIN..RecipeLimits.QUANTITY_MAX }
+            ?: return Ingredient(text)
+    return Ingredient(name, quantity, unit)
 }
 
 private fun isUnit(token: String) =
     token.length <= RecipeLimits.UNIT_MAX && (token.lowercase() in KNOWN_UNITS || PLURAL_UNIT.matches(token))
 
-private fun parseQuantity(raw: String): Double? {
-    val normalized = if (THOUSANDS.matches(raw)) raw.replace(".", "") else raw.replace(',', '.')
+private fun parseQuantity(
+    raw: String,
+    unit: String?,
+): Double? {
+    val thousands = THOUSANDS.matches(raw) && unit?.lowercase() in THOUSANDS_UNITS
+    val normalized = if (thousands) raw.replace(".", "") else raw.replace(',', '.')
     return normalized.toDoubleOrNull()?.let(::roundedQuantity)
 }
 

@@ -118,4 +118,17 @@ class IngredientLinesTest {
             ingredientsToText(listOf(Ingredient("Spaghetti", 500.0, "g"), Ingredient("Salz"))),
         )
     }
+
+    @Test
+    fun `REQ-MEAL-062 digits at the start of a name are not a glued quantity`() {
+        assertEquals(Ingredient("10er Pack Eier"), parseIngredientLine("10er Pack Eier"))
+        assertEquals(Ingredient("7up"), parseIngredientLine("7up"))
+        assertEquals(Ingredient("3Korn-Brot"), parseIngredientLine("3Korn-Brot"))
+    }
+
+    @Test
+    fun `REQ-MEAL-062 dot with three digits is decimal for litres and kilograms`() {
+        assertEquals(Ingredient("Milch", 2.25, "l"), parseIngredientLine("2.250 l Milch"))
+        assertEquals(Ingredient("Kartoffeln", 1.5, "kg"), parseIngredientLine("1.500 kg Kartoffeln"))
+    }
 }

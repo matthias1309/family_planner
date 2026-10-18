@@ -260,6 +260,13 @@ class RecipeViewModelsTest {
         assertFalse(viewViewModel(RecipeViewArgs("r-1", dish.date, "d-9")).state.value.canManage)
     }
 
+    @Test
+    fun `REQ-MEAL-063 view from dish cannot manage even when the dish is gone`() {
+        plan.weekResult = { ApiResult.Success(weekPlanOf(it)) }
+
+        assertFalse(viewViewModel(RecipeViewArgs("r-1", thisWeek, "gone")).state.value.canManage)
+    }
+
     // ---- Rezept-Editor ----
 
     @Test
@@ -413,6 +420,20 @@ class RecipeViewModelsTest {
         val state = viewModel.state.value
         assertEquals(3, state.servings)
         assertEquals("375 g Vollkornspaghetti\nSalz\n1,5 Stange(n) Lauch", state.ingredientsText)
+    }
+
+    @Test
+    fun `REQ-MEAL-062 pick arriving during load is applied after load`() {
+        val gate = CompletableDeferred<Unit>()
+        plan.weekGates[planWeek] = gate
+        val viewModel = dishViewModel()
+
+        viewModel.onEvent(DishEditEvent.RecipePicked("r-1"))
+        assertNull(viewModel.state.value.recipeId)
+        gate.complete(Unit)
+
+        assertEquals("r-1", viewModel.state.value.recipeId)
+        assertEquals(3, viewModel.state.value.servings)
     }
 
     @Test

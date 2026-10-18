@@ -169,12 +169,10 @@
     <string name="recipes_title">Rezepte</string>
     <string name="recipes_pick_title">Rezept wählen</string>
     <string name="recipes_search">Suchen</string>
-    <string name="recipes_servings">%1$d Portionen</string>
     <string name="recipes_empty">Noch keine Rezepte.</string>
     <string name="recipes_no_match">Kein Rezept passt zu „%1$s“.</string>
     <string name="recipes_new">Neues Rezept</string>
     <string name="recipes_back">Zurück</string>
-    <string name="recipe_servings">Für %1$d Portionen</string>
     <string name="recipe_ingredients">Zutaten</string>
     <string name="recipe_steps">Zubereitung</string>
     <string name="recipe_no_steps">Keine Zubereitungsschritte hinterlegt.</string>
@@ -205,4 +203,12 @@
     <string name="dish_recipe_loading">Rezept wird geladen …</string>
     <string name="plan_recipe">Rezept ›</string>
     <string name="plan_recipe_description">Rezept zu %1$s ansehen</string>
+    <plurals name="recipes_servings">
+        <item quantity="one">%1$d Portion</item>
+        <item quantity="other">%1$d Portionen</item>
+    </plurals>
+    <plurals name="recipe_servings">
+        <item quantity="one">Für %1$d Portion</item>
+        <item quantity="other">Für %1$d Portionen</item>
+    </plurals>
 </resources>

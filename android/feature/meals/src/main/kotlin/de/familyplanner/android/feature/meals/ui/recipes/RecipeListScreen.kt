@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -111,7 +112,10 @@ private fun RecipeRow(
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Column(modifier = Modifier.weight(1f)) {
             Text(recipe.name, style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(R.string.recipes_servings, recipe.servings), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                pluralStringResource(R.plurals.recipes_servings, recipe.servings, recipe.servings),
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
         Text("›", style = MaterialTheme.typography.headlineSmall)
     }

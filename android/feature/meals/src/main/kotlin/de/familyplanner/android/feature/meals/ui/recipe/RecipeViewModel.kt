@@ -12,6 +12,7 @@ import de.familyplanner.android.feature.meals.domain.plan.MealPlanRepository
 import de.familyplanner.android.feature.meals.domain.recipe.Recipe
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeUseCases
 import de.familyplanner.android.feature.meals.domain.recipe.displayText
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,8 @@ data class RecipeUiState(
     /** Zutaten des Gerichts (Anzeigetexte) und seine Portionen, wenn aus dem Plan geöffnet. */
     val dishIngredients: List<String>? = null,
     val dishServings: Int? = null,
+    /** Aus dem Plan geöffnet (mit Gericht-Kontext): keine Verwaltung, auch wenn das Gericht nicht (mehr) gefunden wird. */
+    val fromDish: Boolean = false,
     val isLoading: Boolean = true,
     val error: AppError? = null,
     val isParent: Boolean = false,
@@ -36,7 +39,7 @@ data class RecipeUiState(
 ) {
     val ingredientLines: List<String> get() = dishIngredients ?: recipe?.ingredients?.map { it.displayText() }.orEmpty()
     val servings: Int? get() = dishServings ?: recipe?.servings
-    val canManage: Boolean get() = isParent && dishIngredients == null
+    val canManage: Boolean get() = isParent && !fromDish
 }
 
 sealed interface RecipeEvent {
@@ -60,8 +63,10 @@ class RecipeViewModel(
     private val recipes: RecipeUseCases,
     private val plan: MealPlanRepository,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(RecipeUiState(isParent = sessions.current?.role == Role.PARENT))
+    private val _state = MutableStateFlow(RecipeUiState(isParent = sessions.current?.role == Role.PARENT, fromDish = args.dishId != null))
     val state: StateFlow<RecipeUiState> = _state.asStateFlow()
+
+    private var loadJob: Job? = null
 
     init {
         load()
@@ -77,22 +82,24 @@ class RecipeViewModel(
     }
 
     private fun load() {
-        viewModelScope.launch {
-            val loaded = loadRecipeAndDish()
-            when (val result = loaded.recipe) {
-                is ApiResult.Success ->
-                    _state.update {
-                        it.copy(
-                            isLoading = false,
-                            error = null,
-                            recipe = result.data,
-                            dishIngredients = loaded.dish?.ingredients,
-                            dishServings = loaded.dish?.servings,
-                        )
-                    }
-                is ApiResult.Failure -> _state.update { it.copy(isLoading = false, error = result.error) }
+        loadJob?.cancel()
+        loadJob =
+            viewModelScope.launch {
+                val loaded = loadRecipeAndDish()
+                when (val result = loaded.recipe) {
+                    is ApiResult.Success ->
+                        _state.update {
+                            it.copy(
+                                isLoading = false,
+                                error = null,
+                                recipe = result.data,
+                                dishIngredients = loaded.dish?.ingredients,
+                                dishServings = loaded.dish?.servings,
+                            )
+                        }
+                    is ApiResult.Failure -> _state.update { it.copy(isLoading = false, error = result.error) }
+                }
             }
-        }
     }
 
     /** Das Gericht ist nur Beiwerk: Ist die Woche nicht ladbar oder das Gericht weg, zeigt die Ansicht die Rezeptmengen. */

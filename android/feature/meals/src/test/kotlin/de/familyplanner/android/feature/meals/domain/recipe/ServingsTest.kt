@@ -31,4 +31,14 @@ class ServingsTest {
         assertEquals(5, defaultServings(5))
         assertEquals(20, defaultServings(25))
     }
+
+    @Test
+    fun `REQ-MEAL-062 scaled quantity stays within the parsable range`() {
+        val scaled =
+            scaleIngredients(listOf(Ingredient("Mehl", 9000.0, "g"), Ingredient("Salz", 0.001, "g")), base = 1, target = 20) +
+                scaleIngredients(listOf(Ingredient("Salz", 0.001, "g")), base = 20, target = 1)
+
+        assertEquals(listOf(10_000.0, 0.02, 0.001), scaled.map { it.quantity })
+        scaled.forEach { assertEquals(it, parseIngredientLine(it.displayText())) }
+    }
 }

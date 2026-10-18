@@ -216,6 +216,7 @@ class RecipeScreensTest {
                 recipe = carbonara,
                 dishIngredients = listOf("625 g Vollkornspaghetti", "Salz"),
                 dishServings = 5,
+                fromDish = true,
                 isLoading = false,
                 isParent = true,
             ),

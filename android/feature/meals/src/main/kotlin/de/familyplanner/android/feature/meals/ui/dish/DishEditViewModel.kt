@@ -140,6 +140,9 @@ class DishEditViewModel(
     private val clock: Clock = Clock.system(BerlinZone),
 ) : ViewModel() {
     private val dishId = args.dishId
+
+    /** Auswahl, die ankam, bevor der Editor fertig geladen war; wird nach dem Laden übernommen. */
+    private var pendingRecipeId: String? = null
     private val _state =
         MutableStateFlow(DishEditUiState(dishId = dishId, weekStart = mondayOf(args.date), date = args.date))
     val state: StateFlow<DishEditUiState> = _state.asStateFlow()
@@ -174,6 +177,10 @@ class DishEditViewModel(
     }
 
     private fun pickRecipe(recipeId: String) {
+        if (_state.value.isLoading) {
+            pendingRecipeId = recipeId
+            return
+        }
         if (!_state.value.canUseRecipe) return
         _state.update { it.copy(isRecipeLoading = true, error = null) }
         viewModelScope.launch {
@@ -235,6 +242,8 @@ class DishEditViewModel(
                         .takeIf { it.loadError == null }
                         ?.recipeId
                         ?.let(::loadLinkedRecipe)
+                    pendingRecipeId?.let { pickRecipe(it) }
+                    pendingRecipeId = null
                 }
                 is ApiResult.Failure -> _state.update { it.copy(isLoading = false, loadError = result.error) }
             }

@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -56,6 +57,7 @@ fun RecipeScreen(
     ) {
         val recipe = state.recipe
         if (recipe != null) {
+            ErrorText(state.error)
             RecipeBody(recipe, state)
             if (state.canManage) ManageButtons(recipe, state, onEvent, onEdit)
         } else if (state.error != null) {
@@ -81,7 +83,7 @@ private fun RecipeBody(
     state: RecipeUiState,
 ) {
     Text(recipe.name, style = MaterialTheme.typography.headlineMedium)
-    state.servings?.let { Text(stringResource(R.string.recipe_servings, it), style = MaterialTheme.typography.titleMedium) }
+    state.servings?.let { Text(pluralStringResource(R.plurals.recipe_servings, it, it), style = MaterialTheme.typography.titleMedium) }
     Text(stringResource(R.string.recipe_ingredients), style = MaterialTheme.typography.titleSmall)
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         state.ingredientLines.forEach { Text("• $it") }
