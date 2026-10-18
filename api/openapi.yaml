@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Family Planner API
-  version: 0.2.0
+  version: 0.3.0
   description: Vertrag zwischen Android-App und Backend (ADR-0004). Alle Antworten nutzen den Envelope {success, data, error}.
 servers:
   - url: https://planner.home.arpa:8095
@@ -320,6 +320,85 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
+  /api/v1/meals/weeks/{weekStart}/plan:
+    get:
+      operationId: getWeekPlan
+      tags: [meals]
+      summary: Wochenplan Mo–So mit Gericht je Tag
+      parameters:
+        - $ref: '#/components/parameters/WeekStart'
+      responses:
+        '200':
+          description: Wochenplan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WeekPlanResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/dishes:
+    post:
+      operationId: createDish
+      tags: [meals]
+      summary: Gericht planen (nur Eltern)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveDishRequest' }
+      responses:
+        '201':
+          description: Gericht geplant
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DishResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/dishes/{dishId}:
+    put:
+      operationId: updateDish
+      tags: [meals]
+      summary: Gericht ändern oder verschieben (nur Eltern)
+      parameters:
+        - $ref: '#/components/parameters/DishId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveDishRequest' }
+      responses:
+        '200':
+          description: Gericht geändert
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DishResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    delete:
+      operationId: deleteDish
+      tags: [meals]
+      summary: Gericht löschen, Tag wird wieder offen (nur Eltern)
+      parameters:
+        - $ref: '#/components/parameters/DishId'
+      responses:
+        '204':
+          description: Gericht gelöscht
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
 components:
   securitySchemes:
     deviceToken:
@@ -339,6 +418,11 @@ components:
       schema: { type: string, format: uuid }
     ExceptionId:
       name: exceptionId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    DishId:
+      name: dishId
       in: path
       required: true
       schema: { type: string, format: uuid }
@@ -779,6 +863,81 @@ components:
         data:
           allOf:
             - $ref: '#/components/schemas/WeekAttendance'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    Dish:
+      type: object
+      required: [id, date, cookId, name, ingredients]
+      properties:
+        id: { type: string, format: uuid }
+        date: { type: string, format: date }
+        cookId: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 60 }
+        ingredients:
+          type: array
+          maxItems: 30
+          items: { type: string, minLength: 1, maxLength: 80 }
+
+    SaveDishRequest:
+      type: object
+      required: [date, cookId, name, ingredients]
+      properties:
+        date: { type: string, format: date }
+        cookId: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 60 }
+        ingredients:
+          type: array
+          description: Eine Zeile pro Zutat; Leerzeilen werden entfernt, danach höchstens 30 Zeilen.
+          maxItems: 100
+          items: { type: string, maxLength: 80 }
+
+    PlanDay:
+      type: object
+      required: [date]
+      properties:
+        date: { type: string, format: date }
+        dish:
+          allOf:
+            - $ref: '#/components/schemas/Dish'
+          nullable: true
+
+    WeekPlan:
+      type: object
+      required: [weekStart, days]
+      properties:
+        weekStart: { type: string, format: date }
+        days:
+          type: array
+          minItems: 7
+          maxItems: 7
+          items: { $ref: '#/components/schemas/PlanDay' }
+
+    DishResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Dish'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    WeekPlanResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/WeekPlan'
           nullable: true
         error:
           allOf:

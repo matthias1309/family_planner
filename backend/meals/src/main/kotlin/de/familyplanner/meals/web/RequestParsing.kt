@@ -6,6 +6,7 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.time.format.ResolverStyle
+import java.util.UUID
 
 /**
  * Dates are stored as `yyyy-MM-dd` text and compared lexicographically, which only holds for four-digit years;
@@ -44,3 +45,11 @@ fun parseTime(
     }
 
 fun formatTime(time: LocalTime): String = "%02d:%02d".format(time.hour, time.minute)
+
+/** Parses an ID from a request body; malformed IDs fail with 400 instead of a misleading 404. */
+internal fun parseUuid(
+    value: String,
+    field: String,
+): String =
+    runCatching { UUID.fromString(value).toString() }
+        .getOrElse { throw AppException.Validation("Ungültige Kennung '$field'") }

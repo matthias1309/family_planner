@@ -3,7 +3,6 @@ package de.familyplanner.app
 import de.familyplanner.api.model.AttendanceExceptionResponse
 import de.familyplanner.api.model.AttendanceProfileListResponse
 import de.familyplanner.api.model.DeadlineSettingsOverviewResponse
-import de.familyplanner.api.model.MeResponse
 import de.familyplanner.api.model.MemberWeekAttendance
 import de.familyplanner.api.model.WeekAttendanceResponse
 import io.ktor.client.HttpClient
@@ -63,9 +62,6 @@ class MealsAttendanceApiTest {
         body: String,
         invalid: Boolean = false,
     ) = call(HttpMethod.Post, "$PROFILES/$memberId/exceptions", token, body, invalidRequestExpected = invalid)
-
-    private suspend fun HttpClient.parentId(token: String) =
-        checkNotNull(json.decodeFromString<MeResponse>(call(HttpMethod.Get, "/api/v1/me", token).bodyAsText()).data).member.id
 
     @Test
     fun `REQ-MEAL-010 parent sets alternating pattern and week attendance follows it`() =
@@ -340,7 +336,7 @@ class MealsAttendanceApiTest {
         testApplication {
             start()
             val family = setupFamilyWithChild()
-            val parentId = client.parentId(family.parentToken)
+            val parentId = client.memberIdOf(family.parentToken)
             val noReference = """{"cooks":true,"pattern":{"type":"ALTERNATING","weekA":["MONDAY"],"weekB":[]}}"""
             val noDays = """{"cooks":true,"pattern":{"type":"ALTERNATING","weekA":[],"weekB":[],"referenceWeek":"2026-10-19"}}"""
             val notMonday =
