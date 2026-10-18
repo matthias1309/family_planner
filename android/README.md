@@ -96,16 +96,18 @@ Abgenommen am 2026-10-18 durch den Anwender, alle Punkte.
 
 ## Abnahme-Checkliste Phase 4b (manuell, echte Geräte gegen den Pi)
 
-- [ ] Pi läuft mit Image inkl. Migration V4 (4a); Release-APK 0.4.0 (gleiche Signatur) per `adb install -r` auf Eltern- und Kinderhandy
-- [ ] Kinderhandy (kochendes Kind) an Sa/So: Essensplan zeigt „Zur Planwoche … ›“; dort „Mein Kochtag“ mit Frist
-- [ ] Kind reicht ein: nur Anwesenheitstage wählbar, ohne Zutaten Meldung; danach „wartet auf Freigabe“ in Karte und Plan
-- [ ] Elternhandy: Wochenstatus zeigt offene Tage, Kind „wartet auf Freigabe“, anderes Kind „noch nicht eingereicht, bis …“
-- [ ] Eltern lehnen mit Begründung ab → Kinderhandy (Pull-to-Refresh) zeigt „Abgelehnt: …“; Kind überarbeitet → wieder „wartet“
-- [ ] Eltern geben frei → „Freigegeben“; Kind ändert → wieder „wartet auf Freigabe“
-- [ ] Eltern tragen für das zweite Kind über „Eintragen“ ein → direkt freigegeben, nur dessen Anwesenheitstage wählbar
-- [ ] Eltern legen für das Kind eine Abwesenheits-Ausnahme auf dessen Kochtag an → Plan „⚠ Tag ungültig“; Gericht-Screen
+Abgenommen am 2026-10-18 durch den Anwender, alle Punkte.
+
+- [x] Pi läuft mit Image inkl. Migration V4 (4a); Release-APK 0.4.0 (gleiche Signatur) per `adb install -r` auf Eltern- und Kinderhandy
+- [x] Kinderhandy (kochendes Kind) an Sa/So: Essensplan zeigt „Zur Planwoche … ›“; dort „Mein Kochtag“ mit Frist
+- [x] Kind reicht ein: nur Anwesenheitstage wählbar, ohne Zutaten Meldung; danach „wartet auf Freigabe“ in Karte und Plan
+- [x] Elternhandy: Wochenstatus zeigt offene Tage, Kind „wartet auf Freigabe“, anderes Kind „noch nicht eingereicht, bis …“
+- [x] Eltern lehnen mit Begründung ab → Kinderhandy (Pull-to-Refresh) zeigt „Abgelehnt: …“; Kind überarbeitet → wieder „wartet“
+- [x] Eltern geben frei → „Freigegeben“; Kind ändert → wieder „wartet auf Freigabe“
+- [x] Eltern tragen für das zweite Kind über „Eintragen“ ein → direkt freigegeben, nur dessen Anwesenheitstage wählbar
+- [x] Eltern legen für das Kind eine Abwesenheits-Ausnahme auf dessen Kochtag an → Plan „⚠ Tag ungültig“; Gericht-Screen
       „Gericht verschieben“: Felder gesperrt, kein Freigeben; auf gültigen Tag verschieben → freigegeben; Variante: löschen
-- [ ] Kind sagt mit Begründung ab → Gericht verschwindet, Status „abgesagt: …“; Eltern/Kind nehmen die Absage zurück
-- [ ] Alle Tage belegt und freigegeben → „✓ Bereit zur Bestellung“
-- [ ] Zweites Elternhandy gibt gleichzeitig frei → Meldung „Das Gericht wartet nicht auf Freigabe“
-- [ ] WLAN aus: Plan mit Badges lesbar, „Wochenstatus nur im Heim-WLAN.“, keine Karten
+- [x] Kind sagt mit Begründung ab → Gericht verschwindet, Status „abgesagt: …“; Eltern/Kind nehmen die Absage zurück
+- [x] Alle Tage belegt und freigegeben → „✓ Bereit zur Bestellung“
+- [x] Zweites Elternhandy gibt gleichzeitig frei → Meldung „Das Gericht wartet nicht auf Freigabe“
+- [x] WLAN aus: Plan mit Badges lesbar, „Wochenstatus nur im Heim-WLAN.“, keine Karten
