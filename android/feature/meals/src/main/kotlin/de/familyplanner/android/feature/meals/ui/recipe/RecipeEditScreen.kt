@@ -91,17 +91,24 @@ private fun RecipeFields(
         onValueChange = { onEvent(RecipeEditEvent.NameChanged(it)) },
         label = { Text(stringResource(R.string.recipe_name)) },
         singleLine = true,
+        enabled = !state.isImporting,
         supportingText = { Text("${state.name.length}/${PlanLimits.NAME_MAX}") },
         modifier = Modifier.fillMaxWidth(),
     )
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.recipe_servings_label), style = MaterialTheme.typography.titleSmall)
-        ServingsStepper(value = state.servings, onChange = { onEvent(RecipeEditEvent.ServingsChanged(it)) }, enabled = !state.isBusy)
+        ServingsStepper(
+            value = state.servings,
+            onChange = { onEvent(RecipeEditEvent.ServingsChanged(it)) },
+            enabled =
+                !state.isBusy && !state.isImporting,
+        )
     }
     OutlinedTextField(
         value = state.ingredientsText,
         onValueChange = { onEvent(RecipeEditEvent.IngredientsChanged(it)) },
         label = { Text(stringResource(R.string.recipe_ingredients_label)) },
+        enabled = !state.isImporting,
         minLines = TEXT_MIN_LINES,
         modifier = Modifier.fillMaxWidth(),
     )
@@ -109,6 +116,7 @@ private fun RecipeFields(
         value = state.stepsText,
         onValueChange = { onEvent(RecipeEditEvent.StepsChanged(it)) },
         label = { Text(stringResource(R.string.recipe_steps_label)) },
+        enabled = !state.isImporting,
         minLines = TEXT_MIN_LINES,
         modifier = Modifier.fillMaxWidth(),
     )

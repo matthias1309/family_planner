@@ -66,5 +66,7 @@ class RecipeImportScreenTest {
 
         compose.onNodeWithText("Rezept wird gelesen …").assertExists()
         compose.onNodeWithText("Speichern").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText("Curry").assertIsNotEnabled()
+        compose.onNodeWithText("Salz").assertIsNotEnabled()
     }
 }

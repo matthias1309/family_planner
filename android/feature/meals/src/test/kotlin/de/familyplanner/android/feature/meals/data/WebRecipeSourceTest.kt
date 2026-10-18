@@ -1,5 +1,6 @@
 package de.familyplanner.android.feature.meals.data
 
+import de.familyplanner.android.feature.meals.data.recipe.PageScriptLoader
 import de.familyplanner.android.feature.meals.data.recipe.WebRecipeSource
 import de.familyplanner.android.feature.meals.domain.recipe.SourceResult
 import de.familyplanner.android.feature.meals.fakes.CARBONARA_URL
@@ -32,5 +33,17 @@ class WebRecipeSourceTest {
         runTest {
             loader.scripts = emptyList()
             assertEquals(SourceResult.NotFound, source.read(CARBONARA_URL))
+        }
+
+    @Test
+    fun `REQ-MEAL-061 missing webview counts as unreachable`() =
+        runTest {
+            val broken =
+                WebRecipeSource(
+                    object : PageScriptLoader {
+                        override suspend fun ldJsonScripts(url: String): List<String>? = error("No WebView installed")
+                    },
+                )
+            assertEquals(SourceResult.Unreachable, broken.read(CARBONARA_URL))
         }
 }
