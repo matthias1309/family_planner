@@ -3,6 +3,7 @@ package de.familyplanner.android.feature.meals
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.dataStoreFile
 import de.familyplanner.android.feature.meals.data.attendance.RemoteAttendanceRepository
+import de.familyplanner.android.feature.meals.data.cooking.RemoteCookingRepository
 import de.familyplanner.android.feature.meals.data.plan.DataStorePlanCache
 import de.familyplanner.android.feature.meals.data.plan.PlanCacheSerializer
 import de.familyplanner.android.feature.meals.data.plan.RemoteMealPlanRepository
@@ -16,6 +17,12 @@ import de.familyplanner.android.feature.meals.domain.attendance.LoadProfilesUseC
 import de.familyplanner.android.feature.meals.domain.attendance.LoadWeekOverviewUseCase
 import de.familyplanner.android.feature.meals.domain.attendance.SaveDeadlineSettingsUseCase
 import de.familyplanner.android.feature.meals.domain.attendance.SaveProfileUseCase
+import de.familyplanner.android.feature.meals.domain.cooking.CancelCookingUseCase
+import de.familyplanner.android.feature.meals.domain.cooking.CookingRepository
+import de.familyplanner.android.feature.meals.domain.cooking.CookingUseCases
+import de.familyplanner.android.feature.meals.domain.cooking.LoadWeekStatusUseCase
+import de.familyplanner.android.feature.meals.domain.cooking.ReviewDishUseCase
+import de.familyplanner.android.feature.meals.domain.cooking.WithdrawCancellationUseCase
 import de.familyplanner.android.feature.meals.domain.plan.DeleteDishUseCase
 import de.familyplanner.android.feature.meals.domain.plan.DishUseCases
 import de.familyplanner.android.feature.meals.domain.plan.LoadDishEditorUseCase
@@ -67,7 +74,18 @@ val mealsModule =
             )
         }
         factory { LoadWeekPlanUseCase(get(), get(), get()) }
-        factory { DishUseCases(LoadDishEditorUseCase(get()), SaveDishUseCase(get()), DeleteDishUseCase(get())) }
-        viewModel { WeekPlanViewModel(get(), get()) }
-        viewModel { params -> DishEditViewModel(params[0], params.getOrNull(), get(), get()) }
+        factory {
+            DishUseCases(
+                LoadDishEditorUseCase(get(), get()),
+                SaveDishUseCase(get()),
+                DeleteDishUseCase(get()),
+                ReviewDishUseCase(get()),
+            )
+        }
+        viewModel { WeekPlanViewModel(get(), get(), get()) }
+        viewModel { params -> DishEditViewModel(params.get(), get(), get()) }
+
+        // cooking
+        single<CookingRepository> { RemoteCookingRepository(get(), get()) }
+        factory { CookingUseCases(LoadWeekStatusUseCase(get(), get()), CancelCookingUseCase(get()), WithdrawCancellationUseCase(get())) }
     }

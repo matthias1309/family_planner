@@ -72,6 +72,52 @@
     <string name="plan_day_add_action">Gericht planen</string>
     <string name="plan_day_edit_action">Gericht ändern</string>
 
+    <string name="plan_week_link">Zur Planwoche %1$s–%2$s ›</string>
+    <string name="plan_badge_submitted">wartet auf Freigabe</string>
+    <string name="plan_badge_rejected">abgelehnt</string>
+    <string name="plan_badge_late">nach Frist</string>
+    <string name="plan_badge_invalid">⚠ Tag ungültig</string>
+
+    <string name="status_title">Wochenstatus</string>
+    <string name="status_offline">Wochenstatus nur im Heim-WLAN.</string>
+    <string name="status_order_deadline">Bestellfrist %1$s</string>
+    <string name="status_ready">✓ Bereit zur Bestellung</string>
+    <string name="status_open_days">Offen: %1$s</string>
+    <string name="status_cook_line">%1$s – %2$s</string>
+    <string name="status_not_submitted">noch nicht eingereicht</string>
+    <string name="status_submitted">wartet auf Freigabe</string>
+    <string name="status_approved">freigegeben</string>
+    <string name="status_rejected">abgelehnt</string>
+    <string name="status_cancelled">abgesagt</string>
+    <string name="status_cancelled_reason">abgesagt: %1$s</string>
+    <string name="status_until">bis %1$s</string>
+    <string name="status_late">nach Frist</string>
+    <string name="status_day_invalid">Tag ungültig</string>
+    <string name="status_open_dish">Gericht öffnen</string>
+    <string name="status_enter">Eintragen</string>
+    <string name="status_cancel">Absagen…</string>
+    <string name="status_withdraw">Zurücknehmen</string>
+
+    <string name="cooking_title">Mein Kochtag</string>
+    <string name="cooking_deadline">Einreichen bis %1$s</string>
+    <string name="cooking_no_deadline">Keine Frist</string>
+    <string name="cooking_not_submitted">Noch nicht eingereicht</string>
+    <string name="cooking_submitted">Wartet auf Freigabe</string>
+    <string name="cooking_approved">Freigegeben</string>
+    <string name="cooking_rejected">Abgelehnt: %1$s</string>
+    <string name="cooking_cancelled">Abgesagt: %1$s</string>
+    <string name="cooking_late">nach Frist</string>
+    <string name="cooking_day_invalid">Du bist an deinem Kochtag nicht da – bitte verschiebe dein Gericht.</string>
+    <string name="cooking_submit">Gericht einreichen</string>
+    <string name="cooking_change">Gericht ändern</string>
+    <string name="cooking_revise">Gericht überarbeiten</string>
+    <string name="cooking_cancel">Kochen absagen</string>
+    <string name="cooking_withdraw">Absage zurücknehmen</string>
+    <string name="cooking_cancel_title">Kochen absagen?</string>
+    <string name="cooking_cancel_text_other">%1$s kocht diese Woche nicht. Ein eingereichtes Gericht wird entfernt.</string>
+    <string name="cooking_cancel_text_self">Du kochst diese Woche nicht. Dein Gericht wird entfernt.</string>
+    <string name="cooking_cancel_confirm">Absagen</string>
+
     <string name="dish_title_new">Gericht planen</string>
     <string name="dish_title_edit">Gericht ändern</string>
     <string name="dish_day">Tag</string>
@@ -87,4 +133,34 @@
     <string name="dish_delete_title">Gericht löschen?</string>
     <string name="dish_delete_text">Der Tag ist danach wieder offen.</string>
     <string name="dish_delete_confirm">Löschen</string>
+    <string name="dish_cook_child">%1$s (Kind)</string>
+    <string name="dish_day_absent">%1$s (nicht da)</string>
+    <string name="dish_ingredients_required">Zutaten (eine pro Zeile)</string>
+    <string name="dish_no_allowed_day">Du bist an keinem freien Tag dieser Woche da.</string>
+    <string name="dish_move">Verschieben</string>
+    <string name="dish_reason_label">Begründung</string>
+
+    <string name="review_title">Gericht prüfen</string>
+    <string name="review_submitted_by">%1$s hat eingereicht</string>
+    <string name="review_late">nach Frist</string>
+    <string name="review_approve">Freigeben</string>
+    <string name="review_reject">Ablehnen…</string>
+    <string name="review_save_hint">Speichern gibt das Gericht frei.</string>
+    <string name="review_reject_title">Gericht ablehnen?</string>
+    <string name="review_reject_text">Bitte nenne %1$s, was fehlt oder geändert werden soll.</string>
+    <string name="review_reject_confirm">Ablehnen</string>
+
+    <string name="move_title">Gericht verschieben</string>
+    <string name="move_banner">%1$s ist am %2$s nicht da. Gericht auf einen anderen Tag verschieben oder löschen.</string>
+
+    <string name="child_title_new">Gericht einreichen</string>
+    <string name="child_title_edit">Gericht ändern</string>
+    <string name="child_cook_line">Du kochst · Einreichen bis %1$s</string>
+    <string name="child_cook_line_no_deadline">Du kochst · Keine Frist</string>
+    <string name="child_late_hint">Deine Frist ist vorbei – das Gericht wird als „nach Frist“ markiert.</string>
+    <string name="child_rejected">Abgelehnt: %1$s</string>
+    <string name="child_reapproval_hint">Nach einer Änderung muss es erneut freigegeben werden.</string>
+    <string name="child_day_invalid_hint">Du bist an diesem Tag nicht da – bitte wähle einen anderen Tag.</string>
+    <string name="child_submit">Einreichen</string>
+    <string name="child_resubmit">Erneut einreichen</string>
 </resources>

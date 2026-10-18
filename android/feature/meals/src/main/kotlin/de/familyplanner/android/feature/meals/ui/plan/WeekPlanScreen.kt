@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -30,17 +31,19 @@ import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.ui.components.ErrorText
 import de.familyplanner.android.core.ui.formatDate
 import de.familyplanner.android.feature.meals.R
+import de.familyplanner.android.feature.meals.domain.plan.Dish
+import de.familyplanner.android.feature.meals.domain.plan.DishStatus
 import de.familyplanner.android.feature.meals.domain.plan.PlannedDay
+import de.familyplanner.android.feature.meals.ui.dish.DishEditArgs
 import de.familyplanner.android.feature.meals.ui.formatDeadline
 import de.familyplanner.android.feature.meals.ui.weekdayShort
 import org.koin.androidx.compose.koinViewModel
-import java.time.LocalDate
 
 private const val INGREDIENT_PREVIEW_LINES = 2
 
 @Composable
 fun WeekPlanRoute(
-    onOpenDay: (date: LocalDate, dishId: String?) -> Unit,
+    onOpenEditor: (DishEditArgs) -> Unit,
     onBack: () -> Unit,
 ) {
     val viewModel = koinViewModel<WeekPlanViewModel>()
@@ -50,7 +53,7 @@ fun WeekPlanRoute(
         viewModel.onEvent(WeekPlanEvent.Refresh)
         onPauseOrDispose {}
     }
-    WeekPlanScreen(state = state, onEvent = viewModel::onEvent, onOpenDay = onOpenDay, onBack = onBack)
+    WeekPlanScreen(state = state, onEvent = viewModel::onEvent, onOpenEditor = onOpenEditor, onBack = onBack)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,7 +61,7 @@ fun WeekPlanRoute(
 fun WeekPlanScreen(
     state: WeekPlanUiState,
     onEvent: (WeekPlanEvent) -> Unit,
-    onOpenDay: (date: LocalDate, dishId: String?) -> Unit,
+    onOpenEditor: (DishEditArgs) -> Unit,
     onBack: () -> Unit,
 ) {
     PullToRefreshBox(
@@ -71,19 +74,93 @@ fun WeekPlanScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item { WeekHeader(state, onEvent) }
+            if (state.showsPlanWeekLink) item { PlanWeekLink(state, onEvent) }
             state.week?.takeIf { state.isOffline }?.let { week ->
                 val notice = if (state.cacheReason == AppError.Server) R.string.plan_server_problem else R.string.plan_offline
                 item { OfflineNotice(stringResource(notice, formatDeadline(week.syncedAt)), state.isParent) }
             }
             item { ErrorText(state.error) }
+            if (state.isOffline && state.weekStart >= state.planWeek) item { Text(stringResource(R.string.status_offline)) }
+            if (state.showsStatus && (state.status != null || state.statusError != null)) {
+                item { StatusCards(state, onEvent, onOpenEditor) }
+            }
+            if (state.actionError != null && state.cancelTarget == null) item { ErrorText(state.actionError) }
             state.week?.let { week ->
                 items(week.days, key = { it.date.toString() }) { day ->
-                    PlanDayRow(day, isToday = day.date == state.today, canEdit = state.canEdit, onOpenDay = onOpenDay)
+                    PlanDayRow(day, isToday = day.date == state.today, state = state, onOpenEditor = onOpenEditor)
                 }
             }
             item { TextButton(onClick = onBack) { Text(stringResource(R.string.back)) } }
         }
     }
+    CancelDialog(state, onEvent)
+}
+
+@Composable
+private fun StatusCards(
+    state: WeekPlanUiState,
+    onEvent: (WeekPlanEvent) -> Unit,
+    onOpenEditor: (DishEditArgs) -> Unit,
+) {
+    val actions =
+        StatusActions(
+            onOpen = onOpenEditor,
+            onCancel = { onEvent(WeekPlanEvent.RequestCancel(it)) },
+            onWithdraw = { onEvent(WeekPlanEvent.Withdraw(it)) },
+        )
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        state.myCooking?.let { cook ->
+            MyCookingCard(
+                cook = cook,
+                weekStart = state.weekStart,
+                rejectionReason = state.rejectionReasonOf(cook.status.dishId),
+                dishDate = cook.status.dishId?.let(state::dishDate),
+                actions = actions,
+            )
+        }
+        WeekStatusCard(state.status, state.statusError, state.isParent, state::dishDate, actions)
+    }
+}
+
+@Composable
+private fun PlanWeekLink(
+    state: WeekPlanUiState,
+    onEvent: (WeekPlanEvent) -> Unit,
+) {
+    TextButton(onClick = { onEvent(WeekPlanEvent.GoToPlanWeek) }) {
+        Text(stringResource(R.string.plan_week_link, formatDate(state.planWeek), formatDate(state.planWeek.plusDays(6))))
+    }
+}
+
+@Composable
+private fun CancelDialog(
+    state: WeekPlanUiState,
+    onEvent: (WeekPlanEvent) -> Unit,
+) {
+    val target = state.cancelTarget ?: return
+    val text =
+        if (target == state.memberId) {
+            stringResource(R.string.cooking_cancel_text_self)
+        } else {
+            val name =
+                state.status
+                    ?.cooks
+                    ?.firstOrNull { it.status.memberId == target }
+                    ?.name
+                    .orEmpty()
+            stringResource(R.string.cooking_cancel_text_other, name)
+        }
+    ReasonDialog(
+        title = stringResource(R.string.cooking_cancel_title),
+        text = text,
+        reason = state.cancelReason,
+        onReasonChange = { onEvent(WeekPlanEvent.CancelReasonChanged(it)) },
+        confirmLabel = stringResource(R.string.cooking_cancel_confirm),
+        error = state.actionError,
+        isBusy = state.isBusy,
+        onConfirm = { onEvent(WeekPlanEvent.ConfirmCancel) },
+        onDismiss = { onEvent(WeekPlanEvent.DismissCancel) },
+    )
 }
 
 @Composable
@@ -125,19 +202,22 @@ private fun OfflineNotice(
 private fun PlanDayRow(
     day: PlannedDay,
     isToday: Boolean,
-    canEdit: Boolean,
-    onOpenDay: (LocalDate, String?) -> Unit,
+    state: WeekPlanUiState,
+    onOpenEditor: (DishEditArgs) -> Unit,
 ) {
     val editLabel = stringResource(if (day.dish == null) R.string.plan_day_add_action else R.string.plan_day_edit_action)
     val rowModifier =
-        if (canEdit) {
-            Modifier.fillMaxWidth().clickable(onClickLabel = editLabel) { onOpenDay(day.date, day.dish?.id) }
+        if (state.canOpen(day)) {
+            Modifier.fillMaxWidth().clickable(
+                onClickLabel = editLabel,
+                role = Role.Button,
+            ) { onOpenEditor(DishEditArgs(day.date, day.dish?.id)) }
         } else {
             Modifier.fillMaxWidth()
         }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = rowModifier.padding(vertical = 4.dp)) {
         DayLabel(day, isToday)
-        DishSummary(day, canEdit, modifier = Modifier.weight(1f))
+        DishSummary(day, state.canEdit, modifier = Modifier.weight(1f))
     }
 }
 
@@ -174,6 +254,7 @@ private fun DishSummary(
         }
         Text(dish.name, style = MaterialTheme.typography.titleMedium)
         day.cookName?.let { Text(stringResource(R.string.plan_cook, it), style = MaterialTheme.typography.bodyMedium) }
+        DishBadges(dish)
         if (dish.ingredients.isNotEmpty()) {
             Text(
                 dish.ingredients.joinToString(", "),
@@ -182,5 +263,28 @@ private fun DishSummary(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+    }
+}
+
+@Composable
+private fun DishBadges(dish: Dish) {
+    val badges =
+        listOfNotNull(
+            when (dish.status) {
+                DishStatus.SUBMITTED -> stringResource(R.string.plan_badge_submitted)
+                DishStatus.REJECTED -> stringResource(R.string.plan_badge_rejected)
+                DishStatus.APPROVED -> null
+            },
+            if (dish.late) stringResource(R.string.plan_badge_late) else null,
+        )
+    if (badges.isNotEmpty()) {
+        Text(badges.joinToString(" · "), color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelMedium)
+    }
+    if (!dish.dayValid) {
+        Text(
+            stringResource(R.string.plan_badge_invalid),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.labelMedium,
+        )
     }
 }

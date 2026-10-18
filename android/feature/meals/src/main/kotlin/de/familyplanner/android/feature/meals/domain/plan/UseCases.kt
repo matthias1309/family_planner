@@ -4,6 +4,8 @@ import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.data.session.SessionStore
 import de.familyplanner.android.core.ui.BerlinZone
+import de.familyplanner.android.feature.meals.domain.attendance.AttendanceRepository
+import de.familyplanner.android.feature.meals.domain.cooking.ReviewDishUseCase
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import java.time.Clock
@@ -50,23 +52,39 @@ class LoadWeekPlanUseCase(
         }
 }
 
-data class DishEditorData(
-    val week: WeekPlan,
-    val parents: List<PlanMember>,
-)
-
 class LoadDishEditorUseCase(
     private val repository: MealPlanRepository,
+    private val attendance: AttendanceRepository,
 ) {
     suspend operator fun invoke(weekStart: LocalDate): ApiResult<DishEditorData> =
         coroutineScope {
             val week = async { repository.week(weekStart) }
             val members = async { repository.members() }
+            val presence = async { attendance.week(weekStart) }
             val weekResult = week.await()
             val membersResult = members.await()
+            val presenceResult = presence.await()
             if (weekResult !is ApiResult.Success) return@coroutineScope weekResult as ApiResult.Failure
             if (membersResult !is ApiResult.Success) return@coroutineScope membersResult as ApiResult.Failure
-            ApiResult.Success(DishEditorData(weekResult.data, membersResult.data.filter { it.isParent }))
+            if (presenceResult !is ApiResult.Success) return@coroutineScope presenceResult as ApiResult.Failure
+            val names = membersResult.data.associate { it.id to it.name }
+            // Kocht in der Woche — oder besitzt dort noch ein Gericht (z. B. mit ungültigem Tag, REQ-MEAL-021).
+            val owners =
+                weekResult.data.days
+                    .mapNotNull { it.dish?.cookId }
+                    .toSet()
+            val children =
+                presenceResult.data.children
+                    .filter { (it.cooks && it.submissionDeadline != null) || it.memberId in owners }
+                    .map { child ->
+                        val present =
+                            child.days
+                                .filter { it.present }
+                                .map { it.date }
+                                .toSet()
+                        CookCandidate(child.memberId, names[child.memberId] ?: UNKNOWN_NAME, present, child.submissionDeadline)
+                    }
+            ApiResult.Success(DishEditorData(weekResult.data, membersResult.data.filter { it.isParent }, children))
         }
 }
 
@@ -79,8 +97,9 @@ class SaveDishUseCase(
         cookId: String,
         name: String,
         ingredientsText: String,
+        ingredientsRequired: Boolean = false,
     ): ApiResult<Dish> {
-        validateDish(name, ingredientsText)?.let { return it }
+        validateDish(name, ingredientsText, ingredientsRequired)?.let { return it }
         val draft = DishDraft(date, cookId, name.trim(), ingredientLines(ingredientsText))
         return if (dishId == null) repository.createDish(draft) else repository.updateDish(dishId, draft)
     }
@@ -97,4 +116,5 @@ class DishUseCases(
     val load: LoadDishEditorUseCase,
     val save: SaveDishUseCase,
     val delete: DeleteDishUseCase,
+    val review: ReviewDishUseCase,
 )

@@ -9,6 +9,7 @@ fun ingredientLines(text: String): List<String> = text.lines().map { it.trim() }
 internal fun validateDish(
     name: String,
     ingredientsText: String,
+    ingredientsRequired: Boolean = false,
 ): ApiResult.Failure? {
     val rawLines = ingredientsText.lines()
     val lines = ingredientLines(ingredientsText)
@@ -19,6 +20,15 @@ internal fun validateDish(
             validationFailure("Eine Zutat darf höchstens ${PlanLimits.INGREDIENT_MAX} Zeichen haben.")
         rawLines.size > PlanLimits.INGREDIENT_LINES_RAW_MAX || lines.size > PlanLimits.INGREDIENTS_MAX_COUNT ->
             validationFailure("Höchstens ${PlanLimits.INGREDIENTS_MAX_COUNT} Zutaten je Gericht.")
+        ingredientsRequired && lines.isEmpty() -> validationFailure("Bitte mindestens eine Zutat angeben.")
         else -> null
     }
 }
+
+internal fun validateReason(reason: String): ApiResult.Failure? =
+    when {
+        reason.isBlank() -> validationFailure("Bitte eine Begründung angeben.")
+        reason.trim().length > PlanLimits.REASON_MAX ->
+            validationFailure("Die Begründung darf höchstens ${PlanLimits.REASON_MAX} Zeichen haben.")
+        else -> null
+    }

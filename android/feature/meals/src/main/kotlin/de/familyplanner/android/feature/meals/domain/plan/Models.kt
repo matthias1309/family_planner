@@ -4,12 +4,20 @@ import de.familyplanner.android.core.data.AppError
 import java.time.Instant
 import java.time.LocalDate
 
+enum class DishStatus { SUBMITTED, APPROVED, REJECTED }
+
 data class Dish(
     val id: String,
     val date: LocalDate,
     val cookId: String,
     val name: String,
     val ingredients: List<String>,
+    val status: DishStatus = DishStatus.APPROVED,
+    val rejectionReason: String? = null,
+    /** Vom Kind nach seiner Frist gespeichert (REQ-MEAL-020). */
+    val late: Boolean = false,
+    /** `false`: Das kochende Kind ist an dem Tag nicht (mehr) da (REQ-MEAL-021). */
+    val dayValid: Boolean = true,
 )
 
 data class PlanDay(
@@ -20,6 +28,20 @@ data class PlanDay(
 data class WeekPlan(
     val weekStart: LocalDate,
     val days: List<PlanDay>,
+)
+
+/** Kind, das in der Woche kochen darf, mit seinen Anwesenheitstagen (REQ-MEAL-021). */
+data class CookCandidate(
+    val memberId: String,
+    val name: String,
+    val presentDays: Set<LocalDate>,
+    val submissionDeadline: Instant?,
+)
+
+data class DishEditorData(
+    val week: WeekPlan,
+    val parents: List<PlanMember>,
+    val children: List<CookCandidate>,
 )
 
 data class PlanMember(

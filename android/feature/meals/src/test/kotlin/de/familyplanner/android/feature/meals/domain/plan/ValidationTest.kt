@@ -58,6 +58,37 @@ class ValidationTest {
     }
 
     @Test
+    fun `REQ-MEAL-032 parent dish without ingredients stays allowed`() {
+        assertNull(validateDish("Suppe", "", ingredientsRequired = false))
+    }
+
+    @Test
+    fun `REQ-MEAL-020 child dish without ingredients is rejected`() {
+        assertEquals("Bitte mindestens eine Zutat angeben.", message(validateDish("Curry", "", ingredientsRequired = true)))
+    }
+
+    @Test
+    fun `REQ-MEAL-020 child dish with blank lines only is rejected`() {
+        assertEquals("Bitte mindestens eine Zutat angeben.", message(validateDish("Curry", "\n \n", ingredientsRequired = true)))
+        assertNull(validateDish("Curry", "Reis", ingredientsRequired = true))
+    }
+
+    @Test
+    fun `REQ-MEAL-023 blank reason is rejected`() {
+        assertEquals("Bitte eine Begründung angeben.", message(validateReason("   ")))
+    }
+
+    @Test
+    fun `REQ-MEAL-023 reason longer than 200 characters is rejected`() {
+        assertEquals("Die Begründung darf höchstens 200 Zeichen haben.", message(validateReason("a".repeat(201))))
+    }
+
+    @Test
+    fun `REQ-MEAL-030 reason of 200 characters after trimming is accepted`() {
+        assertNull(validateReason("  " + "a".repeat(200) + "  "))
+    }
+
+    @Test
     fun `REQ-MEAL-032 ingredient lines are trimmed and blank lines dropped`() {
         assertEquals(listOf("Reis", "Erbsen"), ingredientLines(" Reis \n\n Erbsen"))
     }

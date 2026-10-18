@@ -20,6 +20,7 @@ import de.familyplanner.android.feature.meals.fakes.parentAnna
 import de.familyplanner.android.feature.meals.fakes.parentTom
 import de.familyplanner.android.feature.meals.fakes.someDish
 import de.familyplanner.android.feature.meals.fakes.thisWeek
+import de.familyplanner.android.feature.meals.ui.dish.DishEditArgs
 import de.familyplanner.android.feature.meals.ui.dish.DishEditEvent
 import de.familyplanner.android.feature.meals.ui.dish.DishEditScreen
 import de.familyplanner.android.feature.meals.ui.dish.DishEditUiState
@@ -64,13 +65,23 @@ class PlanScreensTest {
         isOffline: Boolean = false,
         error: AppError? = null,
         cacheReason: AppError? = null,
-    ) = WeekPlanUiState(thisWeek, today, week, error = error, isOffline = isOffline, cacheReason = cacheReason, isParent = isParent)
+    ) = WeekPlanUiState(
+        thisWeek,
+        today,
+        week,
+        error = error,
+        isOffline = isOffline,
+        cacheReason = cacheReason,
+        isParent = isParent,
+        // Weit vor der Planwoche: weder Karten noch „Zur Planwoche“ — diese Tests prüfen nur die Tageszeilen.
+        planWeek = thisWeek.plusWeeks(2),
+    )
 
     private fun showPlan(
         state: WeekPlanUiState,
         onEvent: (WeekPlanEvent) -> Unit = {},
-        onOpenDay: (LocalDate, String?) -> Unit = { _, _ -> },
-    ) = show { WeekPlanScreen(state, onEvent, onOpenDay, {}) }
+        onOpenEditor: (DishEditArgs) -> Unit = {},
+    ) = show { WeekPlanScreen(state, onEvent, onOpenEditor, {}) }
 
     @Test
     fun `REQ-MEAL-001 day with dish shows name and cook`() {
@@ -127,7 +138,7 @@ class PlanScreensTest {
     @Test
     fun `REQ-MEAL-032 parent taps open day to add dish`() {
         val opened = mutableListOf<Pair<LocalDate, String?>>()
-        showPlan(planState(isParent = true), onOpenDay = { date, id -> opened += date to id })
+        showPlan(planState(isParent = true), onOpenEditor = { opened += it.date to it.dishId })
 
         compose.onNodeWithText("Di 13.10.").performClick()
 
@@ -137,7 +148,7 @@ class PlanScreensTest {
     @Test
     fun `REQ-MEAL-032 parent taps planned day to edit`() {
         val opened = mutableListOf<Pair<LocalDate, String?>>()
-        showPlan(planState(isParent = true), onOpenDay = { date, id -> opened += date to id })
+        showPlan(planState(isParent = true), onOpenEditor = { opened += it.date to it.dishId })
 
         compose.onNodeWithText("Spaghetti").performClick()
 
@@ -147,7 +158,7 @@ class PlanScreensTest {
     @Test
     fun `REQ-MEAL-032 child cannot open the editor`() {
         val opened = mutableListOf<Pair<LocalDate, String?>>()
-        showPlan(planState(isParent = false), onOpenDay = { date, id -> opened += date to id })
+        showPlan(planState(isParent = false), onOpenEditor = { opened += it.date to it.dishId })
 
         compose.onNodeWithText("Spaghetti").performClick()
 
@@ -158,7 +169,7 @@ class PlanScreensTest {
     @Test
     fun `REQ-MEAL-032 offline parent sees edit hint`() {
         val opened = mutableListOf<Pair<LocalDate, String?>>()
-        showPlan(planState(isParent = true, isOffline = true), onOpenDay = { date, id -> opened += date to id })
+        showPlan(planState(isParent = true, isOffline = true), onOpenEditor = { opened += it.date to it.dishId })
 
         compose.onNodeWithText("Bearbeiten ist nur im Heim-WLAN möglich.").assertIsDisplayed()
         compose.onNodeWithText("Spaghetti").performClick()
@@ -185,6 +196,7 @@ class PlanScreensTest {
         cookId = "p-1",
         parents = listOf<PlanMember>(parentAnna, parentTom),
         takenDates = takenDates,
+        allowedDates = (0L..6L).map { thisWeek.plusDays(it) }.toSet() - takenDates,
         isLoading = false,
         error = error,
     )

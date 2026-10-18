@@ -5,6 +5,7 @@ import de.familyplanner.android.core.data.network.createJson
 import de.familyplanner.android.feature.meals.data.plan.DataStorePlanCache
 import de.familyplanner.android.feature.meals.data.plan.PlanCacheSerializer
 import de.familyplanner.android.feature.meals.domain.plan.Dish
+import de.familyplanner.android.feature.meals.domain.plan.DishStatus
 import de.familyplanner.android.feature.meals.domain.plan.PlannedDay
 import de.familyplanner.android.feature.meals.domain.plan.WeekPlanSnapshot
 import kotlinx.coroutines.CoroutineScope
@@ -145,6 +146,75 @@ class DataStorePlanCacheTest {
             cache.write("p-1", newer, today)
 
             assertEquals(newer, cache.read("p-1", firstWeek))
+        }
+
+    @Test
+    fun `REQ-MEAL-002 dish status survives the cache`() =
+        runBlocking {
+            val cache = newCache()
+            val dish =
+                Dish("d-c", firstWeek, "c-1", "Curry", listOf("Reis"), DishStatus.REJECTED, "Mehr Gemüse", late = true, dayValid = false)
+            val week =
+                WeekPlanSnapshot(
+                    firstWeek,
+                    (0L..6L).map {
+                        PlannedDay(
+                            firstWeek.plusDays(it),
+                            if (it ==
+                                0L
+                            ) {
+                                dish
+                            } else {
+                                null
+                            },
+                            null,
+                        )
+                    },
+                    Instant.EPOCH,
+                )
+
+            cache.write("c-1", week, today)
+
+            assertEquals(week, cache.read("c-1", firstWeek))
+        }
+
+    @Test
+    fun `REQ-MEAL-002 cache file from phase 3b without status is still readable`() =
+        runBlocking {
+            val days =
+                (0..6).joinToString(",") { index ->
+                    val dish = if (index == 0) """{"id":"d-1","cookId":"p-1","name":"Spaghetti","ingredients":["Nudeln"]}""" else "null"
+                    """{"date":"2026-10-${12 + index}","dish":$dish}"""
+                }
+            folder.root.resolve("plan.json").writeText(
+                """{"version":1,"memberId":"p-1","weeks":[{"weekStart":"2026-10-12","syncedAtMillis":0,"days":[$days]}]}""",
+            )
+
+            val dish =
+                newCache()
+                    .read("p-1", firstWeek)!!
+                    .days
+                    .first()
+                    .dish!!
+
+            assertEquals(DishStatus.APPROVED, dish.status)
+            assertEquals(true, dish.dayValid)
+            assertEquals(false, dish.late)
+        }
+
+    @Test
+    fun `REQ-MEAL-002 unknown dish status in cache reads the week as missing`() =
+        runBlocking {
+            val days =
+                (0..6).joinToString(",") { index ->
+                    val dish = if (index == 0) """{"id":"d-1","cookId":"p-1","name":"X","ingredients":[],"status":"WEIRD"}""" else "null"
+                    """{"date":"2026-10-${12 + index}","dish":$dish}"""
+                }
+            folder.root.resolve("plan.json").writeText(
+                """{"version":1,"memberId":"p-1","weeks":[{"weekStart":"2026-10-12","syncedAtMillis":0,"days":[$days]}]}""",
+            )
+
+            assertNull(newCache().read("p-1", firstWeek))
         }
 
     @Test
