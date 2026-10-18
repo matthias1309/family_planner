@@ -58,20 +58,24 @@ Updates nur mit derselben Signatur; der Signatur-Keystore bleibt lokal (`*.jks` 
 
 ## Abnahme-Checkliste Phase 1b (manuell, echte Geräte)
 
-- [ ] Release-APK auf dem Elternhandy installieren, „Familie einrichten“ mit dem Setup-Token
-- [ ] Mitglieder anlegen, Kopplungscode je Kind erzeugen, Codes auf den Handys einlösen (alle fünf gekoppelt)
-- [ ] Kinder sehen „Hallo <Name>“ und keine „Familie verwalten“-Schaltfläche
-- [ ] Gerät entfernen → die App dieses Geräts zeigt beim nächsten Aufruf „abgemeldet“
+Abgenommen am 2026-10-18 bis auf den Offline-Punkt (WLAN-Test steht aus).
+
+- [x] Release-APK auf dem Elternhandy installieren, „Familie einrichten“ mit dem Setup-Token
+- [x] Mitglieder anlegen, Kopplungscode je Kind erzeugen, Codes auf den Handys einlösen (alle fünf gekoppelt)
+- [x] Kinder sehen „Hallo <Name>“ und keine „Familie verwalten“-Schaltfläche
+- [x] Gerät entfernen → die App dieses Geräts zeigt beim nächsten Aufruf „abgemeldet“
 - [ ] Außerhalb des WLANs: App startet, zeigt den angemeldeten Nutzer und „offline“
-- [ ] Gegenprobe Pinning: Server mit anderem Zertifikat → „Sichere Verbindung fehlgeschlagen“
+- [x] Gegenprobe Pinning: Server mit anderem Zertifikat → „Sichere Verbindung fehlgeschlagen“
 
 ## Abnahme-Checkliste Phase 2b (manuell, echte Geräte gegen den Pi)
 
-- [ ] Release-APK 0.2.0 (gleiche Signatur) per `adb install -r` auf Elternhandy und einem Kinderhandy aktualisieren; Kopplung bleibt erhalten
-- [ ] Eltern: für jedes Kind „kocht“ und Muster setzen (Wechselmodell A = Di–Do, B = Di–So, „Diese Woche ist A/B“ nach echter Lage)
-- [ ] Wochenübersicht der aktuellen und der folgenden 3 Planwochen: Eltern bestätigen die Anwesenheitstage gegen ihren echten Kalender
-- [ ] Kind-Fristen: in A-Woche Donnerstag 16:00, in B-Woche = Bestellfrist; dauerhaft anwesendes Kind = Bestellfrist
-- [ ] Ausnahme (z. B. Ferien) anlegen → Tage in der Übersicht markiert, Frist ändert sich; zweite überlappende Ausnahme → Meldung „Zeitraum überschneidet sich …“; Ausnahme löschen → Muster gilt wieder
-- [ ] Fristen ändern → „Vorgemerkt ab Planwoche …“ sichtbar, die nächste Planwoche zeigt noch die alte Bestellfrist; danach wieder auf So 16:00 zurückstellen
-- [ ] Kinderhandy: Wochenübersicht sichtbar, keine „Anwesenheit verwalten“-Schaltfläche
+Abgenommen am 2026-10-18 bis auf den Offline-Punkt (WLAN-Test steht aus).
+
+- [x] Release-APK 0.2.0 (gleiche Signatur) per `adb install -r` auf Elternhandy und einem Kinderhandy aktualisieren; Kopplung bleibt erhalten
+- [x] Eltern: für jedes Kind „kocht“ und Muster setzen (Wechselmodell A = Di–Do, B = Di–So, „Diese Woche ist A/B“ nach echter Lage)
+- [x] Wochenübersicht der aktuellen und der folgenden 3 Planwochen: Eltern bestätigen die Anwesenheitstage gegen ihren echten Kalender
+- [x] Kind-Fristen: in A-Woche Donnerstag 16:00, in B-Woche = Bestellfrist; dauerhaft anwesendes Kind = Bestellfrist
+- [x] Ausnahme (z. B. Ferien) anlegen → Tage in der Übersicht markiert, Frist ändert sich; zweite überlappende Ausnahme → Meldung „Zeitraum überschneidet sich …“; Ausnahme löschen → Muster gilt wieder
+- [x] Fristen ändern → „Vorgemerkt ab Planwoche …“ sichtbar, die nächste Planwoche zeigt noch die alte Bestellfrist; danach wieder auf So 16:00 zurückstellen
+- [x] Kinderhandy: Wochenübersicht sichtbar, keine „Anwesenheit verwalten“-Schaltfläche
 - [ ] WLAN aus: Übersicht zeigt „Server nicht erreichbar. Bist du im Heim-WLAN?“, nach WLAN an + Pull-to-Refresh wieder Daten
