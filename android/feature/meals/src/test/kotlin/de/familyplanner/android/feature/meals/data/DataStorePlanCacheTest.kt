@@ -10,6 +10,7 @@ import de.familyplanner.android.feature.meals.domain.plan.WeekPlanSnapshot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Rule
@@ -82,7 +83,8 @@ class DataStorePlanCacheTest {
             val week = snapshot(firstWeek)
             newCache().write("p-1", week, today)
             // Erste Instanz beenden: zwei aktive DataStores auf derselben Datei sind nicht erlaubt.
-            scopes.forEach { it.cancel() }
+            // cancel() kehrt vor der Freigabe der Datei zurück, daher auf das Ende der Jobs warten.
+            scopes.forEach { it.coroutineContext[Job]?.cancelAndJoin() }
 
             assertEquals(week, newCache().read("p-1", firstWeek))
         }
