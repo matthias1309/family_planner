@@ -11,6 +11,9 @@ private const val WEEKS_PER_CYCLE = 2L
 
 fun mondayOf(date: LocalDate): LocalDate = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
 
+/** Montag der Kalenderwoche von heute (Berlin) — der Essensplan startet hier. */
+fun currentWeek(now: Instant): LocalDate = mondayOf(now.atZone(BerlinZone).toLocalDate())
+
 /** Die „aktuelle“ Planwoche ist der Montag nach heute (Berlin) — geplant wird immer die kommende Woche. */
 fun currentPlanWeek(now: Instant): LocalDate = mondayOf(now.atZone(BerlinZone).toLocalDate()).plusWeeks(1)
 

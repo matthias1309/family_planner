@@ -6,7 +6,7 @@ Android-App: Kotlin, Jetpack Compose, Clean Architecture. Entscheidungen: [ADR-0
 ## Module
 
 `app` · `core:api` (aus `api/openapi.yaml` generierter Retrofit-Client) · `core:data` (Netzwerk, Session, Fehlerabbildung) ·
-`core:ui` (Theme, Bausteine) · `core:testing` (Test-Helfer) · `feature:auth` (Einrichten, Koppeln, Familie verwalten) · `feature:meals` (Anwesenheit & Fristen).
+`core:ui` (Theme, Bausteine) · `core:testing` (Test-Helfer) · `feature:auth` (Einrichten, Koppeln, Familie verwalten) · `feature:meals` (Anwesenheit & Fristen, Essensplan – offline lesbar).
 
 ## Voraussetzungen
 
@@ -79,3 +79,15 @@ Abgenommen am 2026-10-18 bis auf den Offline-Punkt (WLAN-Test steht aus).
 - [x] Fristen ändern → „Vorgemerkt ab Planwoche …“ sichtbar, die nächste Planwoche zeigt noch die alte Bestellfrist; danach wieder auf So 16:00 zurückstellen
 - [x] Kinderhandy: Wochenübersicht sichtbar, keine „Anwesenheit verwalten“-Schaltfläche
 - [ ] WLAN aus: Übersicht zeigt „Server nicht erreichbar. Bist du im Heim-WLAN?“, nach WLAN an + Pull-to-Refresh wieder Daten
+
+## Abnahme-Checkliste Phase 3b (manuell, echte Geräte gegen den Pi)
+
+- [ ] Release-APK 0.3.0 (gleiche Signatur) per `adb install -r` auf Elternhandy und einem Kinderhandy; Kopplung bleibt erhalten
+- [ ] Home zeigt „Essensplan“ und „Anwesenheit & Fristen“
+- [ ] Eltern: für die kommende Woche an mehreren Tagen Gerichte mit/ohne Zutaten anlegen, eines ändern, eines auf einen anderen Tag verschieben, eines löschen
+- [ ] Belegter Tag ist im Editor nicht wählbar; zweites Elternhandy legt zeitgleich am selben Tag an → Meldung „An diesem Tag ist schon ein Gericht geplant“
+- [ ] Kinderhandy: Plan dieser Woche mit Gericht und Koch/Köchin je Tag, offene Tage „noch offen“, „Heute“ markiert; am Sonntag mit › zur kommenden Woche; keine Bearbeitung möglich
+- [ ] Kinderhandy im WLAN öffnen, dann WLAN aus (mobile Daten an): Plan dieser **und** der nächsten Woche mit „Offline – Stand: …“ sichtbar
+- [ ] Elternhandy offline: Plan lesbar, Hinweis „Bearbeiten ist nur im Heim-WLAN möglich.“
+- [ ] Zurück im WLAN + Pull-to-Refresh: Hinweis verschwindet, aktueller Stand
+- [ ] Nachtrag 2b: WLAN aus → Wochenübersicht zeigt „Server nicht erreichbar. Bist du im Heim-WLAN?“ (offener Punkt der 2b-Checkliste)

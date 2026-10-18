@@ -37,7 +37,7 @@ Regeln: `.claude/rules/ecc/common/` und `.claude/rules/ecc/kotlin/`.
 |---|---|
 | Anforderungen erarbeiten | `/ecc:prp-prd` → **immer** `docs/01-requirements/<modul>.prd.md` (nicht `.claude/PRPs/prds/`) |
 | Umsetzungsplan für eine PRD-Phase | `/ecc:prp-plan docs/01-requirements/<modul>.prd.md` → bleibt unter `.claude/PRPs/plans/` (Agenten-Arbeitsmaterial); dauerhafte Inhalte (REQ, ADR, Moduldesign, Traceability) gehören nach `docs/` |
-| Plan umsetzen | `/ecc:prp-implement .claude/PRPs/plans/<name>.plan.md` |
+| Plan umsetzen | `/ecc:prp-implement .claude/PRPs/plans/<name>.plan.md` — **immer in einer neuen Session** (Standard: Sonnet), nie in der Planungs-Session; Planen mit Opus |
 | Erster lauffähiger Stand aus dem PRD (MVP) | `/ecc:orch-build-mvp` |
 | Neues Feature end-to-end (Recherche, Plan, TDD, Review, Commit) | `/ecc:orch-add-feature` |
 | Bestehendes Feature ändern | `/ecc:orch-change-feature` |

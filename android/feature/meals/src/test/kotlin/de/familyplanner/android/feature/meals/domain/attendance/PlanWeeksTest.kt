@@ -65,6 +65,15 @@ class PlanWeeksTest {
     }
 
     @Test
+    fun `REQ-MEAL-001 current week is monday of today in Berlin`() {
+        assertEquals(LocalDate.of(2026, 10, 12), currentWeek(Instant.parse("2026-10-17T10:00:00Z")))
+        // Sonntag 23:30 Berlin (21:30 UTC) ist noch diese Woche.
+        assertEquals(LocalDate.of(2026, 10, 12), currentWeek(Instant.parse("2026-10-18T21:30:00Z")))
+        // Montag 00:30 Berlin (22:30 UTC am Sonntag) ist schon die nächste Woche.
+        assertEquals(LocalDate.of(2026, 10, 19), currentWeek(Instant.parse("2026-10-18T22:30:00Z")))
+    }
+
+    @Test
     fun `monday of returns the monday of the calendar week`() {
         assertEquals(LocalDate.of(2026, 10, 12), mondayOf(LocalDate.of(2026, 10, 18)))
         assertEquals(LocalDate.of(2026, 10, 12), mondayOf(LocalDate.of(2026, 10, 12)))

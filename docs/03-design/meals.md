@@ -6,7 +6,8 @@ REQ-MEAL-010, REQ-MEAL-011, REQ-MEAL-012, REQ-MEAL-013 (Phase 2), REQ-MEAL-001, 
 (Phase 3b) – REQ-MEAL-002 (Phase 3) — siehe [meals.prd.md](../01-requirements/meals.prd.md).
 Konventionen für Feature-Module: [ADR-0010](../02-architecture/adr/0010-backend-feature-modules.md).
 Fristen ohne Fernzugriff: [ADR-0007](../02-architecture/adr/0007-meal-deadlines-without-remote-access.md).
-Die Eltern-UI in der App (Phase 2b) steht im Abschnitt „App-Seite (Phase 2b)“.
+Die Eltern-UI in der App (Phase 2b) steht im Abschnitt „App-Seite (Phase 2b)“, Essensplan und Offline-Cache im Abschnitt
+„App-Seite (Phase 3b)“ ([ADR-0011](../02-architecture/adr/0011-app-offline-cache.md)).
 
 ## Domänenmodell & Regeln
 
@@ -110,6 +111,31 @@ Regeln:
   „Server nicht erreichbar. Bist du im Heim-WLAN?“ mit Pull-to-Refresh. Ein Kind ohne Namen (gerade gelöscht) erscheint als „?“.
 - **Datumsauswahl:** Der Material3-Picker liefert UTC-Mitternacht; die Umrechnung läuft über `ZoneOffset.UTC`
   (`pickerMillisToDate`), nie über die Systemzone.
-- **Kein Cache:** Offline-Lesen kommt mit REQ-MEAL-002 (Phase 3).
+- **Kein Cache** in der Wochenübersicht; offline lesbar ist der Essensplan (Phase 3b).
 - **Einstieg:** `feature:auth` bietet auf der Startseite den Slot `homeActions`; `app` füllt ihn mit `MealsHomeActions`.
 - **Formatierung** (`formatDate`, `formatTime`, `formatDateTime`, `BerlinZone`) liegt zentral in `core:ui`.
+
+## App-Seite (Phase 3b)
+
+Pakete `domain/plan`, `data/plan`, `ui/plan`, `ui/dish` im Modul `android/feature/meals`. Der Offline-Cache folgt
+[ADR-0011](../02-architecture/adr/0011-app-offline-cache.md). `api/` und `backend/` bleiben unverändert (Vertrag aus 3a).
+
+| Screen | Rolle | Inhalt |
+|---|---|---|
+| Essensplan | alle | Woche Mo–So (‹ ›), je Tag Gericht, Koch/Köchin und Zutaten kurz, „noch offen“, „Heute“ markiert; Eltern (online): Tag antippen = anlegen/ändern |
+| Gericht-Editor | Eltern | Tag (belegte Tage gesperrt), Koch/Köchin (nur Eltern), Name, Zutaten (eine pro Zeile, optional), Speichern, Löschen mit Bestätigung |
+
+Regeln:
+
+- **Startwoche:** diese Woche (`currentWeek`, Montag in Berlin), nicht die Planwoche; am Sonntag ist die kommende Woche einen Schritt entfernt (REQ-MEAL-001).
+- **Prefetch:** Beim Öffnen werden diese und die nächste Woche geladen; die nächste läuft im Hintergrund nur für den Cache.
+- **Cache (ADR-0011):** Jede erfolgreich geladene Woche wird mit Synchronisierungszeitpunkt und aufgelösten Namen von Koch/Köchin
+  gespeichert; Besitzer ist das angemeldete Mitglied; Wochen vor der Vorwoche werden entfernt, höchstens 8 bleiben.
+- **Offline-Fallback nur bei Verbindungsproblemen** (`Network`, `Certificate`, `Server`): Anzeige „Offline – Stand: <Wochentag Datum, Uhrzeit>“; bei `Server` (erreichbar, aber gestört) „Server gestört – gespeicherter Stand: …“.
+  Andere Fehler (403, 404, …) werden gezeigt und nie vom Cache verdeckt.
+- **Offline keine Bearbeitung:** Eltern sehen „Bearbeiten ist nur im Heim-WLAN möglich.“; Kinder können nie bearbeiten.
+- **Editor:** nur Tage derselben Woche; Zutaten optional; Grenzen wie der Server (Name 60, Zutat 80, 30 Zutaten, 100 Rohzeilen).
+  Ein Koch/Köchin, der kein Elternteil mehr ist, muss neu gewählt werden.
+- **Fehler:** 409 „An diesem Tag ist schon ein Gericht geplant“ (Servermeldung, Formular bleibt), 403 „Nur für Eltern.“,
+  404 beim Löschen zählt als gelöscht, offen als „Server nicht erreichbar. Bist du im Heim-WLAN?“.
+- **Namen:** Koch/Köchin kommen aus `GET /api/v1/members`; unbekannte erscheinen als „?“.

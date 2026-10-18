@@ -1,4 +1,4 @@
-package de.familyplanner.android.feature.meals.data.attendance
+package de.familyplanner.android.feature.meals.data
 
 import java.time.Instant
 import java.time.LocalDate
