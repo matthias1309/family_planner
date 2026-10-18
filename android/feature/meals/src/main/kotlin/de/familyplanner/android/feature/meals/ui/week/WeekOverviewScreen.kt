@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -41,11 +42,12 @@ private const val EXCEPTION_MARK = "◆"
 @Composable
 fun WeekOverviewRoute(
     onManage: () -> Unit,
+    onSettings: () -> Unit,
     onBack: () -> Unit,
 ) {
     val viewModel = koinViewModel<WeekOverviewViewModel>()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    WeekOverviewScreen(state = state, onEvent = viewModel::onEvent, onManage = onManage, onBack = onBack)
+    WeekOverviewScreen(state = state, onEvent = viewModel::onEvent, onManage = onManage, onSettings = onSettings, onBack = onBack)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,6 +56,7 @@ fun WeekOverviewScreen(
     state: WeekOverviewUiState,
     onEvent: (WeekOverviewEvent) -> Unit,
     onManage: () -> Unit,
+    onSettings: () -> Unit,
     onBack: () -> Unit,
 ) {
     PullToRefreshBox(
@@ -78,6 +81,11 @@ fun WeekOverviewScreen(
                 item {
                     Button(onClick = onManage, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.week_manage))
+                    }
+                }
+                item {
+                    OutlinedButton(onClick = onSettings, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.week_deadlines))
                     }
                 }
             }

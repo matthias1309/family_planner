@@ -93,8 +93,11 @@ private fun SettingsForm(
 ) {
     androidx.compose.foundation.layout.Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.settings_order_deadline), style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.settings_order_explain), style = MaterialTheme.typography.bodySmall)
         DayDropdown(state.orderDay) { onEvent(DeadlineSettingsEvent.OrderDayChanged(it)) }
         TimeField(stringResource(R.string.settings_order_time), state.orderTime) { onEvent(DeadlineSettingsEvent.OrderTimeChanged(it)) }
+        Text(stringResource(R.string.settings_child_deadline), style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.settings_child_explain), style = MaterialTheme.typography.bodySmall)
         TimeField(stringResource(R.string.settings_child_time), state.childTime) { onEvent(DeadlineSettingsEvent.ChildTimeChanged(it)) }
         Text(stringResource(R.string.settings_hint), style = MaterialTheme.typography.bodySmall)
         ErrorText(state.saveError)

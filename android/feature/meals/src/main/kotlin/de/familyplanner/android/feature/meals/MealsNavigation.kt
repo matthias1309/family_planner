@@ -42,13 +42,13 @@ fun NavGraphBuilder.mealsGraph(navController: NavHostController) {
     composable<WeekOverviewRoute> {
         WeekOverviewRoute(
             onManage = { navController.navigate(ProfilesRoute) },
+            onSettings = { navController.navigate(DeadlineSettingsRoute) },
             onBack = { navController.popBackStack() },
         )
     }
     composable<ProfilesRoute> {
         ProfilesRoute(
             onEdit = { navController.navigate(ProfileEditRoute(it)) },
-            onSettings = { navController.navigate(DeadlineSettingsRoute) },
             onBack = { navController.popBackStack() },
         )
     }

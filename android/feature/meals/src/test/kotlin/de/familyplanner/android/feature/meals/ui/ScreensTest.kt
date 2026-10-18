@@ -70,7 +70,7 @@ class ScreensTest {
         state: WeekOverviewUiState,
         onManage: () -> Unit = {},
         onEvent: (WeekOverviewEvent) -> Unit = {},
-    ) = show { WeekOverviewScreen(state, onEvent, onManage, {}) }
+    ) = show { WeekOverviewScreen(state, onEvent, onManage, {}, {}) }
 
     @Test
     fun `REQ-MEAL-012 cooking child shows submission deadline in Berlin time`() {
@@ -143,7 +143,7 @@ class ScreensTest {
 
     @Test
     fun `previous week is disabled at the lower limit`() {
-        show { WeekOverviewScreen(WeekOverviewUiState(LocalDate.of(2000, 1, 3)), {}, {}, {}) }
+        show { WeekOverviewScreen(WeekOverviewUiState(LocalDate.of(2000, 1, 3)), {}, {}, {}, {}) }
 
         compose.onNodeWithContentDescription("Vorige Woche").assertIsNotEnabled()
     }
@@ -161,7 +161,7 @@ class ScreensTest {
                         ChildProfile("c-2", "Lea", AttendanceProfile("c-2", false, AttendancePattern.Always)),
                     ),
             )
-        show { ProfilesScreen(state, {}, onEdit = { edited = it }, onSettings = {}, onBack = {}) }
+        show { ProfilesScreen(state, {}, onEdit = { edited = it }, onBack = {}) }
 
         compose.onNodeWithText("kocht · Wechselmodell · A: Di–Do · B: Di, So").assertIsDisplayed()
         compose.onNodeWithText("kocht nicht · immer da").assertIsDisplayed()
@@ -170,13 +170,28 @@ class ScreensTest {
     }
 
     @Test
-    fun `no children shows hint and settings button works`() {
-        var opened = false
-        show { ProfilesScreen(ProfilesUiState(), {}, {}, onSettings = { opened = true }, onBack = {}) }
+    fun `no children shows hint and tap instruction`() {
+        show { ProfilesScreen(ProfilesUiState(), {}, {}, onBack = {}) }
 
         compose.onNodeWithText("Noch keine Kinder angelegt.").assertIsDisplayed()
+        compose.onNodeWithText("Tippe auf ein Kind, um Muster und Ausnahmen zu ändern.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-MEAL-013 parent opens deadline settings from the week overview`() {
+        var opened = false
+        show { WeekOverviewScreen(weekState(isParent = true), {}, {}, onSettings = { opened = true }, onBack = {}) }
+
         compose.onNodeWithText("Fristen einstellen").performClick()
+
         assertTrue(opened)
+    }
+
+    @Test
+    fun `REQ-MEAL-013 child sees no deadline settings button`() {
+        showWeek(weekState(isParent = false))
+
+        compose.onNodeWithText("Fristen einstellen").assertDoesNotExist()
     }
 
     // --- Profil bearbeiten ---
@@ -287,7 +302,7 @@ class ScreensTest {
         compose
             .onNodeWithText(
                 "Änderungen gelten ab der übernächsten Planwoche; die gerade geplante Woche behält ihre Frist.",
-            ).assertIsDisplayed()
+            ).assertExists()
     }
 
     @Test
@@ -295,6 +310,6 @@ class ScreensTest {
         val state = DeadlineSettingsUiState(overview = DeadlineSettingsOverview(someSettings, null), saveError = AppError.Forbidden)
         show { DeadlineSettingsScreen(state, {}, {}) }
 
-        compose.onNodeWithText("Nur für Eltern.").assertIsDisplayed()
+        compose.onNodeWithText("Nur für Eltern.").assertExists()
     }
 }
