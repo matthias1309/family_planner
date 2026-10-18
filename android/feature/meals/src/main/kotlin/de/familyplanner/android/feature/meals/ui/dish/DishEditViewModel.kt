@@ -148,7 +148,16 @@ class DishEditViewModel(
     private fun onReview(event: DishEditEvent) {
         when (event) {
             DishEditEvent.Approve -> approve()
-            DishEditEvent.RequestReject -> _state.update { it.copy(showRejectDialog = true, rejectReason = "", error = null) }
+            DishEditEvent.RequestReject ->
+                _state.update {
+                    if (it.mode ==
+                        EditorMode.PARENT_REVIEW
+                    ) {
+                        it.copy(showRejectDialog = true, rejectReason = "", error = null)
+                    } else {
+                        it
+                    }
+                }
             is DishEditEvent.RejectReasonChanged -> _state.update { it.copy(rejectReason = event.value.take(PlanLimits.REASON_MAX)) }
             DishEditEvent.CancelReject -> _state.update { it.copy(showRejectDialog = false, error = null) }
             DishEditEvent.ConfirmReject -> reject()
@@ -274,7 +283,7 @@ class DishEditViewModel(
     private fun reject() {
         val id = dishId ?: return
         val current = _state.value
-        if (current.isBusy) return
+        if (current.isBusy || current.mode != EditorMode.PARENT_REVIEW) return
         _state.update { it.copy(isBusy = true, error = null) }
         viewModelScope.launch {
             when (val result = dishes.review.reject(id, current.rejectReason)) {

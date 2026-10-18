@@ -118,6 +118,14 @@ class RemoteMealPlanRepositoryTest {
         }
 
     @Test
+    fun `REQ-MEAL-020 unknown dish status is a server error`() =
+        runTest {
+            enqueue(200, singleDayWeek(dishJson.replace("APPROVED", "WEIRD")))
+
+            assertEquals(ApiResult.Failure(AppError.Server), repository.week(LocalDate.of(2026, 10, 12)))
+        }
+
+    @Test
     fun `REQ-MEAL-030 rejected dish maps reason`() =
         runTest {
             enqueue(200, singleDayWeek(dishJson.replace("APPROVED", "REJECTED").replace("}", ""","rejectionReason":"Bitte mit Gemüse"}""")))

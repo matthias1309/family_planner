@@ -62,6 +62,9 @@ data class WeekPlanUiState(
             else -> showsStatus && day.dish?.cookId == memberId
         }
 
+    /** Eltern dürfen für jedes Kind absagen/zurücknehmen, Kinder nur für sich selbst (der Server prüft zusätzlich). */
+    fun mayAct(targetMemberId: String): Boolean = isParent || targetMemberId == memberId
+
     fun dishDate(dishId: String): LocalDate? = week?.days?.firstOrNull { it.dish?.id == dishId }?.date
 
     fun rejectionReasonOf(dishId: String?): String? =
@@ -140,11 +143,7 @@ class WeekPlanViewModel(
         when (event) {
             is WeekPlanEvent.RequestCancel ->
                 _state.update {
-                    it.copy(
-                        cancelTarget = event.memberId,
-                        cancelReason = "",
-                        actionError = null,
-                    )
+                    if (it.mayAct(event.memberId)) it.copy(cancelTarget = event.memberId, cancelReason = "", actionError = null) else it
                 }
             is WeekPlanEvent.CancelReasonChanged -> _state.update { it.copy(cancelReason = event.value.take(PlanLimits.REASON_MAX)) }
             WeekPlanEvent.DismissCancel -> _state.update { it.copy(cancelTarget = null, actionError = null) }
@@ -157,10 +156,13 @@ class WeekPlanViewModel(
     private fun confirmCancel() {
         val current = _state.value
         val target = current.cancelTarget ?: return
-        if (current.isBusy) return
+        if (current.isBusy || !current.mayAct(target)) return
         _state.update { it.copy(isBusy = true, actionError = null) }
         viewModelScope.launch {
-            when (val result = cooking.cancel(current.weekStart, target, current.cancelReason)) {
+            val result = cooking.cancel(current.weekStart, target, current.cancelReason)
+            // Wurde inzwischen die Woche gewechselt, gehört das Ergebnis nicht mehr zur Anzeige.
+            if (_state.value.weekStart != current.weekStart) return@launch _state.update { it.copy(isBusy = false) }
+            when (result) {
                 is ApiResult.Success -> {
                     _state.update { it.copy(isBusy = false, cancelTarget = null) }
                     load()
@@ -172,10 +174,12 @@ class WeekPlanViewModel(
 
     private fun withdraw(memberId: String) {
         val current = _state.value
-        if (current.isBusy) return
+        if (current.isBusy || !current.mayAct(memberId)) return
         _state.update { it.copy(isBusy = true, actionError = null) }
         viewModelScope.launch {
-            when (val result = cooking.withdraw(current.weekStart, memberId)) {
+            val result = cooking.withdraw(current.weekStart, memberId)
+            if (_state.value.weekStart != current.weekStart) return@launch _state.update { it.copy(isBusy = false) }
+            when (result) {
                 is ApiResult.Success -> {
                     _state.update { it.copy(isBusy = false) }
                     load()
@@ -212,8 +216,15 @@ class WeekPlanViewModel(
     private fun load() {
         loadJob?.cancel()
         val requested = _state.value.weekStart
-        // „Heute“ bei jedem Laden neu bestimmen, falls die App über Mitternacht offen blieb.
-        _state.update { it.copy(isLoading = true, error = null, today = clock.instant().atZone(BerlinZone).toLocalDate()) }
+        // „Heute“ und Planwoche bei jedem Laden neu bestimmen, falls die App über Mitternacht/Montag offen blieb.
+        _state.update {
+            it.copy(
+                isLoading = true,
+                error = null,
+                today = clock.instant().atZone(BerlinZone).toLocalDate(),
+                planWeek = currentPlanWeek(clock.instant()),
+            )
+        }
         loadJob =
             viewModelScope.launch {
                 val result = loadWeekPlan(requested)

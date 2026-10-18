@@ -15,10 +15,14 @@ import de.familyplanner.api.model.WeekPlan as ApiWeekPlan
 
 private const val DAYS_PER_WEEK = 7
 
-internal fun ApiDishStatus.toDomain(): DishStatus = DishStatus.valueOf(name)
+/** `null` bei einem unbekannten Status (Serverfehler statt Absturz). */
+internal fun ApiDishStatus.toDomain(): DishStatus? = DishStatus.entries.firstOrNull { it.name == name }
 
-internal fun ApiDish.toDomain(): Dish? =
-    parseDate(date)?.let { Dish(id, it, cookId, name, ingredients, status.toDomain(), rejectionReason, late, dayValid) }
+internal fun ApiDish.toDomain(): Dish? {
+    val day = parseDate(date) ?: return null
+    val mappedStatus = status.toDomain() ?: return null
+    return Dish(id, day, cookId, name, ingredients, mappedStatus, rejectionReason, late, dayValid)
+}
 
 internal fun ApiPlanDay.toDomain(): PlanDay? {
     val day = parseDate(date) ?: return null

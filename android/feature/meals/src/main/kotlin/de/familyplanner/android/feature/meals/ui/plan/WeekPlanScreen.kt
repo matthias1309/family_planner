@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -207,7 +208,10 @@ private fun PlanDayRow(
     val editLabel = stringResource(if (day.dish == null) R.string.plan_day_add_action else R.string.plan_day_edit_action)
     val rowModifier =
         if (state.canOpen(day)) {
-            Modifier.fillMaxWidth().clickable(onClickLabel = editLabel) { onOpenEditor(DishEditArgs(day.date, day.dish?.id)) }
+            Modifier.fillMaxWidth().clickable(
+                onClickLabel = editLabel,
+                role = Role.Button,
+            ) { onOpenEditor(DishEditArgs(day.date, day.dish?.id)) }
         } else {
             Modifier.fillMaxWidth()
         }

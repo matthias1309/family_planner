@@ -93,6 +93,7 @@
     <string name="status_until">bis %1$s</string>
     <string name="status_late">nach Frist</string>
     <string name="status_day_invalid">Tag ungültig</string>
+    <string name="status_open_dish">Gericht öffnen</string>
     <string name="status_enter">Eintragen</string>
     <string name="status_cancel">Absagen…</string>
     <string name="status_withdraw">Zurücknehmen</string>

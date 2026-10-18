@@ -84,6 +84,14 @@ class RemoteCookingRepositoryTest {
         }
 
     @Test
+    fun `REQ-MEAL-033 unknown cook state is a server error`() =
+        runTest {
+            enqueue(200, statusJson().replace("SUBMITTED", "WEIRD"))
+
+            assertEquals(ApiResult.Failure(AppError.Server), repository.status(monday))
+        }
+
+    @Test
     fun `REQ-MEAL-033 status requests ISO monday path`() =
         runTest {
             enqueue(200, statusJson())

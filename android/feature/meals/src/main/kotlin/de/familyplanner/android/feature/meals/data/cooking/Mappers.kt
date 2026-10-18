@@ -12,7 +12,8 @@ import de.familyplanner.api.model.WeekStatus as ApiWeekStatus
 /** `submissionDeadline` ist bei nicht mehr kochenden Kindern mit Gericht `null` — gültig, kein Fehler. */
 internal fun ApiCookStatus.toDomain(): CookStatus? {
     val deadline = submissionDeadline?.let { parseInstant(it) ?: return null }
-    return CookStatus(memberId, deadline, CookState.valueOf(state.name), dishId, late, dayValid, cancellationReason)
+    val mappedState = CookState.entries.firstOrNull { it.name == state.name } ?: return null
+    return CookStatus(memberId, deadline, mappedState, dishId, late, dayValid, cancellationReason)
 }
 
 internal fun ApiWeekStatus.toDomain(): WeekStatus? {

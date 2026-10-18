@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import de.familyplanner.android.core.data.AppError
@@ -95,9 +96,12 @@ private fun CookRow(
     if (!status.dayValid) extras += stringResource(R.string.status_day_invalid)
     val line = (listOf(stringResource(R.string.status_cook_line, cook.name, cookStateText(cook))) + extras).joinToString(" · ")
     val dishDate = status.dishId?.let(dishDateOf)
+    val openLabel = stringResource(R.string.status_open_dish)
     val rowModifier =
         if (isParent && status.dishId != null && dishDate != null) {
-            Modifier.fillMaxWidth().clickable { actions.onOpen(DishEditArgs(dishDate, status.dishId)) }
+            Modifier.fillMaxWidth().clickable(onClickLabel = openLabel, role = Role.Button) {
+                actions.onOpen(DishEditArgs(dishDate, status.dishId))
+            }
         } else {
             Modifier.fillMaxWidth()
         }

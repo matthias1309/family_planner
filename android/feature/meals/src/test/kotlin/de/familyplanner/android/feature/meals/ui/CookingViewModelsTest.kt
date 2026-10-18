@@ -629,4 +629,90 @@ class CookingViewModelsTest {
 
         assertEquals(1, cooking.cancelled.size)
     }
+
+    // ---- Review-Nachbesserungen ----
+
+    private class MutableClock(
+        var now: Instant,
+    ) : Clock() {
+        override fun getZone(): ZoneId = ZoneId.of("Europe/Berlin")
+
+        override fun withZone(zone: ZoneId?): Clock = this
+
+        override fun instant(): Instant = now
+    }
+
+    @Test
+    fun `REQ-MEAL-033 plan week rolls over when the app stays open across monday`() {
+        val clock = MutableClock(Instant.parse("2026-10-17T10:00:00Z"))
+        val viewModel = planViewModel(clock)
+        assertEquals(planWeek, viewModel.state.value.planWeek)
+
+        clock.now = Instant.parse("2026-10-19T07:00:00Z")
+        viewModel.onEvent(WeekPlanEvent.Refresh)
+
+        assertEquals(planWeek.plusWeeks(1), viewModel.state.value.planWeek)
+    }
+
+    @Test
+    fun `REQ-MEAL-030 reject outside review mode is ignored`() {
+        planWith(childDish.copy(status = DishStatus.APPROVED))
+        val viewModel = editViewModel(dishId = "d-2")
+        assertEquals(EditorMode.PARENT_EDIT, viewModel.state.value.mode)
+
+        viewModel.onEvent(DishEditEvent.RequestReject)
+        viewModel.onEvent(DishEditEvent.ConfirmReject)
+        viewModel.onEvent(DishEditEvent.Approve)
+
+        assertFalse(viewModel.state.value.showRejectDialog)
+        assertTrue(cooking.rejected.isEmpty())
+        assertTrue(cooking.approved.isEmpty())
+    }
+
+    @Test
+    fun `REQ-MEAL-030 child cannot reject or approve`() {
+        login(childSession)
+        planWith(childDish)
+        val viewModel = editViewModel(dishId = "d-2")
+
+        viewModel.onEvent(DishEditEvent.RequestReject)
+        viewModel.onEvent(DishEditEvent.ConfirmReject)
+        viewModel.onEvent(DishEditEvent.Approve)
+
+        assertTrue(cooking.rejected.isEmpty())
+        assertTrue(cooking.approved.isEmpty())
+    }
+
+    @Test
+    fun `REQ-MEAL-023 child cannot cancel or withdraw for a sibling`() {
+        login(childSession)
+        val viewModel = planViewModel()
+        viewModel.onEvent(WeekPlanEvent.GoToPlanWeek)
+
+        viewModel.onEvent(WeekPlanEvent.RequestCancel("c-2"))
+        viewModel.onEvent(WeekPlanEvent.Withdraw("c-2"))
+
+        assertNull(viewModel.state.value.cancelTarget)
+        assertTrue(cooking.cancelled.isEmpty())
+        assertTrue(cooking.withdrawn.isEmpty())
+    }
+
+    @Test
+    fun `REQ-MEAL-023 cancel result after a week switch is ignored`() {
+        val gate = CompletableDeferred<Unit>()
+        cooking.cancelGate = gate
+        cooking.cancelResult = ApiResult.Failure(AppError.Server)
+        val viewModel = planViewModel()
+        viewModel.onEvent(WeekPlanEvent.GoToPlanWeek)
+        viewModel.onEvent(WeekPlanEvent.RequestCancel("c-1"))
+        viewModel.onEvent(WeekPlanEvent.CancelReasonChanged("krank"))
+        viewModel.onEvent(WeekPlanEvent.ConfirmCancel)
+        viewModel.onEvent(WeekPlanEvent.NextWeek)
+
+        gate.complete(Unit)
+
+        assertNull(viewModel.state.value.actionError)
+        assertFalse(viewModel.state.value.isBusy)
+        assertEquals(planWeek.plusWeeks(1), viewModel.state.value.weekStart)
+    }
 }
