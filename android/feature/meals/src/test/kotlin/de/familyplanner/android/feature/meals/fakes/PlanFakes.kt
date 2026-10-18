@@ -9,6 +9,7 @@ import de.familyplanner.android.feature.meals.domain.plan.PlanDay
 import de.familyplanner.android.feature.meals.domain.plan.PlanMember
 import de.familyplanner.android.feature.meals.domain.plan.WeekPlan
 import de.familyplanner.android.feature.meals.domain.plan.WeekPlanSnapshot
+import de.familyplanner.android.feature.meals.domain.recipe.displayText
 import kotlinx.coroutines.CompletableDeferred
 import java.time.LocalDate
 
@@ -52,7 +53,7 @@ class FakeMealPlanRepository : MealPlanRepository {
     override suspend fun createDish(draft: DishDraft): ApiResult<Dish> {
         created += draft
         createGate?.await()
-        return createResult ?: ApiResult.Success(Dish("d-new", draft.date, draft.cookId, draft.name, draft.ingredients))
+        return createResult ?: ApiResult.Success(draft.toDish("d-new"))
     }
 
     override suspend fun updateDish(
@@ -60,7 +61,7 @@ class FakeMealPlanRepository : MealPlanRepository {
         draft: DishDraft,
     ): ApiResult<Dish> {
         updated += dishId to draft
-        return updateResult ?: ApiResult.Success(Dish(dishId, draft.date, draft.cookId, draft.name, draft.ingredients))
+        return updateResult ?: ApiResult.Success(draft.toDish(dishId))
     }
 
     override suspend fun deleteDish(dishId: String): ApiResult<Unit> {
@@ -68,6 +69,9 @@ class FakeMealPlanRepository : MealPlanRepository {
         return deleteResult
     }
 }
+
+private fun DishDraft.toDish(id: String) =
+    Dish(id, date, cookId, name, ingredients.map { it.displayText() }, recipeId = recipe?.recipeId, servings = recipe?.servings)
 
 class InMemoryPlanCache : PlanCache {
     val stored = mutableMapOf<Pair<String, LocalDate>, WeekPlanSnapshot>()

@@ -5,8 +5,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
@@ -16,6 +18,12 @@ import de.familyplanner.android.feature.meals.ui.dish.DishEditRoute
 import de.familyplanner.android.feature.meals.ui.plan.WeekPlanRoute
 import de.familyplanner.android.feature.meals.ui.profile.ProfileEditRoute
 import de.familyplanner.android.feature.meals.ui.profiles.ProfilesRoute
+import de.familyplanner.android.feature.meals.ui.recipe.RecipeEditArgs
+import de.familyplanner.android.feature.meals.ui.recipe.RecipeEditRoute
+import de.familyplanner.android.feature.meals.ui.recipe.RecipeListArgs
+import de.familyplanner.android.feature.meals.ui.recipe.RecipeViewArgs
+import de.familyplanner.android.feature.meals.ui.recipe.RecipeViewRoute
+import de.familyplanner.android.feature.meals.ui.recipes.RecipeListRoute
 import de.familyplanner.android.feature.meals.ui.settings.DeadlineSettingsRoute
 import de.familyplanner.android.feature.meals.ui.week.WeekOverviewRoute
 import kotlinx.serialization.Serializable
@@ -31,6 +39,28 @@ data class DishEditRoute(
     val dishId: String? = null,
     val cookId: String? = null,
 )
+
+/** [pick]: Rezept für den Gericht-Editor wählen (Ergebnis über [PICKED_RECIPE_KEY]). */
+@Serializable
+data class RecipeListRoute(
+    val pick: Boolean = false,
+)
+
+/** [dishDate] ISO-Datum; mit [dishId]: Ansicht zu einem Gericht (REQ-MEAL-063). */
+@Serializable
+data class RecipeViewRoute(
+    val recipeId: String,
+    val dishDate: String? = null,
+    val dishId: String? = null,
+)
+
+/** [recipeId] `null` = neues Rezept. */
+@Serializable
+data class RecipeEditRoute(
+    val recipeId: String? = null,
+)
+
+internal const val PICKED_RECIPE_KEY = "pickedRecipeId"
 
 @Serializable
 data object WeekOverviewRoute
@@ -51,6 +81,7 @@ data object DeadlineSettingsRoute
 fun MealsHomeActions(
     onOpenPlan: () -> Unit,
     onOpenWeek: () -> Unit,
+    onOpenRecipes: () -> Unit,
 ) {
     Button(onClick = onOpenPlan, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.home_plan))
@@ -58,18 +89,30 @@ fun MealsHomeActions(
     OutlinedButton(onClick = onOpenWeek, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.home_attendance))
     }
+    OutlinedButton(onClick = onOpenRecipes, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.home_recipes))
+    }
 }
 
 fun NavGraphBuilder.mealsGraph(navController: NavHostController) {
+    recipeGraph(navController)
     composable<WeekPlanRoute> {
         WeekPlanRoute(
             onOpenEditor = { args -> navController.navigate(DishEditRoute(args.date.toString(), args.dishId, args.cookId)) },
+            onOpenRecipe = { args -> navController.navigate(RecipeViewRoute(args.recipeId, args.dishDate?.toString(), args.dishId)) },
             onBack = { navController.popBackStack() },
         )
     }
     composable<DishEditRoute> { entry ->
         val route = entry.toRoute<DishEditRoute>()
-        DishEditRoute(DishEditArgs(LocalDate.parse(route.date), route.dishId, route.cookId), onDone = { navController.popBackStack() })
+        val picked by entry.savedStateHandle.getStateFlow<String?>(PICKED_RECIPE_KEY, null).collectAsStateWithLifecycle()
+        DishEditRoute(
+            args = DishEditArgs(LocalDate.parse(route.date), route.dishId, route.cookId),
+            pickedRecipeId = picked,
+            onRecipeConsumed = { entry.savedStateHandle[PICKED_RECIPE_KEY] = null },
+            onPickRecipe = { navController.navigate(RecipeListRoute(pick = true)) },
+            onDone = { navController.popBackStack() },
+        )
     }
     composable<WeekOverviewRoute> {
         WeekOverviewRoute(
@@ -88,4 +131,34 @@ fun NavGraphBuilder.mealsGraph(navController: NavHostController) {
         ProfileEditRoute(memberId = entry.toRoute<ProfileEditRoute>().memberId, onBack = { navController.popBackStack() })
     }
     composable<DeadlineSettingsRoute> { DeadlineSettingsRoute(onBack = { navController.popBackStack() }) }
+}
+
+private fun NavGraphBuilder.recipeGraph(navController: NavHostController) {
+    composable<RecipeListRoute> { entry ->
+        val pick = entry.toRoute<RecipeListRoute>().pick
+        RecipeListRoute(
+            args = RecipeListArgs(pick),
+            onOpen = { id ->
+                if (pick) {
+                    navController.previousBackStackEntry?.savedStateHandle?.set(PICKED_RECIPE_KEY, id)
+                    navController.popBackStack()
+                } else {
+                    navController.navigate(RecipeViewRoute(id))
+                }
+            },
+            onCreate = { navController.navigate(RecipeEditRoute()) },
+            onBack = { navController.popBackStack() },
+        )
+    }
+    composable<RecipeViewRoute> { entry ->
+        val route = entry.toRoute<RecipeViewRoute>()
+        RecipeViewRoute(
+            args = RecipeViewArgs(route.recipeId, route.dishDate?.let(LocalDate::parse), route.dishId),
+            onEdit = { navController.navigate(RecipeEditRoute(it)) },
+            onDone = { navController.popBackStack() },
+        )
+    }
+    composable<RecipeEditRoute> { entry ->
+        RecipeEditRoute(RecipeEditArgs(entry.toRoute<RecipeEditRoute>().recipeId), onDone = { navController.popBackStack() })
+    }
 }

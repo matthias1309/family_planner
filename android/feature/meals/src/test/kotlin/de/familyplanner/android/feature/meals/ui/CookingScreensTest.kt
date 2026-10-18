@@ -82,7 +82,7 @@ class CookingScreensTest {
     private fun showEdit(
         state: DishEditUiState,
         onEvent: (DishEditEvent) -> Unit = {},
-    ) = show { DishEditScreen(state, onEvent, {}) }
+    ) = show { DishEditScreen(state, onEvent, {}, {}) }
 
     @Test
     fun `REQ-MEAL-030 review section shows approve and reject`() {
@@ -256,7 +256,7 @@ class CookingScreensTest {
         state: WeekPlanUiState,
         onEvent: (WeekPlanEvent) -> Unit = {},
         onOpenEditor: (DishEditArgs) -> Unit = {},
-    ) = show { WeekPlanScreen(state, onEvent, onOpenEditor, {}) }
+    ) = show { WeekPlanScreen(state, onEvent, onOpenEditor, {}, {}) }
 
     private fun dishOnMonday(
         status: DishStatus = DishStatus.APPROVED,

@@ -20,9 +20,11 @@ import de.familyplanner.android.feature.meals.domain.plan.EditorMode
 import de.familyplanner.android.feature.meals.domain.plan.LoadDishEditorUseCase
 import de.familyplanner.android.feature.meals.domain.plan.LoadWeekPlanUseCase
 import de.familyplanner.android.feature.meals.domain.plan.SaveDishUseCase
+import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
 import de.familyplanner.android.feature.meals.fakes.FakeAttendanceRepository
 import de.familyplanner.android.feature.meals.fakes.FakeCookingRepository
 import de.familyplanner.android.feature.meals.fakes.FakeMealPlanRepository
+import de.familyplanner.android.feature.meals.fakes.FakeRecipeRepository
 import de.familyplanner.android.feature.meals.fakes.InMemoryPlanCache
 import de.familyplanner.android.feature.meals.fakes.childDish
 import de.familyplanner.android.feature.meals.fakes.childSession
@@ -117,6 +119,7 @@ class CookingViewModelsTest {
             SaveDishUseCase(repository),
             DeleteDishUseCase(repository),
             ReviewDishUseCase(cooking),
+            LoadRecipeUseCase(FakeRecipeRepository()),
         ),
         clock,
     )

@@ -21,6 +21,7 @@ import de.familyplanner.android.feature.auth.WelcomeRoute
 import de.familyplanner.android.feature.auth.authGraph
 import de.familyplanner.android.feature.auth.mainGraph
 import de.familyplanner.android.feature.meals.MealsHomeActions
+import de.familyplanner.android.feature.meals.RecipeListRoute
 import de.familyplanner.android.feature.meals.WeekOverviewRoute
 import de.familyplanner.android.feature.meals.WeekPlanRoute
 import de.familyplanner.android.feature.meals.mealsGraph
@@ -65,6 +66,7 @@ private fun MainHost() {
             MealsHomeActions(
                 onOpenPlan = { navController.navigate(WeekPlanRoute) },
                 onOpenWeek = { navController.navigate(WeekOverviewRoute) },
+                onOpenRecipes = { navController.navigate(RecipeListRoute()) },
             )
         }
         mealsGraph(navController)

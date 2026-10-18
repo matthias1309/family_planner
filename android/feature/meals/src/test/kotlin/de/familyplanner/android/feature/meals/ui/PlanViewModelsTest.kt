@@ -15,9 +15,12 @@ import de.familyplanner.android.feature.meals.domain.plan.DishUseCases
 import de.familyplanner.android.feature.meals.domain.plan.LoadDishEditorUseCase
 import de.familyplanner.android.feature.meals.domain.plan.LoadWeekPlanUseCase
 import de.familyplanner.android.feature.meals.domain.plan.SaveDishUseCase
+import de.familyplanner.android.feature.meals.domain.recipe.Ingredient
+import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
 import de.familyplanner.android.feature.meals.fakes.FakeAttendanceRepository
 import de.familyplanner.android.feature.meals.fakes.FakeCookingRepository
 import de.familyplanner.android.feature.meals.fakes.FakeMealPlanRepository
+import de.familyplanner.android.feature.meals.fakes.FakeRecipeRepository
 import de.familyplanner.android.feature.meals.fakes.InMemoryPlanCache
 import de.familyplanner.android.feature.meals.fakes.childSession
 import de.familyplanner.android.feature.meals.fakes.parentSession
@@ -80,6 +83,7 @@ class PlanViewModelsTest {
             SaveDishUseCase(repository),
             DeleteDishUseCase(repository),
             ReviewDishUseCase(cooking),
+            LoadRecipeUseCase(FakeRecipeRepository()),
         ),
     )
 
@@ -276,7 +280,7 @@ class PlanViewModelsTest {
 
         val draft = repository.created.single()
         assertEquals("Curry", draft.name)
-        assertEquals(listOf("Reis", "Erbsen"), draft.ingredients)
+        assertEquals(listOf(Ingredient("Reis"), Ingredient("Erbsen")), draft.ingredients)
         assertEquals("p-2", draft.cookId)
         assertTrue(viewModel.state.value.isDone)
     }

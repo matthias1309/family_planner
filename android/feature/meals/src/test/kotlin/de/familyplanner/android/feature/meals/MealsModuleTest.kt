@@ -14,6 +14,12 @@ import de.familyplanner.android.feature.meals.ui.dish.DishEditViewModel
 import de.familyplanner.android.feature.meals.ui.plan.WeekPlanViewModel
 import de.familyplanner.android.feature.meals.ui.profile.ProfileEditViewModel
 import de.familyplanner.android.feature.meals.ui.profiles.ProfilesViewModel
+import de.familyplanner.android.feature.meals.ui.recipe.RecipeEditArgs
+import de.familyplanner.android.feature.meals.ui.recipe.RecipeEditViewModel
+import de.familyplanner.android.feature.meals.ui.recipe.RecipeListArgs
+import de.familyplanner.android.feature.meals.ui.recipe.RecipeViewArgs
+import de.familyplanner.android.feature.meals.ui.recipe.RecipeViewModel
+import de.familyplanner.android.feature.meals.ui.recipes.RecipeListViewModel
 import de.familyplanner.android.feature.meals.ui.settings.DeadlineSettingsViewModel
 import de.familyplanner.android.feature.meals.ui.week.WeekOverviewViewModel
 import de.familyplanner.api.client.MembersApi
@@ -54,5 +60,8 @@ class MealsModuleTest {
         assertNotNull(koin.get<WeekPlanViewModel>())
         assertNotNull(koin.get<DishEditViewModel> { parametersOf(DishEditArgs(LocalDate.of(2026, 10, 19))) })
         assertNotNull(koin.get<DishEditViewModel> { parametersOf(DishEditArgs(LocalDate.of(2026, 10, 19), "d-1")) })
+        assertNotNull(koin.get<RecipeListViewModel> { parametersOf(RecipeListArgs()) })
+        assertNotNull(koin.get<RecipeViewModel> { parametersOf(RecipeViewArgs("r-1")) })
+        assertNotNull(koin.get<RecipeEditViewModel> { parametersOf(RecipeEditArgs()) })
     }
 }
