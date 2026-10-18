@@ -74,7 +74,14 @@ class MealPlanService(
         val existing = plan.findById(id) ?: throw AppException.NotFound(DISH_NOT_FOUND)
         requireMayWriteFor(actor, existing.cookId)
         requireMayWriteFor(actor, cookId)
-        val draft = draft(actor, existing, DishInput(id, date, cookId, name, ingredients, recipe))
+        val keepStructure = recipe == null && isUnchangedDisplayLines(existing.ingredients, ingredients)
+        val input =
+            if (keepStructure) {
+                DishInput(id, date, cookId, name, existing.ingredients, existing.recipe)
+            } else {
+                DishInput(id, date, cookId, name, ingredients, recipe)
+            }
+        val draft = draft(actor, existing, input)
         requireSaved(plan.updateIfDayFree(draft.dish, clock.instant(), draft.cookWeek))
         log.info("Dish updated: {} {}", draft.dish.id.value, draft.dish.status)
         return draft.dish

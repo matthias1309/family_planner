@@ -524,4 +524,45 @@ class MealPlanServiceTest {
             assertNull(updated.recipe)
             assertNull(dishOn("2026-10-20")?.recipe)
         }
+
+    @Test
+    fun `REQ-MEAL-062 older app saving unchanged lines keeps structure and recipe`() =
+        runTest {
+            // Arrange
+            val cook = parent()
+            val structured = listOf(Ingredient("Spaghetti", 500.0, "g"), Ingredient("Salz"))
+            val ref = RecipeRef(aRecipeId(), 4)
+            val dish = service.create(admin, date("2026-10-20"), cook, "Carbonara", structured, ref)
+
+            // Act: an app that only knows display lines sends them back unchanged
+            val updated = service.update(admin, dish.id, dish.date, cook, "Carbonara 2", lines("500 g Spaghetti", "Salz"))
+
+            // Assert
+            assertEquals(structured, updated.ingredients)
+            assertEquals(ref, updated.recipe)
+            assertEquals("Carbonara 2", updated.name)
+        }
+
+    @Test
+    fun `REQ-MEAL-062 older app changing lines replaces structure and recipe`() =
+        runTest {
+            // Arrange
+            val cook = parent()
+            val dish =
+                service.create(
+                    admin,
+                    date("2026-10-20"),
+                    cook,
+                    "Carbonara",
+                    listOf(Ingredient("Spaghetti", 500.0, "g")),
+                    RecipeRef(aRecipeId(), 4),
+                )
+
+            // Act
+            val updated = service.update(admin, dish.id, dish.date, cook, "Carbonara", lines("500 g Spaghetti", "Ei"))
+
+            // Assert
+            assertEquals(lines("500 g Spaghetti", "Ei"), updated.ingredients)
+            assertNull(updated.recipe)
+        }
 }

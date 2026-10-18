@@ -1117,7 +1117,7 @@ components:
       required: [name]
       properties:
         name: { type: string, minLength: 1, maxLength: 80 }
-        quantity: { type: number, format: double, minimum: 0, exclusiveMinimum: true, maximum: 10000, nullable: true }
+        quantity: { type: number, format: double, minimum: 0.001, maximum: 10000, nullable: true }
         unit: { type: string, maxLength: 20, nullable: true }
 
     Recipe:

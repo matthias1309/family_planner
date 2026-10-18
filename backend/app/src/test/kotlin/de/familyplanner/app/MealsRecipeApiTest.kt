@@ -359,4 +359,36 @@ class MealsRecipeApiTest {
             assertNull(dish.servings)
             assertTrue(dish.dayValid)
         }
+
+    @Test
+    fun `REQ-MEAL-062 older app sending display lines back keeps structure and recipe`() =
+        testApplication {
+            start()
+            val family = setupFamilyWithChild()
+            val parentId = client.memberIdOf(family.parentToken)
+            val recipeId = client.createRecipe(family.parentToken).recipe().id
+            val created =
+                client
+                    .call(
+                        HttpMethod.Post,
+                        DISHES,
+                        family.parentToken,
+                        dishJson(parentId, recipeId = recipeId, servings = 5),
+                    ).dish()
+            val lines = checkNotNull(client.dishOn(family.childToken)).ingredients
+
+            val response =
+                client.call(
+                    HttpMethod.Put,
+                    "$DISHES/${created.id}",
+                    family.parentToken,
+                    dishJson(parentId, structured = null, lines = lines),
+                )
+
+            assertEquals(HttpStatusCode.OK, response.status)
+            val dish = response.dish()
+            assertEquals(created.structuredIngredients, dish.structuredIngredients)
+            assertEquals(recipeId, dish.recipeId)
+            assertEquals(5, dish.servings)
+        }
 }

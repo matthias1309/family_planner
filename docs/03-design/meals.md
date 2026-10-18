@@ -150,12 +150,13 @@ Rezepte nur durch Eltern). Phase 5a ist Backend/API; Umrechnen der Mengen, REWE-
 
 | Thema | Regel |
 |---|---|
-| Zutat | `name` 1–80 nach Trim; `unit` nach Trim leer → `null`, sonst ≤ 20; `quantity` `null` oder endlich und `0 < q ≤ 10000`; höchstens 30 Zutaten |
+| Zutat | `name` 1–80 nach Trim; `unit` nach Trim leer → `null`, sonst ≤ 20; `quantity` `null` oder `0,001 ≤ q ≤ 10000`, gerundet auf 3 Nachkommastellen; höchstens 30 Zutaten |
 | Freitextzeilen (alt) | roh ≤ 100 Zeilen, getrimmt, Leerzeilen entfernt → Zutaten nur mit Name |
 | Dish-Request | `structuredIngredients` gesetzt → diese gelten, `ingredients` muss leer sein (sonst 400); sonst gelten die Zeilen |
 | Rezeptbezug am Gericht | `recipeId` und `servings` nur zusammen (sonst 400); `servings` 1–20; Rezept muss existieren (404); Kinder dürfen `recipeId` setzen |
 | Reihenfolge der Prüfungen (Gericht) | 403 fremdes Gericht → 400 Eingaben → 404 Mitglied/Rezept → Kind-Regeln aus Phase 4 → 409 Repository |
 | Gericht ändern | ersetzt auch den Rezeptbezug vollständig (fehlt er im Request → `null`) |
+| Ältere App (Stand 4b) | Sendet sie beim Ändern genau die Anzeigezeilen des gespeicherten Gerichts zurück (ohne `structuredIngredients`/`recipeId`), bleiben Zutatenstruktur und Rezeptbezug erhalten; bei geänderten Zeilen werden sie ersetzt (Zeilen werden Zutaten nur mit Name, Rezeptbezug entfällt) |
 | Mengen am Gericht | Der Server speichert, was kommt; keine Umrechnung auf dem Server |
 | Rezept schreiben | nur Eltern (403 „Nur für Eltern“), lesen/suchen alle Mitglieder |
 | Rezept-Name | getrimmt, 1–60, eindeutig ohne Groß-/Kleinschreibung (`name_key`), sonst 409 |

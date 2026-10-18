@@ -54,6 +54,21 @@ class IngredientTest {
     }
 
     @Test
+    fun `REQ-MEAL-062 quantity below minimum is rejected and precision is rounded`() {
+        assertFailsWith<AppException.Validation> { validatedIngredients(listOf(Ingredient("Salz", 1e-300))) }
+        assertFailsWith<AppException.Validation> { validatedIngredients(listOf(Ingredient("Salz", 0.0004))) }
+        assertEquals(0.001, validatedIngredients(listOf(Ingredient("Salz", 0.001))).single().quantity)
+        assertEquals(1.235, validatedIngredients(listOf(Ingredient("Salz", 1.23456))).single().quantity)
+        assertEquals(0.3, validatedIngredients(listOf(Ingredient("Salz", 0.1 + 0.2))).single().quantity)
+    }
+
+    @Test
+    fun `REQ-MEAL-062 display text stays short for any valid quantity`() {
+        assertEquals("0,3 Salz", Ingredient("Salz", 0.30000000000000004).displayText())
+        assertEquals("0,001 Salz", Ingredient("Salz", 0.001).displayText())
+    }
+
+    @Test
     fun `REQ-MEAL-062 too long name or unit is rejected`() {
         assertFailsWith<AppException.Validation> { validatedIngredients(listOf(Ingredient("x".repeat(81)))) }
         assertFailsWith<AppException.Validation> { validatedIngredients(listOf(Ingredient("Mehl", 1.0, "x".repeat(21)))) }
