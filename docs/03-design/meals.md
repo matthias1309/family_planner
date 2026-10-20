@@ -314,6 +314,10 @@ Regeln:
 - Import überschreibt Name, Portionen, Zutaten, Schritte und Quelle. Fehler `NO_LINK`, `UNREACHABLE`, `NO_RECIPE` zeigen eine Meldung und lassen das Formular unverändert.
 - Nur Eltern: Kinder erhalten „Nur für Eltern.“, es wird keine Seite geladen. Abgemeldet bleibt ein geteilter Link vorgemerkt und wird nach der Anmeldung importiert.
 - Kein User-Agent-Wechsel, keine JavaScript-Bridge, kein Dateizugriff: die Bot-Abwehr von REWE wird nicht umgangen.
+- Jede App kann Text an das Teilen-Ziel schicken; ein Elternteil sieht dann den Import-Editor, und die WebView führt JavaScript der Zielseite aus.
+  Ohne JavaScript-Bridge und ohne Dateizugriff ist das Risiko gering (Review-Fund, bewusst akzeptiert); gelesen werden nur die JSON-LD-Texte.
+- Fehlt die System-WebView, meldet die Web-Quelle „nicht erreichbar“. Ein leeres Ergebnis wird einmal nach 1,5 s erneut gelesen (Redirects, Einwilligungsseiten).
+- Während des Imports sind die Formularfelder gesperrt.
 
 Unit-Testfälle: Eigenmarken (längster Treffer, ganzes Wort), Link aus Text, JSON-LD-Varianten (mehrere Recipe-Blöcke, `@graph`, Array-Typ, `recipeYield`, `HowToSection`, kaputtes JSON),
 Use Case (Zutatentext, Grenzen, Fehler), Web-Quelle (Unreachable/NotFound/Found), ViewModel (Import, Sperre während des Ladens, Kinder), Screen, Inbox, Navigation.
