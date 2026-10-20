@@ -1,9 +1,11 @@
 package de.familyplanner.android.feature.meals.ui
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -256,7 +258,8 @@ class CookingScreensTest {
         state: WeekPlanUiState,
         onEvent: (WeekPlanEvent) -> Unit = {},
         onOpenEditor: (DishEditArgs) -> Unit = {},
-    ) = show { WeekPlanScreen(state, onEvent, onOpenEditor, {}, {}) }
+        onOpenShopping: (LocalDate) -> Unit = {},
+    ) = show { WeekPlanScreen(state, onEvent, onOpenEditor, {}, {}, onOpenShopping) }
 
     private fun dishOnMonday(
         status: DishStatus = DishStatus.APPROVED,
@@ -291,6 +294,23 @@ class CookingScreensTest {
         showPlan(planState(true, snapshot(dishOnMonday(dayValid = false) to "Ben")))
 
         compose.onNodeWithText("⚠ Tag ungültig").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-MEAL-040 status card links to shopping list of the week`() {
+        val opened = mutableListOf<LocalDate>()
+        showPlan(planState(false, status = overview(benCook())), onOpenShopping = { opened += it })
+
+        compose.onNodeWithText("Einkaufsliste ›").performScrollTo().performClick()
+
+        assertEquals(listOf(planWeek), opened)
+    }
+
+    @Test
+    fun `REQ-MEAL-040 no shopping link without status`() {
+        showPlan(planState(true, status = null))
+
+        compose.onAllNodesWithText("Einkaufsliste ›").assertCountEquals(0)
     }
 
     @Test

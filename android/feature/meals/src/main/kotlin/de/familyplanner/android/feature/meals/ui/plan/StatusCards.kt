@@ -50,6 +50,9 @@ fun WeekStatusCard(
                 Text(stringResource(R.string.status_order_deadline, formatDeadline(status.orderDeadline)))
                 ReadyOrOpen(status)
                 status.cooks.forEach { cook -> CookRow(status, cook, isParent, dishDateOf, actions) }
+                TextButton(onClick = { actions.onOpenShopping(status.weekStart) }) {
+                    Text(stringResource(R.string.status_shopping))
+                }
             }
         }
     }

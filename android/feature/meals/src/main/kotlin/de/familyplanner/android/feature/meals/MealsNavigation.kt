@@ -25,6 +25,8 @@ import de.familyplanner.android.feature.meals.ui.recipe.RecipeViewArgs
 import de.familyplanner.android.feature.meals.ui.recipe.RecipeViewRoute
 import de.familyplanner.android.feature.meals.ui.recipes.RecipeListRoute
 import de.familyplanner.android.feature.meals.ui.settings.DeadlineSettingsRoute
+import de.familyplanner.android.feature.meals.ui.shopping.ShoppingListArgs
+import de.familyplanner.android.feature.meals.ui.shopping.ShoppingListRoute
 import de.familyplanner.android.feature.meals.ui.week.WeekOverviewRoute
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
@@ -66,6 +68,12 @@ fun NavHostController.openRecipeImport(text: String) = navigate(RecipeEditRoute(
 
 internal const val PICKED_RECIPE_KEY = "pickedRecipeId"
 
+/** [weekStart] ISO-Datum (Montag); `null` = Planwoche. */
+@Serializable
+data class ShoppingListRoute(
+    val weekStart: String? = null,
+)
+
 @Serializable
 data object WeekOverviewRoute
 
@@ -86,6 +94,7 @@ fun MealsHomeActions(
     onOpenPlan: () -> Unit,
     onOpenWeek: () -> Unit,
     onOpenRecipes: () -> Unit,
+    onOpenShopping: () -> Unit,
 ) {
     Button(onClick = onOpenPlan, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.home_plan))
@@ -96,6 +105,9 @@ fun MealsHomeActions(
     OutlinedButton(onClick = onOpenRecipes, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.home_recipes))
     }
+    OutlinedButton(onClick = onOpenShopping, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.home_shopping))
+    }
 }
 
 fun NavGraphBuilder.mealsGraph(navController: NavHostController) {
@@ -105,7 +117,12 @@ fun NavGraphBuilder.mealsGraph(navController: NavHostController) {
             onOpenEditor = { args -> navController.navigate(DishEditRoute(args.date.toString(), args.dishId, args.cookId)) },
             onOpenRecipe = { args -> navController.navigate(RecipeViewRoute(args.recipeId, args.dishDate?.toString(), args.dishId)) },
             onBack = { navController.popBackStack() },
+            onOpenShopping = { week -> navController.navigate(ShoppingListRoute(week.toString())) },
         )
+    }
+    composable<ShoppingListRoute> { entry ->
+        val route = entry.toRoute<ShoppingListRoute>()
+        ShoppingListRoute(ShoppingListArgs(route.weekStart?.let(LocalDate::parse)), onBack = { navController.popBackStack() })
     }
     composable<DishEditRoute> { entry ->
         val route = entry.toRoute<DishEditRoute>()

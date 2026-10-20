@@ -39,6 +39,7 @@ import de.familyplanner.android.feature.meals.ui.formatDeadline
 import de.familyplanner.android.feature.meals.ui.recipe.RecipeViewArgs
 import de.familyplanner.android.feature.meals.ui.weekdayShort
 import org.koin.androidx.compose.koinViewModel
+import java.time.LocalDate
 
 private const val INGREDIENT_PREVIEW_LINES = 2
 
@@ -47,6 +48,7 @@ fun WeekPlanRoute(
     onOpenEditor: (DishEditArgs) -> Unit,
     onOpenRecipe: (RecipeViewArgs) -> Unit,
     onBack: () -> Unit,
+    onOpenShopping: (LocalDate) -> Unit = {},
 ) {
     val viewModel = koinViewModel<WeekPlanViewModel>()
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -61,6 +63,7 @@ fun WeekPlanRoute(
         onOpenEditor = onOpenEditor,
         onOpenRecipe = onOpenRecipe,
         onBack = onBack,
+        onOpenShopping = onOpenShopping,
     )
 }
 
@@ -72,6 +75,7 @@ fun WeekPlanScreen(
     onOpenEditor: (DishEditArgs) -> Unit,
     onOpenRecipe: (RecipeViewArgs) -> Unit,
     onBack: () -> Unit,
+    onOpenShopping: (LocalDate) -> Unit = {},
 ) {
     PullToRefreshBox(
         isRefreshing = state.isLoading,
@@ -91,7 +95,7 @@ fun WeekPlanScreen(
             item { ErrorText(state.error) }
             if (state.isOffline && state.weekStart >= state.planWeek) item { Text(stringResource(R.string.status_offline)) }
             if (state.showsStatus && (state.status != null || state.statusError != null)) {
-                item { StatusCards(state, onEvent, onOpenEditor) }
+                item { StatusCards(state, onEvent, onOpenEditor, onOpenShopping) }
             }
             if (state.actionError != null && state.cancelTarget == null) item { ErrorText(state.actionError) }
             state.week?.let { week ->
@@ -116,12 +120,14 @@ private fun StatusCards(
     state: WeekPlanUiState,
     onEvent: (WeekPlanEvent) -> Unit,
     onOpenEditor: (DishEditArgs) -> Unit,
+    onOpenShopping: (LocalDate) -> Unit,
 ) {
     val actions =
         StatusActions(
             onOpen = onOpenEditor,
             onCancel = { onEvent(WeekPlanEvent.RequestCancel(it)) },
             onWithdraw = { onEvent(WeekPlanEvent.Withdraw(it)) },
+            onOpenShopping = onOpenShopping,
         )
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         state.myCooking?.let { cook ->

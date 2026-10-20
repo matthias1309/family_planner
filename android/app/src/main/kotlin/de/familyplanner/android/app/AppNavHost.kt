@@ -23,6 +23,7 @@ import de.familyplanner.android.feature.auth.mainGraph
 import de.familyplanner.android.feature.meals.MealsHomeActions
 import de.familyplanner.android.feature.meals.RecipeListRoute
 import de.familyplanner.android.feature.meals.SharedRecipeInbox
+import de.familyplanner.android.feature.meals.ShoppingListRoute
 import de.familyplanner.android.feature.meals.WeekOverviewRoute
 import de.familyplanner.android.feature.meals.WeekPlanRoute
 import de.familyplanner.android.feature.meals.mealsGraph
@@ -76,6 +77,7 @@ private fun MainHost(inbox: SharedRecipeInbox = koinInject()) {
                 onOpenPlan = { navController.navigate(WeekPlanRoute) },
                 onOpenWeek = { navController.navigate(WeekOverviewRoute) },
                 onOpenRecipes = { navController.navigate(RecipeListRoute()) },
+                onOpenShopping = { navController.navigate(ShoppingListRoute()) },
             )
         }
         mealsGraph(navController)

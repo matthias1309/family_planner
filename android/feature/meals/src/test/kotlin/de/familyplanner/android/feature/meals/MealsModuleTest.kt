@@ -23,6 +23,8 @@ import de.familyplanner.android.feature.meals.ui.recipe.RecipeViewArgs
 import de.familyplanner.android.feature.meals.ui.recipe.RecipeViewModel
 import de.familyplanner.android.feature.meals.ui.recipes.RecipeListViewModel
 import de.familyplanner.android.feature.meals.ui.settings.DeadlineSettingsViewModel
+import de.familyplanner.android.feature.meals.ui.shopping.ShoppingListArgs
+import de.familyplanner.android.feature.meals.ui.shopping.ShoppingListViewModel
 import de.familyplanner.android.feature.meals.ui.week.WeekOverviewViewModel
 import de.familyplanner.api.client.MembersApi
 import okhttp3.OkHttpClient
@@ -70,6 +72,8 @@ class MealsModuleTest {
         assertNotNull(koin.get<RecipeViewModel> { parametersOf(RecipeViewArgs("r-1")) })
         assertNotNull(koin.get<RecipeEditViewModel> { parametersOf(RecipeEditArgs()) })
         assertNotNull(koin.get<RecipeEditViewModel> { parametersOf(RecipeEditArgs(importText = "https://www.rewe.de/rezepte/x/")) })
+        assertNotNull(koin.get<ShoppingListViewModel> { parametersOf(ShoppingListArgs()) })
+        assertNotNull(koin.get<ShoppingListViewModel> { parametersOf(ShoppingListArgs(LocalDate.of(2026, 10, 19))) })
         assertNotNull(koin.get<SharedRecipeInbox>())
     }
 }

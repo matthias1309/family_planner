@@ -176,7 +176,7 @@ Unit-Testfälle: `IngredientTest`, `RecipeRulesTest`, `RecipeServiceTest`, `Meal
 
 ## Einkaufsliste (Phase 6a)
 
-Phase 6a ist Backend/API; Oberfläche und Offline-Anzeige folgen in Phase 6b. Die Liste wird bei jedem Lesen aus den
+Phase 6a ist Backend/API; die Oberfläche folgt in Phase 6b (nur online, Abschnitt „App-Seite (Phase 6b)“). Die Liste wird bei jedem Lesen aus den
 freigegebenen Gerichten der Planwoche berechnet; gespeichert werden nur freie Einträge und Häkchen.
 
 | Begriff | Definition |
@@ -360,3 +360,25 @@ Regeln:
 
 Unit-Testfälle: Eigenmarken (längster Treffer, ganzes Wort), Link aus Text, JSON-LD-Varianten (mehrere Recipe-Blöcke, `@graph`, Array-Typ, `recipeYield`, `HowToSection`, kaputtes JSON),
 Use Case (Zutatentext, Grenzen, Fehler), Web-Quelle (Unreachable/NotFound/Found), ViewModel (Import, Sperre während des Ladens, Kinder), Screen, Inbox, Navigation.
+
+## App-Seite (Phase 6b)
+
+Einkaufsliste in `feature:meals`: Pakete `domain/shopping`, `data/shopping`, `ui/shopping`. `api/` und `backend/` bleiben unverändert (Vertrag aus 6a).
+
+| Screen | Rolle | Inhalt |
+|---|---|---|
+| Einkaufsliste | Lesen alle, Schreiben Eltern | Wochenkopf ‹ ›; offene Einträge (Menge, Einheit, Name, Herkunft „Carbonara (Di), Curry (Do)“), Abschnitt „Erledigt (n)“ durchgestrichen; Eltern: Checkbox, Eingabezeile „Eintrag hinzufügen“, Löschen freier Einträge; Kinder: nur Lesen, erledigte mit „✓ “ |
+
+Regeln:
+
+- **Einstiege:** Knopf „Einkaufsliste“ auf der Startseite (öffnet die Planwoche) und Link „Einkaufsliste ›“ in der Wochenstatus-Karte des Essensplans (öffnet deren Woche).
+- **Startwoche** ohne Argument = Planwoche (`currentPlanWeek`); Wechsel per ‹ › innerhalb 2000–2100; späte Antworten einer früheren Woche werden verworfen.
+- **Nur online**, kein Cache: offline erscheint „Server nicht erreichbar …“ mit leerer Liste.
+- **Freier Eintrag** = eine Textzeile, zerlegt mit `parseIngredientLine`; Client-Prüfung: nicht leer, ≤ 80 Zeichen, höchstens 50 freie Einträge (`ShoppingLimits.FREE_ITEMS_MAX`); der Server prüft erneut.
+- **Ein Schreibvorgang gleichzeitig** (`isBusy`); die Serverantwort (ganze Liste) ersetzt die Anzeige, kein optimistisches Abhaken.
+- **404:** beim Löschen gilt der Eintrag als gelöscht; beim Abhaken wird neu geladen (Eintrag ist inzwischen weg).
+- Der `key` kommt immer vom Server und wird im Client nie berechnet. Der Generator nennt `entries` in `propertyEntries` um (Mapper-Test sichert das ab).
+- Löschen ohne Bestätigungsdialog.
+
+Unit-Testfälle: `UseCasesTest` (shopping), `ShoppingViewModelTest`, `ShoppingScreensTest`, Link in der Statuskarte (`CookingScreensTest`);
+Integration gegen MockWebServer: `RemoteShoppingRepositoryTest`.
