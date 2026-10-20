@@ -13,6 +13,7 @@ import de.familyplanner.meals.plan.Actor
 import de.familyplanner.meals.plan.Ingredient
 import de.familyplanner.meals.plan.MealPlanService
 import de.familyplanner.meals.recipe.RecipeService
+import de.familyplanner.meals.shopping.ShoppingListService
 import java.time.Instant
 
 /** Wires the in-memory fakes that the meal plan services share in unit tests. */
@@ -26,10 +27,13 @@ class PlanFixture(
     val attendance =
         AttendanceService(members, attendanceRepository, DeadlineSettingsService(InMemoryDeadlineSettingsRepository(), clock), clock)
     val recipeRepository = InMemoryRecipeRepository()
+    val shoppingRepository = InMemoryShoppingListRepository()
     private var nextId = 0
+    private var nextItemId = 0
     private var nextRecipeId = 0
     val mealPlan = MealPlanService(members, planRepository, attendance, recipeRepository, clock) { "dish-${++nextId}" }
     val recipes = RecipeService(recipeRepository, clock) { "recipe-${++nextRecipeId}" }
+    val shopping = ShoppingListService(planRepository, shoppingRepository, clock) { "item-${++nextItemId}" }
 
     suspend fun parent(): Actor = Actor(members.create(aMember(role = Role.PARENT)).id, Role.PARENT)
 

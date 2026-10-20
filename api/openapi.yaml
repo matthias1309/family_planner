@@ -394,6 +394,87 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
+  /api/v1/meals/weeks/{weekStart}/shopping-list:
+    get:
+      operationId: getShoppingList
+      tags: [meals]
+      summary: Einkaufsliste der Planwoche (freigegebene Gerichte zusammengeführt, freie Einträge, Häkchen)
+      parameters:
+        - $ref: '#/components/parameters/WeekStart'
+      responses:
+        '200':
+          description: Einkaufsliste
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShoppingListResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/weeks/{weekStart}/shopping-list/items:
+    post:
+      operationId: addShoppingItem
+      tags: [meals]
+      summary: Freien Eintrag hinzufügen (nur Eltern)
+      parameters:
+        - $ref: '#/components/parameters/WeekStart'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Ingredient' }
+      responses:
+        '201':
+          description: Eintrag hinzugefügt, aktuelle Liste
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShoppingListResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/weeks/{weekStart}/shopping-list/items/{itemId}:
+    delete:
+      operationId: deleteShoppingItem
+      tags: [meals]
+      summary: Freien Eintrag löschen (nur Eltern)
+      parameters:
+        - $ref: '#/components/parameters/WeekStart'
+        - $ref: '#/components/parameters/ShoppingItemId'
+      responses:
+        '204':
+          description: Eintrag gelöscht
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/weeks/{weekStart}/shopping-list/checks:
+    put:
+      operationId: setShoppingEntryChecked
+      tags: [meals]
+      summary: Eintrag ab- oder anhaken (nur Eltern)
+      parameters:
+        - $ref: '#/components/parameters/WeekStart'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CheckShoppingEntryRequest' }
+      responses:
+        '200':
+          description: Häkchen gespeichert, aktuelle Liste
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShoppingListResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
   /api/v1/meals/recipes:
     get:
       operationId: listRecipes
@@ -621,6 +702,11 @@ components:
       schema: { type: string, format: uuid }
     RecipeId:
       name: recipeId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ShoppingItemId:
+      name: itemId
       in: path
       required: true
       schema: { type: string, format: uuid }
@@ -1308,6 +1394,54 @@ components:
         data:
           allOf:
             - $ref: '#/components/schemas/WeekStatus'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    ShoppingEntrySource:
+      type: object
+      required: [dishId, dishName, date]
+      properties:
+        dishId: { type: string, format: uuid }
+        dishName: { type: string, minLength: 1, maxLength: 60 }
+        date: { type: string, format: date }
+
+    ShoppingEntry:
+      type: object
+      required: [key, name, checked, sources]
+      properties:
+        key: { type: string, minLength: 1, maxLength: 220, description: "Stabiler Schlüssel zum Abhaken" }
+        name: { type: string, minLength: 1, maxLength: 80 }
+        quantity: { type: number, format: double, nullable: true, description: "Summe; kann 10000 übersteigen" }
+        unit: { type: string, maxLength: 20, nullable: true }
+        checked: { type: boolean }
+        itemId: { type: string, format: uuid, nullable: true, description: "Gesetzt bei freien Einträgen" }
+        sources: { type: array, items: { $ref: '#/components/schemas/ShoppingEntrySource' } }
+
+    ShoppingList:
+      type: object
+      required: [weekStart, entries]
+      properties:
+        weekStart: { type: string, format: date }
+        entries: { type: array, items: { $ref: '#/components/schemas/ShoppingEntry' } }
+
+    CheckShoppingEntryRequest:
+      type: object
+      required: [key, checked]
+      properties:
+        key: { type: string, minLength: 1, maxLength: 220 }
+        checked: { type: boolean }
+
+    ShoppingListResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/ShoppingList'
           nullable: true
         error:
           allOf:
