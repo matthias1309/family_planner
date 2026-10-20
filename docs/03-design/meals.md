@@ -1,9 +1,9 @@
-# Moduldesign: `meals` – Anwesenheit, Fristen, Wochenplan, Einreichung & Rezepte
+# Moduldesign: `meals` – Anwesenheit, Fristen, Wochenplan, Einreichung, Rezepte & Einkaufsliste
 
 ## Abgedeckte Anforderungen
 
 REQ-MEAL-010, REQ-MEAL-011, REQ-MEAL-012, REQ-MEAL-013 (Phase 2), REQ-MEAL-001, REQ-MEAL-032 und – auf der App-Seite
-(Phase 3b) – REQ-MEAL-002 (Phase 3) sowie REQ-MEAL-020, -021, -022, -023, -030, -031, -033 (Phase 4, Backend/API) sowie REQ-MEAL-060, -062 und -063 (Server-Anteil: Rezeptsammlung, Rezeptbezug und strukturierte Zutaten am Gericht, Phase 5a; App: Phase 5b) — siehe [meals.prd.md](../01-requirements/meals.prd.md).
+(Phase 3b) – REQ-MEAL-002 (Phase 3) sowie REQ-MEAL-020, -021, -022, -023, -030, -031, -033 (Phase 4, Backend/API) sowie REQ-MEAL-060, -062 und -063 (Server-Anteil: Rezeptsammlung, Rezeptbezug und strukturierte Zutaten am Gericht, Phase 5a; App: Phase 5b) sowie REQ-MEAL-040 und -041 (Server-Anteil: Einkaufsliste, Phase 6a; App: Phase 6b) — siehe [meals.prd.md](../01-requirements/meals.prd.md).
 Konventionen für Feature-Module: [ADR-0010](../02-architecture/adr/0010-backend-feature-modules.md).
 Fristen ohne Fernzugriff: [ADR-0007](../02-architecture/adr/0007-meal-deadlines-without-remote-access.md).
 Die Eltern-UI in der App (Phase 2b) steht im Abschnitt „App-Seite (Phase 2b)“, Essensplan und Offline-Cache im Abschnitt
@@ -174,6 +174,45 @@ gelöscht wird (die API liefert dann `servings: null`; die Mengen stehen bereits
 Unit-Testfälle: `IngredientTest`, `RecipeRulesTest`, `RecipeServiceTest`, `MealPlanServiceTest`; Persistenz gegen echte SQLite
 (`ExposedRecipeRepositoryTest`, `ExposedMealPlanRepositoryTest`, `MealsMigrationV5Test`); Integration/Contract `MealsRecipeApiTest`.
 
+## Einkaufsliste (Phase 6a)
+
+Phase 6a ist Backend/API; Oberfläche und Offline-Anzeige folgen in Phase 6b. Die Liste wird bei jedem Lesen aus den
+freigegebenen Gerichten der Planwoche berechnet; gespeichert werden nur freie Einträge und Häkchen.
+
+| Begriff | Definition |
+|---|---|
+| `ShoppingEntry` | Eintrag der Liste: `key`, `name`, `quantity`, `unit`, `checked`, `itemId` (nur frei), `sources` |
+| `key` | stabiler Schlüssel zum Abhaken; berechnet `ing:<name>\|<einheit>\|q` bzw. `-` (ohne Menge), frei `item:<itemId>`; `|` und `\` in Name/Einheit werden mit `\` maskiert, damit Schlüssel eindeutig sind; höchstens 220 Zeichen |
+| `ShoppingItem` | freier Eintrag einer Woche (`Ingredient`-Struktur) mit eigenem Häkchen |
+| `ShoppingCheck` | gespeichertes Häkchen eines berechneten Eintrags: Schlüssel plus Menge zum Zeitpunkt des Abhakens |
+| Herkunft (`sources`) | beitragende Gerichte (`dishId`, `dishName`, `date`) |
+
+| Thema | Regel |
+|---|---|
+| Quelle | Nur Gerichte mit Status `APPROVED`, deren Datum in der Planwoche liegt. `SUBMITTED`/`REJECTED` fehlen; abgesagte Gerichte sind gelöscht. Gerichte mit `dayValid = false` zählen mit |
+| Zusammenführungs-Schlüssel | Name (ohne Groß-/Kleinschreibung), Einheit (leer = keine), ob eine Menge vorhanden ist |
+| Menge | Mit Menge: Summe (BigDecimal, 3 Nachkommastellen). Ohne Menge: ein Eintrag je Name+Einheit ohne Menge. „2 Zwiebeln“ und „Zwiebeln“ (ohne Menge) bleiben getrennt |
+| Verschiedene Einheiten | getrennte Einträge; keine Umrechnung |
+| Anzeige-Name/-Einheit | Schreibweise des ersten Vorkommens (Gerichte nach Datum, Zutaten in Eingabereihenfolge) |
+| Herkunft | je Eintrag die beitragenden Gerichte, jedes höchstens einmal, nach Datum sortiert; doppelte Zutat im Gericht: Mengen addiert |
+| Reihenfolge | berechnete Einträge nach Name, dann Einheit, dann ohne Menge vor mit Menge; danach freie Einträge in Anlagereihenfolge |
+| Häkchen an berechneten Einträgen | gespeichert mit der Menge zum Abhaken; gilt nur, solange die aktuelle Menge gleich ist (beide `null` = gleich). Kommt Menge dazu, erscheint der Eintrag wieder offen |
+| Häkchen an freien Einträgen | Spalte `checked` am Eintrag |
+| Häkchen entfernen | `checked=false` löscht den Häkchen-Datensatz bzw. setzt `checked = false` |
+| Unbekannter `key` | 404 „Eintrag nicht gefunden“; leerer oder zu langer `key` → 400 |
+| Veraltete Häkchen | bleiben liegen und sind wirkungslos; erscheint der Schlüssel mit derselben Menge wieder, ist er wieder abgehakt |
+| Freier Eintrag | `Ingredient`-Struktur mit gleicher Validierung wie Zutaten; höchstens 50 je Woche (sonst 400); keine Zusammenführung mit berechneten Einträgen |
+| Freien Eintrag löschen | nur in der angegebenen Woche; fremde Woche oder unbekannt → 404 |
+| Rechte | `GET` alle Mitglieder; `POST`/`PUT`/`DELETE` nur Eltern (403 „Nur für Eltern“) |
+| Woche | `weekStart` muss ein Montag sein (400) |
+| Logging | nur IDs/Woche/Häkchen-Wert, keine Namen oder Schlüssel |
+
+Endpunkte (alle unter `/api/v1/meals/weeks/{weekStart}/shopping-list`): `GET` Liste, `POST /items` (201, ganze Liste),
+`DELETE /items/{itemId}` (204), `PUT /checks` (200, ganze Liste). Tabellen: `meal_shopping_items`, `meal_shopping_checks` (V6).
+
+Unit-Testfälle: `ShoppingListTest`, `ShoppingListServiceTest`; Persistenz gegen echte SQLite (`ExposedShoppingListRepositoryTest`);
+Integration/Contract `MealsShoppingApiTest`.
+
 ## App-Seite (Phase 2b)
 
 Modul `android/feature/meals` (Pakete `domain/attendance`, `data/attendance`, `ui/{week,profiles,profile,settings}`),
@@ -314,6 +353,10 @@ Regeln:
 - Import überschreibt Name, Portionen, Zutaten, Schritte und Quelle. Fehler `NO_LINK`, `UNREACHABLE`, `NO_RECIPE` zeigen eine Meldung und lassen das Formular unverändert.
 - Nur Eltern: Kinder erhalten „Nur für Eltern.“, es wird keine Seite geladen. Abgemeldet bleibt ein geteilter Link vorgemerkt und wird nach der Anmeldung importiert.
 - Kein User-Agent-Wechsel, keine JavaScript-Bridge, kein Dateizugriff: die Bot-Abwehr von REWE wird nicht umgangen.
+- Jede App kann Text an das Teilen-Ziel schicken; ein Elternteil sieht dann den Import-Editor, und die WebView führt JavaScript der Zielseite aus.
+  Ohne JavaScript-Bridge und ohne Dateizugriff ist das Risiko gering (Review-Fund, bewusst akzeptiert); gelesen werden nur die JSON-LD-Texte.
+- Fehlt die System-WebView, meldet die Web-Quelle „nicht erreichbar“. Ein leeres Ergebnis wird einmal nach 1,5 s erneut gelesen (Redirects, Einwilligungsseiten).
+- Während des Imports sind die Formularfelder gesperrt.
 
 Unit-Testfälle: Eigenmarken (längster Treffer, ganzes Wort), Link aus Text, JSON-LD-Varianten (mehrere Recipe-Blöcke, `@graph`, Array-Typ, `recipeYield`, `HowToSection`, kaputtes JSON),
 Use Case (Zutatentext, Grenzen, Fehler), Web-Quelle (Unreachable/NotFound/Found), ViewModel (Import, Sperre während des Ladens, Kinder), Screen, Inbox, Navigation.

@@ -20,10 +20,12 @@ import de.familyplanner.meals.plan.CookingWeekService
 import de.familyplanner.meals.plan.DishReviewService
 import de.familyplanner.meals.plan.MealPlanService
 import de.familyplanner.meals.recipe.RecipeService
+import de.familyplanner.meals.shopping.ShoppingListService
 import de.familyplanner.meals.web.attendanceRoutes
 import de.familyplanner.meals.web.cookingRoutes
 import de.familyplanner.meals.web.planRoutes
 import de.familyplanner.meals.web.recipeRoutes
+import de.familyplanner.meals.web.shoppingRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.engine.EmbeddedServer
@@ -95,5 +97,6 @@ fun Application.module(
         planRoutes(get<MealPlanService>())
         cookingRoutes(get<DishReviewService>(), get<CookingWeekService>())
         recipeRoutes(get<RecipeService>())
+        shoppingRoutes(get<ShoppingListService>())
     }
 }
