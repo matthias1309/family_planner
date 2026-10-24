@@ -81,3 +81,19 @@ Tages, Sonntag → Woche ab Montag, abgelehnt/eingereicht/kein Gericht, Cache of
 (auth: Begrüßung/Slot/Offline, Familie ohne Zurück), `AppNavHostTest` (Leiste je Rolle, Essen-Übersicht, Unterseite ohne
 Leiste, Platzhalter, Deep-Links).
 
+
+## Domänenereignisse (ADR-0016)
+
+Module teilen Fakten über ein dauerhaftes Ereignisprotokoll in `core` ([ADR-0016](../02-architecture/adr/0016-domain-events-outbox.md)).
+
+| Baustein | Beschreibung |
+|---|---|
+| Tabellen (`V7__core_domain_events.sql`) | `core_domain_events` (`seq` AUTOINCREMENT, `type`, `payload` JSON, `occurred_at`), `core_event_cursors` (`subscriber`, `last_seq`) |
+| `JdbcTransaction.recordEvent(event, at)` | schreibt ein Ereignis in der Transaktion des Aufrufers — im selben `dbQuery`-Block wie die Änderung, nie über ein zweites `dbQuery` |
+| `DomainEvent` / `TaskAccepted` | versionierte Payloads in `core.events`; Typname `task.accepted.v1`, Codec mit explizitem `when`; unbekannter Typ → `event = null` |
+| `DomainEventDispatcher` | `subscribe(name, handler)`, `dispatchPending()` liefert je Abonnent ab Cursor in `seq`-Reihenfolge; Cursor wird nach jedem verarbeiteten Ereignis gespeichert; Mutex prozessweit |
+| `EventNotifier` | schmale Schnittstelle (`dispatchPending`), die Module statt des Dispatchers nutzen |
+
+Garantien: mindestens einmal (Abonnenten idempotent), Reihenfolge je Abonnent, Rollback verwirft das Ereignis, Fehler eines Abonnenten
+werden geloggt und stoppen nur diesen Abonnenten bis zum nächsten Aufruf. Zugestellt wird nach dem Request und einmal beim Start; neue Abonnenten
+starten bei `seq` 0. Tests: `DomainEventCodecTest`, `DomainEventDispatcherTest`.

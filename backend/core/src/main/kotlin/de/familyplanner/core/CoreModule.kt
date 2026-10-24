@@ -3,6 +3,8 @@ package de.familyplanner.core
 import de.familyplanner.core.device.DeviceRepository
 import de.familyplanner.core.device.DeviceService
 import de.familyplanner.core.device.ExposedDeviceRepository
+import de.familyplanner.core.events.DomainEventDispatcher
+import de.familyplanner.core.events.EventNotifier
 import de.familyplanner.core.member.ExposedMemberRepository
 import de.familyplanner.core.member.MemberRepository
 import de.familyplanner.core.member.MemberService
@@ -31,4 +33,6 @@ fun coreModule(
     single { DeviceService(get(), clock) }
     single { PairingService(get(), get(), get(), clock) }
     single { SetupService(setupToken, get(), get(), clock) }
+    single { DomainEventDispatcher(get()) }
+    single<EventNotifier> { get<DomainEventDispatcher>() }
 }
