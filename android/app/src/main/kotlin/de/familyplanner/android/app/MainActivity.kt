@@ -1,5 +1,6 @@
 package de.familyplanner.android.app
 
+import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -13,19 +14,24 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import de.familyplanner.android.core.ui.theme.FamilyPlannerTheme
+import de.familyplanner.android.feature.meals.PlanOpenRequests
 import de.familyplanner.android.feature.meals.SharedRecipeInbox
+import de.familyplanner.android.feature.meals.domain.reminder.ReminderSync
 import org.koin.android.ext.android.get
 
 class MainActivity : ComponentActivity() {
-    // Ohne Zustimmung blockiert Android 17+ jede Verbindung zum Pi im Heimnetz (Timeout).
-    private val localNetworkPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    // Heimnetz: ohne Zustimmung blockiert Android 17+ jede Verbindung zum Pi (Timeout). Benachrichtigungen: ab Android 13.
+    private val permissions =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        requestLocalNetworkAccess()
-        if (savedInstanceState == null) receiveShare(intent)
+        requestPermissions()
+        if (savedInstanceState == null) {
+            receiveShare(intent)
+            receiveOpenPlan(intent)
+        }
         setContent {
             FamilyPlannerTheme {
                 Surface(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -35,6 +41,21 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        get<ReminderSync>().requestNow()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        receiveOpenPlan(intent)
+    }
+
+    // ADR-0013: Tippen auf eine Erinnerung oder Statusmeldung öffnet den Essensplan.
+    private fun receiveOpenPlan(intent: Intent?) {
+        if (intent?.getBooleanExtra(PlanOpenRequests.EXTRA_OPEN_PLAN, false) == true) get<PlanOpenRequests>().request()
+    }
+
     // ADR-0012: Rezept-Link aus Browser/REWE-App; der angemeldete Hauptbereich holt ihn aus der Inbox.
     private fun receiveShare(intent: Intent?) {
         if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
@@ -42,10 +63,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requestLocalNetworkAccess() {
-        if (Build.VERSION.SDK_INT < LOCAL_NETWORK_MIN_SDK) return
-        if (checkSelfPermission(LOCAL_NETWORK_PERMISSION) == PackageManager.PERMISSION_GRANTED) return
-        localNetworkPermission.launch(LOCAL_NETWORK_PERMISSION)
+    private fun requestPermissions() {
+        val missing =
+            listOfNotNull(
+                LOCAL_NETWORK_PERMISSION.takeIf { Build.VERSION.SDK_INT >= LOCAL_NETWORK_MIN_SDK },
+                Manifest.permission.POST_NOTIFICATIONS.takeIf { Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU },
+            ).filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isNotEmpty()) permissions.launch(missing.toTypedArray())
     }
 
     private companion object {

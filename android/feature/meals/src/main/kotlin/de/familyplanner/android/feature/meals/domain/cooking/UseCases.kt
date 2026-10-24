@@ -3,6 +3,7 @@ package de.familyplanner.android.feature.meals.domain.cooking
 import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.feature.meals.domain.plan.MealPlanRepository
 import de.familyplanner.android.feature.meals.domain.plan.validateReason
+import de.familyplanner.android.feature.meals.domain.reminder.ReminderSync
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import java.time.LocalDate
@@ -44,6 +45,7 @@ class ReviewDishUseCase(
 
 class CancelCookingUseCase(
     private val cooking: CookingRepository,
+    private val reminders: ReminderSync,
 ) {
     suspend operator fun invoke(
         weekStart: LocalDate,
@@ -51,17 +53,18 @@ class CancelCookingUseCase(
         reason: String,
     ): ApiResult<Unit> {
         validateReason(reason)?.let { return it }
-        return cooking.cancel(weekStart, memberId, reason.trim())
+        return cooking.cancel(weekStart, memberId, reason.trim()).also { if (it is ApiResult.Success) reminders.requestNow() }
     }
 }
 
 class WithdrawCancellationUseCase(
     private val cooking: CookingRepository,
+    private val reminders: ReminderSync,
 ) {
     suspend operator fun invoke(
         weekStart: LocalDate,
         memberId: String,
-    ): ApiResult<Unit> = cooking.withdraw(weekStart, memberId)
+    ): ApiResult<Unit> = cooking.withdraw(weekStart, memberId).also { if (it is ApiResult.Success) reminders.requestNow() }
 }
 
 /** Bündelt Status und Absage für den Essensplan (hält die ViewModel-Parameterliste kurz). */

@@ -14,6 +14,8 @@ dependencies {
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.koin.compose)
     implementation(libs.datastore)
+    implementation(libs.work.runtime)
+    implementation(libs.core.ktx)
     implementation(libs.navigation.compose)
     implementation(libs.compose.material.icons)
 

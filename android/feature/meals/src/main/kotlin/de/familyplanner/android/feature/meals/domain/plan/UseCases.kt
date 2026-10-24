@@ -8,6 +8,7 @@ import de.familyplanner.android.feature.meals.domain.attendance.AttendanceReposi
 import de.familyplanner.android.feature.meals.domain.cooking.ReviewDishUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.ingredientsFromText
+import de.familyplanner.android.feature.meals.domain.reminder.ReminderSync
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import java.time.Clock
@@ -98,6 +99,7 @@ class LoadDishEditorUseCase(
 
 class SaveDishUseCase(
     private val repository: MealPlanRepository,
+    private val reminders: ReminderSync,
 ) {
     suspend operator fun invoke(
         dishId: String?,
@@ -106,14 +108,18 @@ class SaveDishUseCase(
     ): ApiResult<Dish> {
         validateDish(input.name, input.ingredientsText, ingredientsRequired)?.let { return it }
         val draft = DishDraft(input.date, input.cookId, input.name.trim(), ingredientsFromText(input.ingredientsText), input.recipe)
-        return if (dishId == null) repository.createDish(draft) else repository.updateDish(dishId, draft)
+        val result = if (dishId == null) repository.createDish(draft) else repository.updateDish(dishId, draft)
+        if (result is ApiResult.Success) reminders.requestNow()
+        return result
     }
 }
 
 class DeleteDishUseCase(
     private val repository: MealPlanRepository,
+    private val reminders: ReminderSync,
 ) {
-    suspend operator fun invoke(dishId: String): ApiResult<Unit> = repository.deleteDish(dishId)
+    suspend operator fun invoke(dishId: String): ApiResult<Unit> =
+        repository.deleteDish(dishId).also { if (it is ApiResult.Success) reminders.requestNow() }
 }
 
 /** Bündelt die Editor-Use-Cases (hält die ViewModel-Parameterliste kurz). */

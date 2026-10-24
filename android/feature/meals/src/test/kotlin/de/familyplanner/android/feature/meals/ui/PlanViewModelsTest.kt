@@ -17,10 +17,13 @@ import de.familyplanner.android.feature.meals.domain.plan.LoadWeekPlanUseCase
 import de.familyplanner.android.feature.meals.domain.plan.SaveDishUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.Ingredient
 import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
+import de.familyplanner.android.feature.meals.domain.reminder.LoadPendingCookingUseCase
 import de.familyplanner.android.feature.meals.fakes.FakeAttendanceRepository
 import de.familyplanner.android.feature.meals.fakes.FakeCookingRepository
 import de.familyplanner.android.feature.meals.fakes.FakeMealPlanRepository
 import de.familyplanner.android.feature.meals.fakes.FakeRecipeRepository
+import de.familyplanner.android.feature.meals.fakes.FakeReminderStore
+import de.familyplanner.android.feature.meals.fakes.FakeReminderSync
 import de.familyplanner.android.feature.meals.fakes.InMemoryPlanCache
 import de.familyplanner.android.feature.meals.fakes.childSession
 import de.familyplanner.android.feature.meals.fakes.parentSession
@@ -59,6 +62,8 @@ class PlanViewModelsTest {
 
     private val attendance = FakeAttendanceRepository()
     private val cooking = FakeCookingRepository()
+    private val reminderSync = FakeReminderSync()
+    private val reminderStore = FakeReminderStore()
 
     private fun planViewModel(clock: Clock = saturday) =
         WeekPlanViewModel(
@@ -66,9 +71,10 @@ class PlanViewModelsTest {
             LoadWeekPlanUseCase(repository, cache, sessions, clock),
             CookingUseCases(
                 LoadWeekStatusUseCase(cooking, repository),
-                CancelCookingUseCase(cooking),
-                WithdrawCancellationUseCase(cooking),
+                CancelCookingUseCase(cooking, reminderSync),
+                WithdrawCancellationUseCase(cooking, reminderSync),
             ),
+            LoadPendingCookingUseCase(sessions, reminderStore, clock),
             clock,
         )
 
@@ -80,8 +86,8 @@ class PlanViewModelsTest {
         sessions,
         DishUseCases(
             LoadDishEditorUseCase(repository, attendance),
-            SaveDishUseCase(repository),
-            DeleteDishUseCase(repository),
+            SaveDishUseCase(repository, reminderSync),
+            DeleteDishUseCase(repository, reminderSync),
             ReviewDishUseCase(cooking),
             LoadRecipeUseCase(FakeRecipeRepository()),
         ),

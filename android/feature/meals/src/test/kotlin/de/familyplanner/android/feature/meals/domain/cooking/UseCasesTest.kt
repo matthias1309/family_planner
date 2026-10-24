@@ -4,6 +4,7 @@ import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.feature.meals.fakes.FakeCookingRepository
 import de.familyplanner.android.feature.meals.fakes.FakeMealPlanRepository
+import de.familyplanner.android.feature.meals.fakes.FakeReminderSync
 import de.familyplanner.android.feature.meals.fakes.cookStatus
 import de.familyplanner.android.feature.meals.fakes.planWeek
 import de.familyplanner.android.feature.meals.fakes.statusOf
@@ -16,6 +17,7 @@ import kotlin.test.assertTrue
 class UseCasesTest {
     private val cooking = FakeCookingRepository()
     private val plan = FakeMealPlanRepository()
+    private val sync = FakeReminderSync()
 
     @Test
     fun `REQ-MEAL-033 status joins child names`() =
@@ -82,8 +84,8 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-023 cancel validates and trims reason`() =
         runTest {
-            val invalid = CancelCookingUseCase(cooking)(planWeek, "c-1", "")
-            CancelCookingUseCase(cooking)(planWeek, "c-1", " krank ")
+            val invalid = CancelCookingUseCase(cooking, sync)(planWeek, "c-1", "")
+            CancelCookingUseCase(cooking, sync)(planWeek, "c-1", " krank ")
 
             assertIs<AppError.Validation>((invalid as ApiResult.Failure).error)
             assertEquals(listOf(Triple(planWeek, "c-1", "krank")), cooking.cancelled)
@@ -92,8 +94,21 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-023 withdraw passes week and member`() =
         runTest {
-            WithdrawCancellationUseCase(cooking)(planWeek, "c-1")
+            WithdrawCancellationUseCase(cooking, sync)(planWeek, "c-1")
 
             assertEquals(listOf(planWeek to "c-1"), cooking.withdrawn)
+        }
+
+    @Test
+    fun `REQ-MEAL-050 cancel and withdraw request a reminder sync only on success`() =
+        runTest {
+            CancelCookingUseCase(cooking, sync)(planWeek, "c-1", "krank")
+            WithdrawCancellationUseCase(cooking, sync)(planWeek, "c-1")
+            assertEquals(2, sync.requests)
+
+            cooking.cancelResult = ApiResult.Failure(AppError.Network)
+            CancelCookingUseCase(cooking, sync)(planWeek, "c-1", "krank")
+            CancelCookingUseCase(cooking, sync)(planWeek, "c-1", "")
+            assertEquals(2, sync.requests)
         }
 }

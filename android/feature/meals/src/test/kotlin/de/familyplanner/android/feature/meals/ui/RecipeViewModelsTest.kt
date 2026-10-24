@@ -19,6 +19,7 @@ import de.familyplanner.android.feature.meals.fakes.FakeCookingRepository
 import de.familyplanner.android.feature.meals.fakes.FakeMealPlanRepository
 import de.familyplanner.android.feature.meals.fakes.FakeRecipeRepository
 import de.familyplanner.android.feature.meals.fakes.FakeRecipeSource
+import de.familyplanner.android.feature.meals.fakes.FakeReminderSync
 import de.familyplanner.android.feature.meals.fakes.carbonara
 import de.familyplanner.android.feature.meals.fakes.childDish
 import de.familyplanner.android.feature.meals.fakes.childSession
@@ -54,6 +55,7 @@ class RecipeViewModelsTest {
 
     private val recipes = FakeRecipeRepository()
     private val plan = FakeMealPlanRepository()
+    private val reminderSync = FakeReminderSync()
     private val attendance = FakeAttendanceRepository()
     private var sessions = InMemorySessionStore(parentSession)
 
@@ -72,8 +74,8 @@ class RecipeViewModelsTest {
         sessions,
         DishUseCases(
             LoadDishEditorUseCase(plan, attendance),
-            SaveDishUseCase(plan),
-            DeleteDishUseCase(plan),
+            SaveDishUseCase(plan, reminderSync),
+            DeleteDishUseCase(plan, reminderSync),
             ReviewDishUseCase(FakeCookingRepository()),
             LoadRecipeUseCase(recipes),
         ),
