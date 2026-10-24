@@ -110,8 +110,8 @@ Als Familienmitglied möchte ich die Bereiche der App über eine feste Leiste er
 **Abnahmekriterien**
 - Given ich bin angemeldet, When ich die App öffne, Then sehe ich unten die Ziele **Heute · Essen · Aufgaben · Ich**
   (Kind) bzw. **Heute · Essen · Aufgaben · Familie** (Eltern).
-- Given ich bin in einem Bereich und wechsle in einen anderen, When ich zurückwechsle, Then bin ich wieder an der
-  Stelle, an der ich war.
+- Given ich bin auf der Hauptseite eines Bereichs und wechsle in einen anderen, When ich zurückwechsle, Then behält der
+  Bereich seinen Zustand (die Leiste erscheint nur auf den Hauptseiten, ADR-0014).
 - Given ich bin im Bereich „Essen“, When ich ihn öffne, Then erreiche ich Woche, Planung, Rezepte und Einkaufsliste
   ohne Umweg über den Startbildschirm.
 - Given ein Benachrichtigungs- oder Teilen-Link (Plan öffnen, Rezept importieren), When er ankommt, Then öffnet sich
@@ -273,8 +273,8 @@ bereits; neu sind das Modul, das erste Domänenereignis und der Umbau der Naviga
 
 | # | Phase | Description | Status | Parallel | Depends | PRP Plan |
 |---|-------|-------------|--------|----------|---------|----------|
-| 1 | Navigation & Testinstanz | Untere Leiste, „Essen“-Bereich, Startseite „Heute“ (nur Essen-Inhalte), Testinstanz auf dem Pi + Test-Build (REQ-TASK-001/002) | pending | with 2 | - | - |
-| 2 | Board Backend/API | ADR Domänenereignisse, Modul `tasks`, Katalog, Karten, Statusübergänge, Ereignis (REQ-TASK-010, 020–025) | pending | with 1 | - | - |
+| 1 | Navigation & Testinstanz | Untere Leiste, „Essen“-Bereich, Startseite „Heute“ (nur Essen-Inhalte), Testinstanz auf dem Pi + Test-Build (REQ-TASK-001/002) | in-progress | with 2 | - | `.claude/PRPs/plans/navigation-testinstanz.plan.md` |
+| 2 | Board Backend/API | ADR Domänenereignisse, Modul `tasks`, Katalog, Karten, Statusübergänge, Ereignis (REQ-TASK-010, 020–025) | in-progress | with 1 | - | `.claude/PRPs/plans/board-backend.plan.md` |
 | 3 | Board App | Katalog-, Zuweisungs- und Board-Screens, Offline-Lesen, Aufgaben auf „Heute“, Abnahme-Badge, Hinweise (REQ-TASK-002/003, 020–025, 030) | pending | - | 1, 2 | - |
 
 Fortsetzung in [gamification.prd.md](gamification.prd.md): Punkte, Rangliste, Badges, Belohnungen, Avatar und die
