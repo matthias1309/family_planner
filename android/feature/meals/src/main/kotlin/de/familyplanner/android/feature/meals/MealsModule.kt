@@ -11,6 +11,7 @@ import de.familyplanner.android.feature.meals.data.recipe.PageScriptLoader
 import de.familyplanner.android.feature.meals.data.recipe.RemoteRecipeRepository
 import de.familyplanner.android.feature.meals.data.recipe.WebRecipeSource
 import de.familyplanner.android.feature.meals.data.recipe.WebViewPageScriptLoader
+import de.familyplanner.android.feature.meals.data.shopping.RemoteShoppingRepository
 import de.familyplanner.android.feature.meals.domain.attendance.AddExceptionUseCase
 import de.familyplanner.android.feature.meals.domain.attendance.AttendanceRepository
 import de.familyplanner.android.feature.meals.domain.attendance.DeleteExceptionUseCase
@@ -42,6 +43,12 @@ import de.familyplanner.android.feature.meals.domain.recipe.RecipeRepository
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeSource
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeUseCases
 import de.familyplanner.android.feature.meals.domain.recipe.SaveRecipeUseCase
+import de.familyplanner.android.feature.meals.domain.shopping.AddShoppingItemUseCase
+import de.familyplanner.android.feature.meals.domain.shopping.DeleteShoppingItemUseCase
+import de.familyplanner.android.feature.meals.domain.shopping.LoadShoppingListUseCase
+import de.familyplanner.android.feature.meals.domain.shopping.SetShoppingCheckUseCase
+import de.familyplanner.android.feature.meals.domain.shopping.ShoppingRepository
+import de.familyplanner.android.feature.meals.domain.shopping.ShoppingUseCases
 import de.familyplanner.android.feature.meals.ui.dish.DishEditViewModel
 import de.familyplanner.android.feature.meals.ui.plan.WeekPlanViewModel
 import de.familyplanner.android.feature.meals.ui.profile.ProfileEditViewModel
@@ -50,6 +57,7 @@ import de.familyplanner.android.feature.meals.ui.recipe.RecipeEditViewModel
 import de.familyplanner.android.feature.meals.ui.recipe.RecipeViewModel
 import de.familyplanner.android.feature.meals.ui.recipes.RecipeListViewModel
 import de.familyplanner.android.feature.meals.ui.settings.DeadlineSettingsViewModel
+import de.familyplanner.android.feature.meals.ui.shopping.ShoppingListViewModel
 import de.familyplanner.android.feature.meals.ui.week.WeekOverviewViewModel
 import de.familyplanner.api.client.MealsApi
 import org.koin.android.ext.koin.androidContext
@@ -122,4 +130,16 @@ val mealsModule =
         // cooking
         single<CookingRepository> { RemoteCookingRepository(get(), get()) }
         factory { CookingUseCases(LoadWeekStatusUseCase(get(), get()), CancelCookingUseCase(get()), WithdrawCancellationUseCase(get())) }
+
+        // shopping
+        single<ShoppingRepository> { RemoteShoppingRepository(get(), get()) }
+        factory {
+            ShoppingUseCases(
+                LoadShoppingListUseCase(get()),
+                AddShoppingItemUseCase(get()),
+                SetShoppingCheckUseCase(get()),
+                DeleteShoppingItemUseCase(get()),
+            )
+        }
+        viewModel { params -> ShoppingListViewModel(params.get(), get(), get()) }
     }

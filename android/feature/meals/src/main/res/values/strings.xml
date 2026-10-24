@@ -166,6 +166,16 @@
 
     <!-- Rezepte (Phase 5b) -->
     <string name="home_recipes">Rezepte</string>
+    <string name="home_shopping">Einkaufsliste</string>
+    <string name="shopping_title">Einkaufsliste</string>
+    <string name="shopping_empty">Noch nichts auf der Liste. Zutaten erscheinen, sobald Gerichte freigegeben sind.</string>
+    <string name="shopping_done">Erledigt (%1$d)</string>
+    <string name="shopping_own_item">Eigener Eintrag</string>
+    <string name="shopping_add_label">Eintrag hinzufügen</string>
+    <string name="shopping_add_hint">z. B. 2 kg Kartoffeln</string>
+    <string name="shopping_add">Hinzufügen</string>
+    <string name="shopping_delete">%1$s löschen</string>
+    <string name="status_shopping">Einkaufsliste ›</string>
     <string name="recipes_title">Rezepte</string>
     <string name="recipes_pick_title">Rezept wählen</string>
     <string name="recipes_search">Suchen</string>
