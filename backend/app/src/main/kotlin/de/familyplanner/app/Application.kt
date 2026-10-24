@@ -7,6 +7,7 @@ import de.familyplanner.app.plugins.configureSerialization
 import de.familyplanner.app.plugins.configureStatusPages
 import de.familyplanner.core.coreModule
 import de.familyplanner.core.device.DeviceService
+import de.familyplanner.core.events.DomainEventDispatcher
 import de.familyplanner.core.member.MemberService
 import de.familyplanner.core.pairing.PairingService
 import de.familyplanner.core.pairing.SetupService
@@ -26,7 +27,12 @@ import de.familyplanner.meals.web.cookingRoutes
 import de.familyplanner.meals.web.planRoutes
 import de.familyplanner.meals.web.recipeRoutes
 import de.familyplanner.meals.web.shoppingRoutes
+import de.familyplanner.tasks.board.BoardService
+import de.familyplanner.tasks.catalog.CatalogService
+import de.familyplanner.tasks.tasksModule
+import de.familyplanner.tasks.web.taskRoutes
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.install
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.connector
@@ -34,6 +40,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.engine.sslConnector
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.koin.ktor.ext.get
 import org.koin.ktor.plugin.Koin
@@ -80,7 +87,7 @@ fun Application.module(
 ) {
     install(Koin) {
         slf4jLogger()
-        modules(coreModule(config.dbPath, config.setupToken, clock), mealsModule(clock))
+        modules(coreModule(config.dbPath, config.setupToken, clock), mealsModule(clock), tasksModule(clock))
     }
     configureSerialization()
     configureStatusPages()
@@ -98,5 +105,9 @@ fun Application.module(
         cookingRoutes(get<DishReviewService>(), get<CookingWeekService>())
         recipeRoutes(get<RecipeService>())
         shoppingRoutes(get<ShoppingListService>())
+        taskRoutes(get<CatalogService>(), get<BoardService>())
     }
+
+    // Catch-up delivery for events logged before the last shutdown (ADR-0016).
+    monitor.subscribe(ApplicationStarted) { launch { get<DomainEventDispatcher>().dispatchPending() } }
 }

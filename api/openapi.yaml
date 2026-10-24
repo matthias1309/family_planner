@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Family Planner API
-  version: 0.5.0
+  version: 0.6.0
   description: Vertrag zwischen Android-App und Backend (ADR-0004). Alle Antworten nutzen den Envelope {success, data, error}.
 servers:
   - url: https://planner.home.arpa:8095
@@ -13,6 +13,7 @@ tags:
   - name: members
   - name: devices
   - name: meals
+  - name: tasks
 
 paths:
   /health:
@@ -672,6 +673,244 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/RateLimited' }
+  /api/v1/tasks/catalog:
+    get:
+      operationId: listCatalogTasks
+      tags: [tasks]
+      summary: Aufgabenkatalog auflisten (nur Eltern)
+      description: Standardmäßig nur aktive Aufgaben; mit includeArchived=true auch archivierte.
+      parameters:
+        - $ref: '#/components/parameters/IncludeArchived'
+      responses:
+        '200':
+          description: Katalogaufgaben, nach Titel sortiert
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogTaskListResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    post:
+      operationId: createCatalogTask
+      tags: [tasks]
+      summary: Katalogaufgabe anlegen (nur Eltern)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogTaskInput' }
+      responses:
+        '201':
+          description: Aufgabe angelegt
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogTaskResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/tasks/catalog/{catalogTaskId}:
+    put:
+      operationId: updateCatalogTask
+      tags: [tasks]
+      summary: Katalogaufgabe ändern (nur Eltern, nicht archivierte)
+      parameters:
+        - $ref: '#/components/parameters/CatalogTaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CatalogTaskInput' }
+      responses:
+        '200':
+          description: Aufgabe geändert
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogTaskResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    delete:
+      operationId: archiveCatalogTask
+      tags: [tasks]
+      summary: Katalogaufgabe archivieren (nur Eltern)
+      description: Bereits zugewiesene Karten bleiben unverändert.
+      parameters:
+        - $ref: '#/components/parameters/CatalogTaskId'
+      responses:
+        '204':
+          description: Aufgabe archiviert
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/tasks/cards:
+    post:
+      operationId: assignTasks
+      tags: [tasks]
+      summary: Katalogaufgaben einem Kind zuweisen (nur Eltern)
+      description: Je Katalog-ID entsteht eine Karte; Titel, Symbol und Punkte werden kopiert.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssignTasksRequest' }
+      responses:
+        '201':
+          description: Neue Karten (Status TODO)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskCardListResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/tasks/board:
+    get:
+      operationId: getTaskBoard
+      tags: [tasks]
+      summary: Board mit einer Spur je Kind
+      description: Erledigte Karten der letzten 7 Tage; ältere stehen im Verlauf.
+      responses:
+        '200':
+          description: Spuren mit offenen und kürzlich erledigten Karten
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskBoardResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/tasks/members/{memberId}/history:
+    get:
+      operationId: getTaskHistory
+      tags: [tasks]
+      summary: Erledigte Aufgaben eines Kindes, neueste zuerst
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+        - $ref: '#/components/parameters/HistoryLimit'
+      responses:
+        '200':
+          description: Erledigte Karten
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskCardListResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/tasks/cards/{cardId}/report:
+    post:
+      operationId: reportTask
+      tags: [tasks]
+      summary: Aufgabe als erledigt melden (Kind, eigene Karte)
+      parameters:
+        - $ref: '#/components/parameters/CardId'
+      responses:
+        '200':
+          description: Geänderte Karte
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskCardResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/tasks/cards/{cardId}/withdrawal:
+    post:
+      operationId: withdrawTaskReport
+      tags: [tasks]
+      summary: Meldung zurückziehen (Kind, eigene Karte)
+      parameters:
+        - $ref: '#/components/parameters/CardId'
+      responses:
+        '200':
+          description: Geänderte Karte
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskCardResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/tasks/cards/{cardId}/acceptance:
+    post:
+      operationId: acceptTask
+      tags: [tasks]
+      summary: Aufgabe abnehmen (nur Eltern)
+      description: Von REVIEW oder TODO nach DONE; schreibt das Ereignis task.accepted.v1.
+      parameters:
+        - $ref: '#/components/parameters/CardId'
+      responses:
+        '200':
+          description: Geänderte Karte
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskCardResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/tasks/cards/{cardId}/rejection:
+    post:
+      operationId: rejectTask
+      tags: [tasks]
+      summary: Meldung zurückweisen (nur Eltern)
+      description: Von REVIEW zurück nach TODO; der Body mit Begründung ist optional.
+      parameters:
+        - $ref: '#/components/parameters/CardId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RejectTaskRequest' }
+      responses:
+        '200':
+          description: Geänderte Karte
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskCardResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/tasks/cards/{cardId}:
+    delete:
+      operationId: removeTaskCard
+      tags: [tasks]
+      summary: Karte entfernen (nur Eltern, nicht erledigte)
+      parameters:
+        - $ref: '#/components/parameters/CardId'
+      responses:
+        '204':
+          description: Karte entfernt
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
 
 components:
   securitySchemes:
@@ -716,6 +955,26 @@ components:
       required: true
       description: Montag der Planwoche (yyyy-MM-dd)
       schema: { type: string, format: date }
+    CatalogTaskId:
+      name: catalogTaskId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    CardId:
+      name: cardId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IncludeArchived:
+      name: includeArchived
+      in: query
+      required: false
+      schema: { type: boolean, default: false }
+    HistoryLimit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
 
   responses:
     ValidationFailed:
@@ -1442,6 +1701,148 @@ components:
         data:
           allOf:
             - $ref: '#/components/schemas/ShoppingList'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    TaskStatus:
+      type: string
+      enum: [TODO, REVIEW, DONE]
+
+    CatalogTask:
+      type: object
+      required: [id, title, points, archived]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string, minLength: 1, maxLength: 40 }
+        emoji: { type: string, minLength: 1, maxLength: 16, nullable: true }
+        points: { type: integer, minimum: 1, maximum: 100 }
+        archived: { type: boolean }
+
+    CatalogTaskInput:
+      type: object
+      required: [title, points]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 40 }
+        emoji: { type: string, maxLength: 16, nullable: true }
+        points: { type: integer, minimum: 1, maximum: 100 }
+
+    TaskCard:
+      type: object
+      required: [id, memberId, title, points, status, assignedAt]
+      properties:
+        id: { type: string, format: uuid }
+        memberId: { type: string, format: uuid }
+        catalogTaskId: { type: string, format: uuid, nullable: true }
+        title: { type: string }
+        emoji: { type: string, nullable: true }
+        points: { type: integer }
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        rejectionReason: { type: string, maxLength: 200, nullable: true }
+        assignedAt: { type: string, format: date-time }
+        reportedAt: { type: string, format: date-time, nullable: true }
+        doneAt: { type: string, format: date-time, nullable: true }
+
+    AssignTasksRequest:
+      type: object
+      required: [memberId, catalogTaskIds]
+      properties:
+        memberId: { type: string, format: uuid }
+        catalogTaskIds:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { type: string, format: uuid }
+
+    RejectTaskRequest:
+      type: object
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 200 }
+
+    TaskLane:
+      type: object
+      required: [memberId, name, cards]
+      properties:
+        memberId: { type: string, format: uuid }
+        name: { type: string }
+        cards:
+          type: array
+          items: { $ref: '#/components/schemas/TaskCard' }
+
+    TaskBoard:
+      type: object
+      required: [lanes]
+      properties:
+        lanes:
+          type: array
+          items: { $ref: '#/components/schemas/TaskLane' }
+
+    CatalogTaskResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/CatalogTask'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    CatalogTaskListResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          type: array
+          nullable: true
+          items: { $ref: '#/components/schemas/CatalogTask' }
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    TaskCardResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/TaskCard'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    TaskCardListResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          type: array
+          nullable: true
+          items: { $ref: '#/components/schemas/TaskCard' }
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    TaskBoardResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/TaskBoard'
           nullable: true
         error:
           allOf:

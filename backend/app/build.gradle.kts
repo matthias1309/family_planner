@@ -10,6 +10,7 @@ application {
 dependencies {
     implementation(project(":core"))
     implementation(project(":meals"))
+    implementation(project(":tasks"))
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.json)
@@ -23,6 +24,7 @@ dependencies {
 
     kover(project(":core"))
     kover(project(":meals"))
+    kover(project(":tasks"))
 
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.ktor.client.content.negotiation)

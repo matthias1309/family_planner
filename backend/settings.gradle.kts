@@ -6,4 +6,4 @@ dependencyResolutionManagement {
     }
 }
 
-include(":api-contract", ":core", ":meals", ":app")
+include(":api-contract", ":core", ":meals", ":tasks", ":app")
