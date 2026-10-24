@@ -1,5 +1,6 @@
 package de.familyplanner.android.feature.auth.ui
 
+import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
@@ -72,20 +73,41 @@ class ScreensTest {
     }
 
     @Test
-    fun `REQ-AUTH-002 child sees no parent actions`() {
-        show { HomeScreen(HomeUiState(session = aSession), onManageFamily = {}) }
+    fun `REQ-TASK-002 home shows greeting, role and today slot`() {
+        show { HomeScreen(HomeUiState(session = aSession), todayContent = { Text("Slot-Inhalt") }) }
 
         compose.onNodeWithText("Hallo Lea 👋").assertIsDisplayed()
         compose.onNodeWithText("Kind").assertIsDisplayed()
+        compose.onNodeWithText("Slot-Inhalt").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-AUTH-002 home offers no family management to children`() {
+        show { HomeScreen(HomeUiState(session = aSession)) }
+
         compose.onNodeWithText("Familie verwalten").assertDoesNotExist()
     }
 
     @Test
-    fun `parent sees family management and offline hint`() {
-        show { HomeScreen(HomeUiState(session = aSession.copy(role = Role.PARENT), isOffline = true), onManageFamily = {}) }
+    fun `REQ-TASK-002 home shows offline hint`() {
+        show { HomeScreen(HomeUiState(session = aSession.copy(role = Role.PARENT), isOffline = true)) }
 
-        compose.onNodeWithText("Familie verwalten").assertIsDisplayed()
+        compose.onNodeWithText("Elternteil").assertIsDisplayed()
         compose.onNodeWithText("Offline – es werden die zuletzt bekannten Daten gezeigt.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `family screen as main page has no back button`() {
+        show { FamilyScreen(FamilyUiState(), {}, onBack = null) }
+
+        compose.onNodeWithText("Zurück").assertDoesNotExist()
+    }
+
+    @Test
+    fun `family screen with back handler shows back button`() {
+        show { FamilyScreen(FamilyUiState(), {}, onBack = {}) }
+
+        compose.onNodeWithText("Zurück").assertIsDisplayed()
     }
 
     @Test
@@ -125,14 +147,14 @@ class ScreensTest {
     @Test
     fun `REQ-AUTH-003 removing own device warns about sign out`() {
         val own = FamilyDevice("d-1", "m-1", "Pixel", null)
-        show { FamilyScreen(FamilyUiState(devices = listOf(own), ownDeviceId = "d-1", pendingRevoke = own), {}, {}) }
+        show { FamilyScreen(FamilyUiState(devices = listOf(own), ownDeviceId = "d-1", pendingRevoke = own), {}, onBack = {}) }
 
         compose.onNodeWithText("Du entfernst dein eigenes Gerät und wirst abgemeldet.").assertIsDisplayed()
     }
 
     @Test
     fun `forbidden error is shown to children opening the family screen`() {
-        show { FamilyScreen(FamilyUiState(error = AppError.Forbidden), {}, {}) }
+        show { FamilyScreen(FamilyUiState(error = AppError.Forbidden), {}, onBack = {}) }
 
         compose.onNodeWithText("Nur für Eltern.").assertIsDisplayed()
     }

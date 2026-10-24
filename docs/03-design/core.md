@@ -59,3 +59,25 @@ Token) meldet nicht ab. Ist der Keystore-Schlüssel nicht mehr lesbar, gilt das 
 (6-stelliger Code, Gerätename) → Home („Hallo <Name>“, Rolle; `/me` beim Start, offline bleibt die Session erhalten) →
 Familie (nur Eltern: Mitglieder anlegen, Kopplungscode erzeugen, Geräte entfernen mit Bestätigung). Kinder sehen keine
 Verwaltung; ein 403 wird als „Nur für Eltern.“ angezeigt.
+
+## App-Navigation (TASK Phase 1)
+
+Entscheidungen: [ADR-0014](../02-architecture/adr/0014-app-main-navigation.md), [ADR-0015](../02-architecture/adr/0015-test-instance.md).
+Code: `android/app` (`TopLevelDestination`, `AppNavigationBar`, `AppNavHost`), `feature:auth` (`HomeScreen`), `feature:meals`
+(`MealsHomeScreen`, `ui/today`).
+
+- **Hauptbereiche je Rolle** (`topLevelDestinations`): Kind *Heute · Essen · Aufgaben · Ich*, Eltern *Heute · Essen · Aufgaben ·
+  Familie*. „Aufgaben“ und „Ich“ sind Platzhalter („Kommt bald“).
+- **Sichtbarkeit:** Die Leiste erscheint nur auf Hauptseiten (`topLevelOf != null`); Unterseiten behalten „Zurück“.
+- **Zustand:** Wechsel mit `saveState`/`restoreState`/`launchSingleTop`; System-Zurück → „Heute“.
+- **Slot `todayContent`:** `mainGraph` reicht Inhalte anderer Module an „Heute“ durch; `app` setzt die Karte
+  `TodayMealRoute` ein (Plan der laufenden Woche über `LoadWeekPlanUseCase`, offline aus dem Plan-Cache).
+- **Deep-Links** (Benachrichtigung, geteiltes Rezept) wechseln zuerst zu „Essen“ (`openMealsAndThen`), `openWeekPlan` nutzt
+  `launchSingleTop`, damit kein doppelter Essensplan entsteht.
+- **Test-Build:** `FP_TEST_INSTANCE=true` → `applicationId …android.test`, Name „Familienplaner Test“, Server `:8097`.
+
+**Unit-Testfälle:** `MainDestinationsTest` (Ziele je Rolle, keine Leiste ohne Hauptbereich), `TodayMealTest` (Gericht des
+Tages, Sonntag → Woche ab Montag, abgelehnt/eingereicht/kein Gericht, Cache offline, nicht erreichbar), `ScreensTest`
+(auth: Begrüßung/Slot/Offline, Familie ohne Zurück), `AppNavHostTest` (Leiste je Rolle, Essen-Übersicht, Unterseite ohne
+Leiste, Platzhalter, Deep-Links).
+

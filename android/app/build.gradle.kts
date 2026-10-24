@@ -18,7 +18,10 @@ fun config(
     env: String,
 ): String? = localProperties.getProperty(property) ?: System.getenv(env)
 
-val serverUrl = config("fp.serverUrl", "FP_SERVER_URL") ?: "https://planner.home.arpa:8095/"
+// ADR-0015: Test-Build gegen die Testinstanz; installierbar neben der Familien-App.
+val testInstance = config("fp.testInstance", "FP_TEST_INSTANCE").toBoolean()
+val defaultServerUrl = if (testInstance) "https://planner.home.arpa:8097/" else "https://planner.home.arpa:8095/"
+val serverUrl = config("fp.serverUrl", "FP_SERVER_URL") ?: defaultServerUrl
 val signingStoreFile = config("fp.signing.storeFile", "FP_SIGNING_STORE_FILE")
 
 android {
@@ -29,8 +32,13 @@ android {
         applicationId = "de.familyplanner.android"
         minSdk = 29
         targetSdk = 37
-        versionCode = 8
-        versionName = "0.7.0"
+        versionCode = 9
+        versionName = "0.8.0"
+        manifestPlaceholders["appLabel"] = if (testInstance) "Familienplaner Test" else "@string/app_name"
+        if (testInstance) {
+            applicationIdSuffix = ".test"
+            versionNameSuffix = "-test"
+        }
         buildConfigField("String", "FP_SERVER_URL", "\"$serverUrl\"")
     }
 
@@ -80,6 +88,7 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
     implementation(libs.core.ktx)
+    implementation(libs.compose.material.icons)
 
     testImplementation(project(":core:testing"))
     testImplementation(libs.junit4)

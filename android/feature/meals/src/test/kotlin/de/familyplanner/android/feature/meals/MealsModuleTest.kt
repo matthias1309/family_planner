@@ -34,6 +34,7 @@ import de.familyplanner.android.feature.meals.ui.recipes.RecipeListViewModel
 import de.familyplanner.android.feature.meals.ui.settings.DeadlineSettingsViewModel
 import de.familyplanner.android.feature.meals.ui.shopping.ShoppingListArgs
 import de.familyplanner.android.feature.meals.ui.shopping.ShoppingListViewModel
+import de.familyplanner.android.feature.meals.ui.today.TodayMealViewModel
 import de.familyplanner.android.feature.meals.ui.week.WeekOverviewViewModel
 import de.familyplanner.api.client.MembersApi
 import okhttp3.OkHttpClient
@@ -79,6 +80,7 @@ class MealsModuleTest {
         assertNotNull(koin.get<ProfileEditViewModel> { parametersOf("c-1") })
         assertNotNull(koin.get<DeadlineSettingsViewModel>())
         assertNotNull(koin.get<WeekPlanViewModel>())
+        assertNotNull(koin.get<TodayMealViewModel>())
         assertNotNull(koin.get<DishEditViewModel> { parametersOf(DishEditArgs(LocalDate.of(2026, 10, 19))) })
         assertNotNull(koin.get<DishEditViewModel> { parametersOf(DishEditArgs(LocalDate.of(2026, 10, 19), "d-1")) })
         assertNotNull(koin.get<RecipeListViewModel> { parametersOf(RecipeListArgs()) })

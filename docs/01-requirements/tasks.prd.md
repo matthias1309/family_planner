@@ -273,7 +273,7 @@ bereits; neu sind das Modul, das erste Domänenereignis und der Umbau der Naviga
 
 | # | Phase | Description | Status | Parallel | Depends | PRP Plan |
 |---|-------|-------------|--------|----------|---------|----------|
-| 1 | Navigation & Testinstanz | Untere Leiste, „Essen“-Bereich, Startseite „Heute“ (nur Essen-Inhalte), Testinstanz auf dem Pi + Test-Build (REQ-TASK-001/002) | in-progress | with 2 | - | `.claude/PRPs/plans/navigation-testinstanz.plan.md` |
+| 1 | Navigation & Testinstanz | Untere Leiste, „Essen“-Bereich, Startseite „Heute“ (nur Essen-Inhalte), Testinstanz auf dem Pi + Test-Build (REQ-TASK-001/002) | in-progress | with 2 | - | `.claude/PRPs/plans/completed/navigation-testinstanz.plan.md`, Bericht: `.claude/PRPs/reports/navigation-testinstanz-report.md` (Geräte-Abnahme offen) |
 | 2 | Board Backend/API | ADR Domänenereignisse, Modul `tasks`, Katalog, Karten, Statusübergänge, Ereignis (REQ-TASK-010, 020–025) | in-progress | with 1 | - | `.claude/PRPs/plans/board-backend.plan.md` |
 | 3 | Board App | Katalog-, Zuweisungs- und Board-Screens, Offline-Lesen, Aufgaben auf „Heute“, Abnahme-Badge, Hinweise (REQ-TASK-002/003, 020–025, 030) | pending | - | 1, 2 | - |
 

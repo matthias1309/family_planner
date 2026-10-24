@@ -1,13 +1,21 @@
 package de.familyplanner.android.feature.meals
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -88,30 +96,50 @@ data class ProfileEditRoute(
 @Serializable
 data object DeadlineSettingsRoute
 
-/** Einstieg von der Startseite; `app` setzt ihn in den Slot von `feature:auth`. */
+/** Hauptbereich „Essen“ (ADR-0014): Einstieg in alle Essens-Funktionen. */
+@Serializable
+data object MealsHomeRoute
+
+/** Öffnet den Essensplan ohne doppelten Eintrag, falls ein gespeicherter Stack ihn schon enthält. */
+fun NavHostController.openWeekPlan() = navigate(WeekPlanRoute) { launchSingleTop = true }
+
 @Composable
-fun MealsHomeActions(
+fun MealsHomeScreen(
     onOpenPlan: () -> Unit,
     onOpenWeek: () -> Unit,
     onOpenRecipes: () -> Unit,
     onOpenShopping: () -> Unit,
 ) {
-    Button(onClick = onOpenPlan, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.home_plan))
-    }
-    OutlinedButton(onClick = onOpenWeek, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.home_attendance))
-    }
-    OutlinedButton(onClick = onOpenRecipes, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.home_recipes))
-    }
-    OutlinedButton(onClick = onOpenShopping, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.home_shopping))
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(stringResource(R.string.meals_home_title), style = MaterialTheme.typography.headlineMedium)
+        Button(onClick = onOpenPlan, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.home_plan))
+        }
+        OutlinedButton(onClick = onOpenShopping, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.home_shopping))
+        }
+        OutlinedButton(onClick = onOpenRecipes, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.home_recipes))
+        }
+        OutlinedButton(onClick = onOpenWeek, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.home_attendance))
+        }
     }
 }
 
 fun NavGraphBuilder.mealsGraph(navController: NavHostController) {
     recipeGraph(navController)
+    composable<MealsHomeRoute> {
+        MealsHomeScreen(
+            onOpenPlan = { navController.navigate(WeekPlanRoute) },
+            onOpenWeek = { navController.navigate(WeekOverviewRoute) },
+            onOpenRecipes = { navController.navigate(RecipeListRoute()) },
+            onOpenShopping = { navController.navigate(ShoppingListRoute()) },
+        )
+    }
     composable<WeekPlanRoute> {
         WeekPlanRoute(
             onOpenEditor = { args -> navController.navigate(DishEditRoute(args.date.toString(), args.dishId, args.cookId)) },

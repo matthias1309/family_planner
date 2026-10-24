@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Familienplaner</string>
+    <string name="nav_today">Heute</string>
+    <string name="nav_meals">Essen</string>
+    <string name="nav_tasks">Aufgaben</string>
+    <string name="nav_me">Ich</string>
+    <string name="nav_family">Familie</string>
+    <string name="tasks_coming_soon">Hier entsteht das Aufgaben-Board.</string>
+    <string name="me_coming_soon">Hier findest du bald Punkte, Badges und deinen Avatar.</string>
 </resources>

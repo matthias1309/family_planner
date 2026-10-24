@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
-import de.familyplanner.android.core.data.session.Role
 import de.familyplanner.android.core.data.session.Session
 import de.familyplanner.android.core.data.session.SessionState
 import de.familyplanner.android.core.data.session.SessionStore
@@ -18,9 +17,7 @@ import kotlinx.coroutines.launch
 data class HomeUiState(
     val session: Session? = null,
     val isOffline: Boolean = false,
-) {
-    val canManageFamily: Boolean get() = session?.role == Role.PARENT
-}
+)
 
 class HomeViewModel(
     sessions: SessionStore,

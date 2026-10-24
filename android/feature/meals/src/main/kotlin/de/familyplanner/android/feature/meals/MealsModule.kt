@@ -71,6 +71,7 @@ import de.familyplanner.android.feature.meals.ui.recipe.RecipeViewModel
 import de.familyplanner.android.feature.meals.ui.recipes.RecipeListViewModel
 import de.familyplanner.android.feature.meals.ui.settings.DeadlineSettingsViewModel
 import de.familyplanner.android.feature.meals.ui.shopping.ShoppingListViewModel
+import de.familyplanner.android.feature.meals.ui.today.TodayMealViewModel
 import de.familyplanner.android.feature.meals.ui.week.WeekOverviewViewModel
 import de.familyplanner.api.client.MealsApi
 import org.koin.android.ext.koin.androidContext
@@ -121,6 +122,7 @@ val mealsModule =
             )
         }
         viewModel { WeekPlanViewModel(get(), get(), get(), get()) }
+        viewModel { TodayMealViewModel(get()) }
         viewModel { params -> DishEditViewModel(params.get(), get(), get()) }
 
         // recipe
