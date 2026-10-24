@@ -237,6 +237,16 @@ Als Elternteil möchte ich auf einen Blick sehen, was vor der Bestellung noch fe
 - Given alle Tage sind belegt und alle Kindergerichte freigegeben, When ich den Status öffne, Then ist die Woche
   „bereit zur Bestellung“.
 
+##### REQ-MEAL-034 Kochen bestätigen
+Als Elternteil möchte ich im Essensplan bestätigen, dass ein Kind sein Gericht gekocht hat, damit es dafür Punkte
+erhält (Modul `GAME`, [gamification.prd.md](gamification.prd.md)).
+
+**Abnahmekriterien**
+- Given ein freigegebenes Kindergericht, When am oder nach dem Kochtag ein Elternteil „gekocht“ bestätigt, Then ist
+  der Tag als gekocht markiert und das Ereignis *Kochen bestätigt* wird genau einmal ausgelöst.
+- Given ein Kindergericht vor dem Kochtag oder nicht freigegeben, Then ist die Bestätigung nicht möglich.
+- Given ich bin Kind, Then kann ich nicht bestätigen (403).
+
 #### Rezepte
 
 ##### REQ-MEAL-060 Rezepte anlegen und pflegen
@@ -564,7 +574,7 @@ laufen — Achtung: 5b und 7 ändern beide die App; nicht gleichzeitig dieselben
 - Automatische Qualitätsprüfung (z. B. „enthält Gemüse“).
 - Picnic-Übergabe der Einkaufsliste über Home Assistant.
 - Widget/Startbildschirm „Heute gibt es …“.
-- Weiteres Modul: Aufgabenplaner für Kinder (Putzen, Zimmer aufräumen, Hausaufgaben) → `TASK`.
+- ~~Weiteres Modul: Aufgabenplaner für Kinder (Putzen, Zimmer aufräumen, Hausaufgaben) → `TASK`.~~ → [tasks.prd.md](tasks.prd.md).
 
 ---
 
