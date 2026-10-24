@@ -193,18 +193,18 @@ FP_TEST_INSTANCE=true ./gradlew assembleRelease
 Der Schalter kann auch als `fp.testInstance=true` in `local.properties` stehen. Kopplung: „Familie einrichten“ mit dem Token aus
 `.env.test` der Testinstanz (siehe [deploy/README.md](../deploy/README.md)).
 
-## Abnahme-Checkliste TASK Phase 1 (manuell, Testhandys gegen die Testinstanz)
+## Abnahme-Checkliste TASK Phase 1 (manuell, Testhandys gegen die Testinstanz; abgenommen 2026-10-24)
 
-- [ ] Pi: Testinstanz nach README eingerichtet, `https://planner.home.arpa:8097/health` antwortet; Familien-Instanz (8095) läuft unverändert
-- [ ] Nach dem nächsten `stable`-Update starten beide Container neu und sind `healthy` (`journalctl -u family-planner-update.service`)
-- [ ] Test-Build 0.8.0-test auf beiden Testhandys installiert, **neben** der Familien-App (zwei Symbole, „Familienplaner Test“)
-- [ ] Testhandy 1: „Familie einrichten“ mit Test-Token, Testkind anlegen; Testhandy 2 als Testkind koppeln
-- [ ] Kind: Leiste Heute · Essen · Aufgaben · Ich; Eltern: Heute · Essen · Aufgaben · Familie
-- [ ] „Heute“ zeigt das heutige Gericht (vorher in der Testinstanz eins planen) bzw. „noch nichts geplant“; Tipp öffnet den Essensplan
-- [ ] Essen → Essensplan, Einkaufsliste, Rezepte, Anwesenheit & Fristen funktionieren wie bisher; „Zurück“ führt zur Essen-Übersicht
-- [ ] System-Zurück auf Essen/Aufgaben/Ich/Familie → Heute; auf Heute → App schließt
-- [ ] Rezept aus dem Browser teilen → Test-App öffnet den Editor (Auswahl „Familienplaner Test“ im Teilen-Menü)
-- [ ] Benachrichtigung (z. B. Freigabe) tippen → Essensplan
-- [ ] Offline (WLAN aus): „Heute“ zeigt Offline-Hinweis und das Gericht aus dem Cache
-- [ ] Familien-App auf einem Familienhandy unverändert (kein Testgericht sichtbar)
+- [x] Pi: Testinstanz nach README eingerichtet, `https://planner.home.arpa:8097/health` antwortet; Familien-Instanz (8095) läuft unverändert
+- [x] Nach dem nächsten `stable`-Update starten beide Container neu und sind `healthy` (`journalctl -u family-planner-update.service`)
+- [x] Test-Build 0.8.0-test auf beiden Testhandys installiert, **neben** der Familien-App (zwei Symbole, „Familienplaner Test“)
+- [x] Testhandy 1: „Familie einrichten“ mit Test-Token, Testkind anlegen; Testhandy 2 als Testkind koppeln
+- [x] Kind: Leiste Heute · Essen · Aufgaben · Ich; Eltern: Heute · Essen · Aufgaben · Familie
+- [x] „Heute“ zeigt das heutige Gericht (vorher in der Testinstanz eins planen) bzw. „noch nichts geplant“; Tipp öffnet den Essensplan
+- [x] Essen → Essensplan, Einkaufsliste, Rezepte, Anwesenheit & Fristen funktionieren wie bisher; „Zurück“ führt zur Essen-Übersicht
+- [x] System-Zurück auf Essen/Aufgaben/Ich/Familie → Heute; auf Heute → App schließt
+- [x] Rezept aus dem Browser teilen → Test-App öffnet den Editor (Auswahl „Familienplaner Test“ im Teilen-Menü)
+- [x] Benachrichtigung (z. B. Freigabe) tippen → Essensplan
+- [x] Offline (WLAN aus): „Heute“ zeigt Offline-Hinweis und das Gericht aus dem Cache
+- [x] Familien-App auf einem Familienhandy unverändert (kein Testgericht sichtbar)
 
