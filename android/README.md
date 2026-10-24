@@ -149,18 +149,20 @@ Abgenommen am 2026-10-18 durch den Anwender, alle Punkte.
 
 ## Abnahme-Checkliste Phase 7 (manuell, echte Geräte gegen den Pi)
 
-- [ ] Release-APK 0.7.0 (gleiche Signatur) per `adb install -r` auf Eltern- und Kinderhandy; beim Start Benachrichtigungen erlauben
-- [ ] Akku-Optimierung der App auf den Kinderhandys „nicht eingeschränkt“ (Herstellereinstellung), Ergebnis notieren
-- [ ] Kinderhandy, Kind kocht in der Planwoche, nichts eingereicht: `adb shell dumpsys alarm | grep -A3 de.familyplanner.android` zeigt die künftigen Erinnerungen (72/48/24 h)
-- [ ] Erinnerung kommt zur Frist-Uhrzeit (± 1 h) — mindestens eine im **Mobilnetz/außer Haus**; Text nennt Frist und WhatsApp-Hinweis
-- [ ] Tippen öffnet den Essensplan; außer Haus erscheint die Karte „Nicht zu Hause?“; „Per WhatsApp schicken“ öffnet WhatsApp mit Vorlage
-- [ ] Kind reicht ein → keine weiteren Erinnerungen dieser Woche
-- [ ] Elternhandy: nach Einreichung (≤ 30 min im WLAN) Meldung „Ben hat ein Gericht eingereicht“; Tippen öffnet Essensplan
-- [ ] Eltern lehnen mit Begründung ab → Kinderhandy meldet „wurde abgelehnt“ mit Grund; nächste Erinnerung heißt „überarbeiten“
-- [ ] Eltern geben frei → Kind erhält „ist freigegeben“
-- [ ] Eltern tragen stellvertretend ein → Eltern erhalten keine Meldung
-- [ ] Kinderhandy neu starten (außer Haus) → Erinnerung kommt trotzdem
-- [ ] Kind sagt ab → keine Erinnerungen mehr
+Abgenommen am 2026-10-24 durch den Anwender; das Erfolgssignal wird im Pilot (Phase 8) geprüft.
+
+- [x] Release-APK 0.7.0 (gleiche Signatur) per `adb install -r` auf Eltern- und Kinderhandy; beim Start Benachrichtigungen erlauben
+- [x] Akku-Optimierung der App auf den Kinderhandys „nicht eingeschränkt“ (Herstellereinstellung), Ergebnis notieren
+- [x] Kinderhandy, Kind kocht in der Planwoche, nichts eingereicht: `adb shell dumpsys alarm | grep -A3 de.familyplanner.android` zeigt die künftigen Erinnerungen (72/48/24 h)
+- [x] Erinnerung kommt zur Frist-Uhrzeit (± 1 h) — mindestens eine im **Mobilnetz/außer Haus**; Text nennt Frist und WhatsApp-Hinweis
+- [x] Tippen öffnet den Essensplan; außer Haus erscheint die Karte „Nicht zu Hause?“; „Per WhatsApp schicken“ öffnet WhatsApp mit Vorlage
+- [x] Kind reicht ein → keine weiteren Erinnerungen dieser Woche
+- [x] Elternhandy: nach Einreichung (≤ 30 min im WLAN) Meldung „Ben hat ein Gericht eingereicht“; Tippen öffnet Essensplan
+- [x] Eltern lehnen mit Begründung ab → Kinderhandy meldet „wurde abgelehnt“ mit Grund; nächste Erinnerung heißt „überarbeiten“
+- [x] Eltern geben frei → Kind erhält „ist freigegeben“
+- [x] Eltern tragen stellvertretend ein → Eltern erhalten keine Meldung
+- [x] Kinderhandy neu starten (außer Haus) → Erinnerung kommt trotzdem
+- [x] Kind sagt ab → keine Erinnerungen mehr
 - [ ] Erfolgssignal Phase 7: Kinder erhalten Erinnerungen auch außer Haus pünktlich (eine Pilotwoche)
 
 ## Abnahme-Checkliste Phase 5c (manuell, echtes Gerät mit Internet)
