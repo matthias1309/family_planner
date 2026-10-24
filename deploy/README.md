@@ -27,7 +27,7 @@ der Pi zieht es per systemd-Timer alle 5 Minuten, wartet auf `healthy`, rollt so
    ```
 8. **Uptime Kuma:** HTTP-Monitor auf `https://planner.home.arpa:8095/health`, „Zertifikatfehler ignorieren“ aktivieren.
 
-Nur Port **8095** wird veröffentlicht; der Health-Port 8096 bleibt im Container.
+Veröffentlicht werden Port **8095** (Familie) und optional **8097** (Testinstanz, siehe unten); der Health-Port 8096 bleibt im Container.
 
 ## Erst-Einrichtung der Familie
 
@@ -45,3 +45,20 @@ Die Antwort enthält das Geräte-Token (nur einmal sichtbar); weitere Aufrufe mi
 - Update/Rollback-Log: `journalctl -u family-planner-update.service`.
 - Ein Image, dessen Healthcheck scheitert, wird nach dem Rollback in `.failed-image` vermerkt und nicht erneut versucht.
 - Backups: Das Backend schreibt vor jeder ausstehenden Migration eine Kopie nach `data/backups/` (letzte 10).
+
+## Testinstanz (optional, ADR-0015)
+
+Zweiter Container mit eigenen Daten für die Testhandys; gleiches `stable`-Image, Port **8097**.
+
+1. `sudo mkdir -p data-test && sudo chown 10001 data-test`
+2. `.env.test` mit eigenem Token anlegen (`.env.*` ist von Git ausgeschlossen):
+   ```bash
+   echo "FP_SETUP_TOKEN=$(openssl rand -hex 16)" > .env.test && chmod 600 .env.test
+   ```
+3. In `.env` ergänzen: `COMPOSE_PROFILES=test`
+4. `docker compose up -d`, dann `curl -k https://planner.home.arpa:8097/health`
+5. Familie im Test-Build der App einrichten („Familie einrichten“ mit dem Test-Token), Testkind anlegen, zweites Handy koppeln
+6. Abschalten: `COMPOSE_PROFILES` aus `.env` entfernen, `docker compose up -d --remove-orphans`
+
+Ohne `.env.test` bricht Compose bei aktivem Profil ab (gewollt). `update.sh` wartet auf alle laufenden Container; ein
+Rollback betrifft beide Instanzen. Optional: zweiter Uptime-Kuma-Monitor auf `https://planner.home.arpa:8097/health`.

@@ -47,13 +47,8 @@ fun NavGraphBuilder.authGraph(
     }
 }
 
-/** [homeActions] nimmt die Einstiege anderer Feature-Module auf (feature:auth kennt sie nicht). */
-fun NavGraphBuilder.mainGraph(
-    navController: NavHostController,
-    homeActions: @Composable () -> Unit = {},
-) {
-    composable<HomeRoute> {
-        HomeRoute(onManageFamily = { navController.navigate(FamilyRoute) }, homeActions = homeActions)
-    }
-    composable<FamilyRoute> { FamilyRoute(onBack = { navController.popBackStack() }) }
+/** [todayContent] nimmt die Inhalte anderer Feature-Module für „Heute“ auf (feature:auth kennt sie nicht). */
+fun NavGraphBuilder.mainGraph(todayContent: @Composable () -> Unit = {}) {
+    composable<HomeRoute> { HomeRoute(todayContent = todayContent) }
+    composable<FamilyRoute> { FamilyRoute() }
 }

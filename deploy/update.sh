@@ -5,7 +5,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 IMAGE="ghcr.io/matthias1309/family-planner:stable"
-CONTAINER="family-planner"
+MAIN_CONTAINER="family-planner" # liefert die Version; die Testinstanz (ADR-0015) nutzt dasselbe Image
 HEALTH_TIMEOUT_SECONDS=120
 FAILED_MARKER=".failed-image"
 
@@ -17,6 +17,18 @@ NTFY_TOPIC="$(env_value NTFY_TOPIC)"
 notify() { # notify <priority> <message>
   [ -n "${NTFY_URL:-}" ] && [ -n "${NTFY_TOPIC:-}" ] || return 0
   curl -fsS -H "Title: Family Planner" -H "Priority: $1" -d "$2" "$NTFY_URL/$NTFY_TOPIC" >/dev/null || true
+}
+
+containers() { docker compose ps --format '{{.Name}}'; }
+
+# Alle laufenden Container des Projekts (Familie + ggf. Testinstanz) müssen gesund sein.
+all_healthy() {
+  local name found=false
+  for name in $(containers); do
+    found=true
+    [ "$(docker inspect --format '{{.State.Health.Status}}' "$name" 2>/dev/null || echo missing)" = "healthy" ] || return 1
+  done
+  [ "$found" = true ]
 }
 
 image_id() { docker image inspect --format '{{.Id}}' "$IMAGE" 2>/dev/null || true; }
@@ -34,16 +46,15 @@ fi
 
 docker compose up -d
 
-status="starting"
+healthy=false
 for _ in $(seq 1 $((HEALTH_TIMEOUT_SECONDS / 2))); do
-  status="$(docker inspect --format '{{.State.Health.Status}}' "$CONTAINER" 2>/dev/null || echo missing)"
-  [ "$status" = "healthy" ] && break
+  all_healthy && { healthy=true; break; }
   sleep 2
 done
 
-if [ "$status" = "healthy" ]; then
+if [ "$healthy" = true ]; then
   rm -f "$FAILED_MARKER"
-  version="$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$CONTAINER" | sed -n 's/^FP_VERSION=//p' | cut -c1-7)"
+  version="$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$MAIN_CONTAINER" | sed -n 's/^FP_VERSION=//p' | cut -c1-7)"
   notify default "Family Planner aktualisiert (${version:-unbekannt})"
   exit 0
 fi

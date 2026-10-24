@@ -2,8 +2,11 @@ package de.familyplanner.android.app
 
 import android.app.Application
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.data.session.DefaultSessionEvents
@@ -50,6 +53,7 @@ import de.familyplanner.android.feature.meals.domain.reminder.ReminderStore
 import de.familyplanner.android.feature.meals.domain.reminder.ReminderSync
 import de.familyplanner.android.feature.meals.ui.plan.WeekPlanViewModel
 import de.familyplanner.android.feature.meals.ui.recipe.RecipeEditViewModel
+import de.familyplanner.android.feature.meals.ui.today.TodayMealViewModel
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -88,7 +92,11 @@ class AppNavHostTest {
                 deviceName: String,
             ) = ApiResult.Success(session)
 
-            override suspend fun me() = ApiResult.Success(Me("m", "Lea", Role.CHILD, "d"))
+            // Folgt der Session, damit das Auffrischen beim Start die Rolle nicht überschreibt.
+            override suspend fun me() =
+                ApiResult.Success(
+                    sessions.current.let { Me(it?.memberId ?: "m", it?.memberName ?: "Lea", it?.role ?: Role.CHILD, "d") },
+                )
         }
 
     private val inbox = SharedRecipeInbox()
@@ -197,6 +205,7 @@ class AppNavHostTest {
                             LoadPendingCookingUseCase(sessions, reminderStore),
                         )
                     }
+                    viewModel { TodayMealViewModel(LoadWeekPlanUseCase(planRepository, planCache, sessions)) }
                     viewModel { params ->
                         RecipeEditViewModel(
                             params.get(),
@@ -235,20 +244,73 @@ class AppNavHostTest {
         compose.onNodeWithText("Hallo Lea 👋").assertIsDisplayed()
     }
 
+    private fun openMeals() = compose.onNode(hasText("Essen") and hasClickAction()).performClick()
+
     @Test
-    fun `with session the home screen offers attendance`() {
+    fun `REQ-TASK-001 child sees four main areas`() {
         sessions.setCurrent(session)
         show()
 
-        compose.onNodeWithText("Anwesenheit & Fristen").assertIsDisplayed()
+        listOf("Heute", "Essen", "Aufgaben", "Ich").forEach { compose.onNode(hasText(it) and hasClickAction()).assertIsDisplayed() }
+        compose.onNodeWithText("Familie").assertDoesNotExist()
     }
 
     @Test
-    fun `with session the home screen offers the meal plan`() {
+    fun `REQ-TASK-001 parent sees family as main area`() {
+        sessions.setCurrent(Session("tok", "p", "Anna", Role.PARENT, "d"))
+        show()
+
+        compose.onNode(hasText("Familie") and hasClickAction()).assertIsDisplayed()
+        compose.onNodeWithText("Ich").assertDoesNotExist()
+    }
+
+    @Test
+    fun `REQ-TASK-001 meals area offers plan, shopping, recipes and attendance`() {
         sessions.setCurrent(session)
         show()
 
-        compose.onNodeWithText("Essensplan").assertIsDisplayed()
+        openMeals()
+
+        listOf("Essensplan", "Einkaufsliste", "Rezepte", "Anwesenheit & Fristen").forEach {
+            compose.onNodeWithText(it).assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `REQ-TASK-001 sub page hides the bar and back returns to meals`() {
+        sessions.setCurrent(session)
+        show()
+        openMeals()
+
+        compose.onNodeWithText("Essensplan").performClick()
+        compose.onNodeWithText("Zurück").assertIsDisplayed()
+        compose.onNode(hasText("Aufgaben") and hasClickAction()).assertDoesNotExist()
+
+        compose.onNodeWithText("Zurück").performClick()
+        compose.onNodeWithText("Einkaufsliste").assertIsDisplayed()
+        compose.onNode(hasText("Aufgaben") and hasClickAction()).assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-TASK-001 tasks and me show coming soon`() {
+        sessions.setCurrent(session)
+        show()
+
+        compose.onNode(hasText("Aufgaben") and hasClickAction()).performClick()
+        compose.onNodeWithText("Hier entsteht das Aufgaben-Board.").assertIsDisplayed()
+
+        compose.onNode(hasText("Ich") and hasClickAction()).performClick()
+        compose.onNodeWithText("Hier findest du bald Punkte, Badges und deinen Avatar.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-TASK-002 today shows the meal card and a tap opens the meal plan`() {
+        sessions.setCurrent(session)
+        show()
+
+        compose.onNodeWithText("Heute gibt es").performClick()
+
+        compose.onNodeWithText("Zurück").assertIsDisplayed()
     }
 
     @Test
@@ -271,6 +333,9 @@ class AppNavHostTest {
 
         compose.onNodeWithText("Zurück").assertIsDisplayed()
         assertFalse(planRequests.pending.value)
+
+        compose.onNodeWithText("Zurück").performClick()
+        compose.onNodeWithText("Einkaufsliste").assertIsDisplayed()
     }
 
     @Test

@@ -35,7 +35,7 @@ import de.familyplanner.android.feature.auth.domain.FamilyMember
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun FamilyRoute(onBack: () -> Unit) {
+fun FamilyRoute(onBack: (() -> Unit)? = null) {
     val viewModel = koinViewModel<FamilyViewModel>()
     val state by viewModel.state.collectAsStateWithLifecycle()
     FamilyScreen(state = state, onEvent = viewModel::onEvent, onBack = onBack)
@@ -46,7 +46,7 @@ fun FamilyRoute(onBack: () -> Unit) {
 fun FamilyScreen(
     state: FamilyUiState,
     onEvent: (FamilyEvent) -> Unit,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
 ) {
     PullToRefreshBox(
         isRefreshing = state.isLoading,
@@ -70,7 +70,9 @@ fun FamilyScreen(
             items(state.devices, key = { "d-${it.id}" }) { device ->
                 DeviceRow(device, state.memberName(device.memberId)) { onEvent(FamilyEvent.RequestRevoke(device)) }
             }
-            item { TextButton(onClick = onBack) { Text(stringResource(R.string.back)) } }
+            if (onBack != null) {
+                item { TextButton(onClick = onBack) { Text(stringResource(R.string.back)) } }
+            }
         }
     }
     FamilyDialogsHost(state, onEvent)

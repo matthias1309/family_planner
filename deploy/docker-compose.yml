@@ -12,3 +12,20 @@ services:
     volumes:
       - ./data:/app/data
       - ./certs:/app/certs:ro
+
+  # ADR-0015: Testinstanz für die Testhandys; startet nur mit COMPOSE_PROFILES=test (in .env).
+  # Gleiches Image, eigene Daten (./data-test), eigener Setup-Token in .env.test, Port 8097.
+  family-planner-test:
+    image: ghcr.io/matthias1309/family-planner:stable
+    container_name: family-planner-test
+    profiles: [test]
+    init: true
+    restart: unless-stopped
+    ports:
+      - "8097:8095"
+    env_file: [.env, .env.test]
+    environment:
+      FP_TLS_ENABLED: "true"
+    volumes:
+      - ./data-test:/app/data
+      - ./certs:/app/certs:ro

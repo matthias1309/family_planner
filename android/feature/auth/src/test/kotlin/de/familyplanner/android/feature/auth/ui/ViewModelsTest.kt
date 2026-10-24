@@ -172,7 +172,7 @@ class ViewModelsTest {
         }
 
     @Test
-    fun `HomeViewModel is online after successful refresh and parent can manage family`() =
+    fun `HomeViewModel is online after successful refresh`() =
         runTest {
             sessions.setCurrent(aSession.copy(role = Role.PARENT))
             auth.meResult = ApiResult.Success(Me("m-1", "Lea", Role.PARENT, "d-1"))
@@ -180,7 +180,6 @@ class ViewModelsTest {
             val viewModel = HomeViewModel(sessions, RefreshMeUseCase(auth, sessions))
 
             assertFalse(viewModel.state.value.isOffline)
-            assertTrue(viewModel.state.value.canManageFamily)
         }
 
     @Test

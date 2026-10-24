@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="meals_home_title">Essen</string>
+    <string name="today_title">Heute gibt es</string>
+    <string name="today_nothing">Heute ist noch nichts geplant.</string>
+    <string name="today_unavailable">Essensplan gerade nicht erreichbar.</string>
+    <string name="today_cook">Es kocht: %1$s</string>
+    <string name="today_pending">Noch nicht freigegeben.</string>
     <string name="home_plan">Essensplan</string>
     <string name="home_attendance">Anwesenheit &amp; Fristen</string>
     <string name="back">Zurück</string>

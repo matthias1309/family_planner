@@ -20,9 +20,7 @@
     <string name="home_greeting">Hallo %1$s 👋</string>
     <string name="home_role_parent">Elternteil</string>
     <string name="home_role_child">Kind</string>
-    <string name="home_more">Weitere Funktionen folgen.</string>
     <string name="home_offline">Offline – es werden die zuletzt bekannten Daten gezeigt.</string>
-    <string name="home_manage_family">Familie verwalten</string>
 
     <string name="family_title">Familie</string>
     <string name="family_members">Mitglieder</string>
