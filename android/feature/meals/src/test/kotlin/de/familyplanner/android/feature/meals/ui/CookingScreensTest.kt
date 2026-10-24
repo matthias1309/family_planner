@@ -21,6 +21,7 @@ import de.familyplanner.android.feature.meals.domain.plan.DishStatus
 import de.familyplanner.android.feature.meals.domain.plan.EditorMode
 import de.familyplanner.android.feature.meals.domain.plan.PlannedDay
 import de.familyplanner.android.feature.meals.domain.plan.WeekPlanSnapshot
+import de.familyplanner.android.feature.meals.domain.reminder.PendingCooking
 import de.familyplanner.android.feature.meals.fakes.benDeadline
 import de.familyplanner.android.feature.meals.fakes.childDish
 import de.familyplanner.android.feature.meals.fakes.cookStatus
@@ -34,6 +35,7 @@ import de.familyplanner.android.feature.meals.ui.dish.DishEditUiState
 import de.familyplanner.android.feature.meals.ui.plan.WeekPlanEvent
 import de.familyplanner.android.feature.meals.ui.plan.WeekPlanScreen
 import de.familyplanner.android.feature.meals.ui.plan.WeekPlanUiState
+import de.familyplanner.android.feature.meals.ui.plan.WhatsAppHintCard
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -498,5 +500,17 @@ class CookingScreensTest {
 
         compose.onNodeWithText("Wochenstatus nur im Heim-WLAN.").assertIsDisplayed()
         compose.onNodeWithText("Wochenstatus").assertDoesNotExist()
+    }
+
+    @Test
+    fun `REQ-MEAL-051 whatsapp hint card shows deadline and shares on click`() {
+        var shared = 0
+        show { WhatsAppHintCard(PendingCooking(benDeadline, true), onShare = { shared++ }) }
+
+        compose.onNodeWithText("Nicht zu Hause?").assertIsDisplayed()
+        compose.onNodeWithText("Dein Gericht wurde abgelehnt – schick die überarbeitete Fassung.").assertIsDisplayed()
+        compose.onNodeWithText("Einreichen bis Do 15.10., 16:00").assertIsDisplayed()
+        compose.onNodeWithText("Per WhatsApp schicken").performClick()
+        assertEquals(1, shared)
     }
 }

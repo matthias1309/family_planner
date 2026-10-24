@@ -382,3 +382,27 @@ Regeln:
 
 Unit-Testfälle: `UseCasesTest` (shopping), `ShoppingViewModelTest`, `ShoppingScreensTest`, Link in der Statuskarte (`CookingScreensTest`);
 Integration gegen MockWebServer: `RemoteShoppingRepositoryTest`.
+
+## App-Seite (Phase 7)
+
+Erinnerungen und Status-Meldungen in `feature:meals`: Pakete `domain/reminder`, `data/reminder`. `api/` und `backend/` bleiben unverändert
+(`GET …/status` und `GET …/plan` dürfen alle lesen). Mechanik: [ADR-0013](../02-architecture/adr/0013-local-reminders-and-status-sync.md).
+
+| Regel | Festlegung |
+|---|---|
+| Zeitpunkte | 3/2/1 Kalendertage vor der Kind-Frist zur Frist-Uhrzeit (Berlin, `ZonedDateTime.minusDays`; über die Zeitumstellung bleibt die Uhrzeit) |
+| Zustände | Erinnerung nur bei `NOT_SUBMITTED` und `REJECTED` („überarbeiten“); vergangene Zeitpunkte entfallen, nach Fristablauf keine Erinnerung |
+| Abgleich | nur Planwoche; periodisch 30 min (mit Netz), beim App-Start und nach Speichern/Löschen/Absagen/Zurücknehmen |
+| Basislinie | erster Abgleich einer Woche (oder eines anderen Mitglieds) meldet nichts |
+| Kind-Meldung | eigenes Gericht wird `APPROVED`/`REJECTED` oder Ablehnungsgrund ändert sich |
+| Eltern-Meldung | Gericht ist neu `SUBMITTED` (neu oder vorher anderer Status) |
+| Fehler | Server nicht erreichbar: Stand und Alarme bleiben; 401/abgemeldet: Alarme und Stand werden gelöscht |
+| Alarm / Neustart | Alarm → Erinnerung nur, wenn laut lokalem Stand noch offen; `BOOT_COMPLETED`/`MY_PACKAGE_REPLACED` → künftige Alarme neu einplanen, dann Abgleich |
+| WhatsApp-Hinweis | immer im Erinnerungstext; im Essensplan als Karte „Nicht zu Hause?“, wenn das Kind offline ist und noch einreichen/überarbeiten muss |
+| Navigation | Tippen auf eine Benachrichtigung öffnet den Essensplan (`PlanOpenRequests`) |
+
+Bausteine: `ReminderRules` (rein), `SyncRemindersUseCase` (Mutex), `ShowDueReminderUseCase`, `RestoreRemindersUseCase`, `LoadPendingCookingUseCase`;
+`DataStoreReminderStore`, `AlarmReminderScheduler`, `AndroidNotifier`, `WorkManagerReminderSync`, Receiver.
+
+Unit-Testfälle: `ReminderRulesTest`, `UseCasesTest` (reminder), Auslöser in `UseCasesTest` (plan/cooking), `CookingViewModelsTest`, `CookingScreensTest`;
+Integration: `DataStoreReminderStoreTest`, `AlarmReminderSchedulerTest`, `AndroidNotifierTest`, `AppNavHostTest`.

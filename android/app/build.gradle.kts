@@ -29,8 +29,8 @@ android {
         applicationId = "de.familyplanner.android"
         minSdk = 29
         targetSdk = 37
-        versionCode = 7
-        versionName = "0.6.0"
+        versionCode = 8
+        versionName = "0.7.0"
         buildConfigField("String", "FP_SERVER_URL", "\"$serverUrl\"")
     }
 
@@ -113,6 +113,10 @@ kover {
                     "*.MainActivity",
                     "*.FamilyPlannerApp",
                     "*.WebViewPageScriptLoader*", // WebView: nur auf dem Gerät prüfbar (ADR-0012)
+                    // Android-Einstiegspunkte (Alarm, Neustart, WorkManager): nur auf dem Gerät prüfbar (ADR-0013)
+                    "*Receiver*",
+                    "*ReminderSyncWorker*",
+                    "*WorkManagerReminderSync*",
                     "*.theme.*",
                     "*Route*",
                 )

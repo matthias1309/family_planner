@@ -16,7 +16,22 @@ import de.familyplanner.android.feature.auth.domain.AuthRepository
 import de.familyplanner.android.feature.auth.domain.Me
 import de.familyplanner.android.feature.auth.domain.RefreshMeUseCase
 import de.familyplanner.android.feature.auth.ui.home.HomeViewModel
+import de.familyplanner.android.feature.meals.PlanOpenRequests
 import de.familyplanner.android.feature.meals.SharedRecipeInbox
+import de.familyplanner.android.feature.meals.domain.cooking.CancelCookingUseCase
+import de.familyplanner.android.feature.meals.domain.cooking.CookingRepository
+import de.familyplanner.android.feature.meals.domain.cooking.CookingUseCases
+import de.familyplanner.android.feature.meals.domain.cooking.LoadWeekStatusUseCase
+import de.familyplanner.android.feature.meals.domain.cooking.WeekStatus
+import de.familyplanner.android.feature.meals.domain.cooking.WithdrawCancellationUseCase
+import de.familyplanner.android.feature.meals.domain.plan.Dish
+import de.familyplanner.android.feature.meals.domain.plan.DishDraft
+import de.familyplanner.android.feature.meals.domain.plan.LoadWeekPlanUseCase
+import de.familyplanner.android.feature.meals.domain.plan.MealPlanRepository
+import de.familyplanner.android.feature.meals.domain.plan.PlanCache
+import de.familyplanner.android.feature.meals.domain.plan.PlanMember
+import de.familyplanner.android.feature.meals.domain.plan.WeekPlan
+import de.familyplanner.android.feature.meals.domain.plan.WeekPlanSnapshot
 import de.familyplanner.android.feature.meals.domain.recipe.DeleteRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.ImportRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
@@ -29,6 +44,11 @@ import de.familyplanner.android.feature.meals.domain.recipe.RecipeSummary
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeUseCases
 import de.familyplanner.android.feature.meals.domain.recipe.SaveRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.SourceResult
+import de.familyplanner.android.feature.meals.domain.reminder.LoadPendingCookingUseCase
+import de.familyplanner.android.feature.meals.domain.reminder.ReminderSnapshot
+import de.familyplanner.android.feature.meals.domain.reminder.ReminderStore
+import de.familyplanner.android.feature.meals.domain.reminder.ReminderSync
+import de.familyplanner.android.feature.meals.ui.plan.WeekPlanViewModel
 import de.familyplanner.android.feature.meals.ui.recipe.RecipeEditViewModel
 import org.junit.After
 import org.junit.Before
@@ -41,6 +61,8 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.LocalDate
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
 @RunWith(RobolectricTestRunner::class)
@@ -70,6 +92,7 @@ class AppNavHostTest {
         }
 
     private val inbox = SharedRecipeInbox()
+    private val planRequests = PlanOpenRequests()
 
     private val recipeRepository =
         object : RecipeRepository {
@@ -92,6 +115,68 @@ class AppNavHostTest {
             override suspend fun read(url: String) = SourceResult.NotFound
         }
 
+    private val planRepository =
+        object : MealPlanRepository {
+            override suspend fun week(weekStart: LocalDate): ApiResult<WeekPlan> = ApiResult.Failure(AppError.Network)
+
+            override suspend fun members(): ApiResult<List<PlanMember>> = ApiResult.Failure(AppError.Network)
+
+            override suspend fun createDish(draft: DishDraft): ApiResult<Dish> = ApiResult.Failure(AppError.Network)
+
+            override suspend fun updateDish(
+                dishId: String,
+                draft: DishDraft,
+            ): ApiResult<Dish> = ApiResult.Failure(AppError.Network)
+
+            override suspend fun deleteDish(dishId: String): ApiResult<Unit> = ApiResult.Failure(AppError.Network)
+        }
+
+    private val cookingRepository =
+        object : CookingRepository {
+            override suspend fun status(weekStart: LocalDate): ApiResult<WeekStatus> = ApiResult.Failure(AppError.Network)
+
+            override suspend fun approve(dishId: String): ApiResult<Unit> = ApiResult.Failure(AppError.Network)
+
+            override suspend fun reject(
+                dishId: String,
+                reason: String,
+            ): ApiResult<Unit> = ApiResult.Failure(AppError.Network)
+
+            override suspend fun cancel(
+                weekStart: LocalDate,
+                memberId: String,
+                reason: String,
+            ): ApiResult<Unit> = ApiResult.Failure(AppError.Network)
+
+            override suspend fun withdraw(
+                weekStart: LocalDate,
+                memberId: String,
+            ): ApiResult<Unit> = ApiResult.Failure(AppError.Network)
+        }
+
+    private val planCache =
+        object : PlanCache {
+            override suspend fun read(
+                memberId: String,
+                weekStart: LocalDate,
+            ): WeekPlanSnapshot? = null
+
+            override suspend fun write(
+                memberId: String,
+                week: WeekPlanSnapshot,
+                today: LocalDate,
+            ) = Unit
+        }
+
+    private val reminderStore =
+        object : ReminderStore {
+            override suspend fun read(): ReminderSnapshot? = null
+
+            override suspend fun write(snapshot: ReminderSnapshot) = Unit
+
+            override suspend fun clear() = Unit
+        }
+
     @Before
     fun setUp() {
         startKoin {
@@ -99,6 +184,19 @@ class AppNavHostTest {
                 module {
                     factory { HomeViewModel(sessions, RefreshMeUseCase(authRepository, sessions)) }
                     single { inbox }
+                    single { planRequests }
+                    viewModel {
+                        WeekPlanViewModel(
+                            sessions,
+                            LoadWeekPlanUseCase(planRepository, planCache, sessions),
+                            CookingUseCases(
+                                LoadWeekStatusUseCase(cookingRepository, planRepository),
+                                CancelCookingUseCase(cookingRepository, NoReminderSync),
+                                WithdrawCancellationUseCase(cookingRepository, NoReminderSync),
+                            ),
+                            LoadPendingCookingUseCase(sessions, reminderStore),
+                        )
+                    }
                     viewModel { params ->
                         RecipeEditViewModel(
                             params.get(),
@@ -165,6 +263,17 @@ class AppNavHostTest {
     }
 
     @Test
+    fun `REQ-MEAL-050 notification tap opens the meal plan and empties the request`() {
+        sessions.setCurrent(session)
+        planRequests.request()
+        show()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Zurück").assertIsDisplayed()
+        assertFalse(planRequests.pending.value)
+    }
+
+    @Test
     fun `session switch moves between welcome and home`() {
         show()
         compose.onNodeWithText("Mit Code verbinden").assertIsDisplayed()
@@ -187,4 +296,10 @@ class AppNavHostTest {
 
         compose.onNodeWithText("Dieses Gerät wurde abgemeldet. Bitte neu koppeln.").assertIsDisplayed()
     }
+}
+
+private object NoReminderSync : ReminderSync {
+    override fun requestNow() = Unit
+
+    override fun schedulePeriodic() = Unit
 }

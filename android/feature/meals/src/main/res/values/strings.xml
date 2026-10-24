@@ -227,4 +227,22 @@
         <item quantity="one">Für %1$d Portion</item>
         <item quantity="other">Für %1$d Portionen</item>
     </plurals>
+
+    <string name="reminder_channel">Erinnerungen</string>
+    <string name="status_channel">Freigaben</string>
+    <string name="reminder_title_submit">Dein Kochtag: Gericht einreichen</string>
+    <string name="reminder_title_revise">Dein Kochtag: Gericht überarbeiten</string>
+    <string name="reminder_text">Frist: %1$s. Nicht zu Hause? Schick Gericht und Zutaten per WhatsApp an deine Eltern.</string>
+    <string name="notice_approved_title">„%1$s“ ist freigegeben</string>
+    <string name="notice_approved_text">Dein Gericht für %1$s steht.</string>
+    <string name="notice_rejected_title">„%1$s“ wurde abgelehnt</string>
+    <string name="notice_rejected_text">Begründung: %1$s</string>
+    <string name="notice_submitted_title">%1$s hat ein Gericht eingereicht</string>
+    <string name="notice_submitted_text">„%1$s“ für %2$s wartet auf Freigabe.</string>
+
+    <string name="whatsapp_hint_title">Nicht zu Hause?</string>
+    <string name="whatsapp_hint_text">Schick dein Gericht und die Zutaten per WhatsApp an deine Eltern – sie tragen es für dich ein.</string>
+    <string name="whatsapp_hint_rejected">Dein Gericht wurde abgelehnt – schick die überarbeitete Fassung.</string>
+    <string name="whatsapp_hint_send">Per WhatsApp schicken</string>
+    <string name="whatsapp_template">Mein Gericht für meinen Kochtag:\n\nZutaten:\n</string>
 </resources>

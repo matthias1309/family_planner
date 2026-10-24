@@ -10,6 +10,7 @@ import de.familyplanner.android.feature.meals.domain.recipe.Ingredient
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeRef
 import de.familyplanner.android.feature.meals.fakes.FakeAttendanceRepository
 import de.familyplanner.android.feature.meals.fakes.FakeMealPlanRepository
+import de.familyplanner.android.feature.meals.fakes.FakeReminderSync
 import de.familyplanner.android.feature.meals.fakes.InMemoryPlanCache
 import de.familyplanner.android.feature.meals.fakes.benDeadline
 import de.familyplanner.android.feature.meals.fakes.childDish
@@ -35,6 +36,7 @@ import kotlin.test.assertTrue
 class UseCasesTest {
     private val repository = FakeMealPlanRepository()
     private val cache = InMemoryPlanCache()
+    private val sync = FakeReminderSync()
     private val attendance = FakeAttendanceRepository()
     private val sessions = InMemorySessionStore(parentSession)
 
@@ -185,7 +187,7 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-020 child dish requires ingredients when saving`() =
         runTest {
-            val result = SaveDishUseCase(repository)(null, DishInput(planWeek, "c-1", "Curry", ""), ingredientsRequired = true)
+            val result = SaveDishUseCase(repository, sync)(null, DishInput(planWeek, "c-1", "Curry", ""), ingredientsRequired = true)
 
             assertIs<AppError.Validation>((result as ApiResult.Failure).error)
             assertTrue(repository.created.isEmpty())
@@ -202,7 +204,7 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-032 invalid dish is not sent`() =
         runTest {
-            val result = SaveDishUseCase(repository)(null, DishInput(thisWeek, "p-1", " ", ""))
+            val result = SaveDishUseCase(repository, sync)(null, DishInput(thisWeek, "p-1", " ", ""))
 
             assertIs<AppError.Validation>((result as ApiResult.Failure).error)
             assertTrue(repository.created.isEmpty())
@@ -211,7 +213,7 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-032 new dish is created with trimmed name and cleaned ingredients`() =
         runTest {
-            SaveDishUseCase(repository)(null, DishInput(thisWeek, "p-1", "  Curry ", " Reis \n\n Erbsen "))
+            SaveDishUseCase(repository, sync)(null, DishInput(thisWeek, "p-1", "  Curry ", " Reis \n\n Erbsen "))
 
             assertEquals(DishDraft(thisWeek, "p-1", "Curry", listOf(Ingredient("Reis"), Ingredient("Erbsen"))), repository.created.single())
         }
@@ -219,7 +221,7 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-062 save sends parsed ingredients and recipe ref`() =
         runTest {
-            SaveDishUseCase(repository)(null, DishInput(thisWeek, "p-1", "Carbonara", "625 g Spaghetti\nSalz", RecipeRef("r-1", 5)))
+            SaveDishUseCase(repository, sync)(null, DishInput(thisWeek, "p-1", "Carbonara", "625 g Spaghetti\nSalz", RecipeRef("r-1", 5)))
 
             val draft = repository.created.single()
             assertEquals(listOf(Ingredient("Spaghetti", 625.0, "g"), Ingredient("Salz")), draft.ingredients)
@@ -245,7 +247,7 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-032 existing dish is updated`() =
         runTest {
-            SaveDishUseCase(repository)("d-1", DishInput(thisWeek.plusDays(1), "p-2", "Curry", ""))
+            SaveDishUseCase(repository, sync)("d-1", DishInput(thisWeek.plusDays(1), "p-2", "Curry", ""))
 
             assertEquals("d-1" to DishDraft(thisWeek.plusDays(1), "p-2", "Curry", emptyList()), repository.updated.single())
         }
@@ -253,8 +255,34 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-032 delete passes the dish id`() =
         runTest {
-            DeleteDishUseCase(repository)("d-1")
+            DeleteDishUseCase(repository, sync)("d-1")
 
             assertEquals(listOf("d-1"), repository.deleted)
+        }
+
+    @Test
+    fun `REQ-MEAL-050 saving a dish requests a reminder sync`() =
+        runTest {
+            SaveDishUseCase(repository, sync)(null, DishInput(thisWeek, "p-1", "Curry", ""))
+
+            assertEquals(1, sync.requests)
+        }
+
+    @Test
+    fun `REQ-MEAL-050 failed or invalid save does not request a sync`() =
+        runTest {
+            repository.createResult = ApiResult.Failure(AppError.Network)
+            SaveDishUseCase(repository, sync)(null, DishInput(thisWeek, "p-1", "Curry", ""))
+            SaveDishUseCase(repository, sync)(null, DishInput(thisWeek, "p-1", " ", ""))
+
+            assertEquals(0, sync.requests)
+        }
+
+    @Test
+    fun `REQ-MEAL-050 deleting a dish requests a reminder sync`() =
+        runTest {
+            DeleteDishUseCase(repository, sync)("d-1")
+
+            assertEquals(1, sync.requests)
         }
 }

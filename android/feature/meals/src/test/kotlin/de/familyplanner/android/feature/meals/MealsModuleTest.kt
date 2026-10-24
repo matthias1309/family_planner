@@ -8,7 +8,16 @@ import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.core.testing.MainDispatcherRule
 import de.familyplanner.android.feature.meals.data.recipe.PageScriptLoader
 import de.familyplanner.android.feature.meals.domain.plan.PlanCache
+import de.familyplanner.android.feature.meals.domain.reminder.Notifier
+import de.familyplanner.android.feature.meals.domain.reminder.ReminderScheduler
+import de.familyplanner.android.feature.meals.domain.reminder.ReminderStore
+import de.familyplanner.android.feature.meals.domain.reminder.ReminderSync
+import de.familyplanner.android.feature.meals.domain.reminder.SyncRemindersUseCase
+import de.familyplanner.android.feature.meals.fakes.FakeNotifier
 import de.familyplanner.android.feature.meals.fakes.FakePageScriptLoader
+import de.familyplanner.android.feature.meals.fakes.FakeReminderScheduler
+import de.familyplanner.android.feature.meals.fakes.FakeReminderStore
+import de.familyplanner.android.feature.meals.fakes.FakeReminderSync
 import de.familyplanner.android.feature.meals.fakes.InMemoryPlanCache
 import de.familyplanner.android.feature.meals.fakes.parentSession
 import de.familyplanner.android.feature.meals.ui.dish.DishEditArgs
@@ -55,6 +64,10 @@ class MealsModuleTest {
         module {
             single<PlanCache> { InMemoryPlanCache() }
             single<PageScriptLoader> { FakePageScriptLoader() }
+            single<ReminderStore> { FakeReminderStore() }
+            single<ReminderScheduler> { FakeReminderScheduler() }
+            single<Notifier> { FakeNotifier() }
+            single<ReminderSync> { FakeReminderSync() }
         }
 
     @Test
@@ -75,5 +88,7 @@ class MealsModuleTest {
         assertNotNull(koin.get<ShoppingListViewModel> { parametersOf(ShoppingListArgs()) })
         assertNotNull(koin.get<ShoppingListViewModel> { parametersOf(ShoppingListArgs(LocalDate.of(2026, 10, 19))) })
         assertNotNull(koin.get<SharedRecipeInbox>())
+        assertNotNull(koin.get<PlanOpenRequests>())
+        assertNotNull(koin.get<SyncRemindersUseCase>())
     }
 }

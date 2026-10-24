@@ -1,5 +1,8 @@
 package de.familyplanner.android.feature.meals.ui.plan
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -42,6 +46,22 @@ import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
 
 private const val INGREDIENT_PREVIEW_LINES = 2
+private const val WHATSAPP_PACKAGE = "com.whatsapp"
+
+/** Textvorlage für die Eltern; ohne WhatsApp öffnet sich die allgemeine Teilen-Auswahl. */
+private fun shareViaWhatsApp(context: Context) {
+    val send =
+        Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TEXT, context.getString(R.string.whatsapp_template))
+    try {
+        context.startActivity(Intent(send).setPackage(WHATSAPP_PACKAGE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    } catch (
+        @Suppress("SwallowedException") e: ActivityNotFoundException,
+    ) {
+        context.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+}
 
 @Composable
 fun WeekPlanRoute(
@@ -51,6 +71,7 @@ fun WeekPlanRoute(
     onOpenShopping: (LocalDate) -> Unit = {},
 ) {
     val viewModel = koinViewModel<WeekPlanViewModel>()
+    val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     // Nach dem Zurückkehren aus dem Editor hat sich der Plan evtl. geändert.
     LifecycleResumeEffect(Unit) {
@@ -64,6 +85,7 @@ fun WeekPlanRoute(
         onOpenRecipe = onOpenRecipe,
         onBack = onBack,
         onOpenShopping = onOpenShopping,
+        onShareWhatsApp = { shareViaWhatsApp(context) },
     )
 }
 
@@ -76,6 +98,7 @@ fun WeekPlanScreen(
     onOpenRecipe: (RecipeViewArgs) -> Unit,
     onBack: () -> Unit,
     onOpenShopping: (LocalDate) -> Unit = {},
+    onShareWhatsApp: () -> Unit = {},
 ) {
     PullToRefreshBox(
         isRefreshing = state.isLoading,
@@ -93,6 +116,9 @@ fun WeekPlanScreen(
                 item { OfflineNotice(stringResource(notice, formatDeadline(week.syncedAt)), state.isParent) }
             }
             item { ErrorText(state.error) }
+            state.pendingCooking?.takeIf { state.showsWhatsAppHint }?.let { pending ->
+                item { WhatsAppHintCard(pending, onShareWhatsApp) }
+            }
             if (state.isOffline && state.weekStart >= state.planWeek) item { Text(stringResource(R.string.status_offline)) }
             if (state.showsStatus && (state.status != null || state.statusError != null)) {
                 item { StatusCards(state, onEvent, onOpenEditor, onOpenShopping) }

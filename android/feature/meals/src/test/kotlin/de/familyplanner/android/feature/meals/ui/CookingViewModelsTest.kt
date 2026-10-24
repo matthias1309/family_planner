@@ -21,11 +21,16 @@ import de.familyplanner.android.feature.meals.domain.plan.LoadDishEditorUseCase
 import de.familyplanner.android.feature.meals.domain.plan.LoadWeekPlanUseCase
 import de.familyplanner.android.feature.meals.domain.plan.SaveDishUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
+import de.familyplanner.android.feature.meals.domain.reminder.LoadPendingCookingUseCase
+import de.familyplanner.android.feature.meals.domain.reminder.ReminderSnapshot
 import de.familyplanner.android.feature.meals.fakes.FakeAttendanceRepository
 import de.familyplanner.android.feature.meals.fakes.FakeCookingRepository
 import de.familyplanner.android.feature.meals.fakes.FakeMealPlanRepository
 import de.familyplanner.android.feature.meals.fakes.FakeRecipeRepository
+import de.familyplanner.android.feature.meals.fakes.FakeReminderStore
+import de.familyplanner.android.feature.meals.fakes.FakeReminderSync
 import de.familyplanner.android.feature.meals.fakes.InMemoryPlanCache
+import de.familyplanner.android.feature.meals.fakes.benDeadline
 import de.familyplanner.android.feature.meals.fakes.childDish
 import de.familyplanner.android.feature.meals.fakes.childSession
 import de.familyplanner.android.feature.meals.fakes.childWeek
@@ -61,6 +66,8 @@ class CookingViewModelsTest {
     private val repository = FakeMealPlanRepository()
     private val attendance = FakeAttendanceRepository()
     private val cooking = FakeCookingRepository()
+    private val reminderSync = FakeReminderSync()
+    private val reminderStore = FakeReminderStore()
     private val cache = InMemoryPlanCache()
     private var sessions = InMemorySessionStore(parentSession)
 
@@ -101,10 +108,20 @@ class CookingViewModelsTest {
     }
 
     private fun cookingUseCases() =
-        CookingUseCases(LoadWeekStatusUseCase(cooking, repository), CancelCookingUseCase(cooking), WithdrawCancellationUseCase(cooking))
+        CookingUseCases(
+            LoadWeekStatusUseCase(cooking, repository),
+            CancelCookingUseCase(cooking, reminderSync),
+            WithdrawCancellationUseCase(cooking, reminderSync),
+        )
 
     private fun planViewModel(clock: Clock = saturday) =
-        WeekPlanViewModel(sessions, LoadWeekPlanUseCase(repository, cache, sessions, clock), cookingUseCases(), clock)
+        WeekPlanViewModel(
+            sessions,
+            LoadWeekPlanUseCase(repository, cache, sessions, clock),
+            cookingUseCases(),
+            LoadPendingCookingUseCase(sessions, reminderStore, clock),
+            clock,
+        )
 
     private fun editViewModel(
         date: LocalDate = tuesday,
@@ -116,8 +133,8 @@ class CookingViewModelsTest {
         sessions,
         DishUseCases(
             LoadDishEditorUseCase(repository, attendance),
-            SaveDishUseCase(repository),
-            DeleteDishUseCase(repository),
+            SaveDishUseCase(repository, reminderSync),
+            DeleteDishUseCase(repository, reminderSync),
             ReviewDishUseCase(cooking),
             LoadRecipeUseCase(FakeRecipeRepository()),
         ),
@@ -717,5 +734,49 @@ class CookingViewModelsTest {
         assertNull(viewModel.state.value.actionError)
         assertFalse(viewModel.state.value.isBusy)
         assertEquals(planWeek.plusWeeks(1), viewModel.state.value.weekStart)
+    }
+
+    private fun pendingSnapshot() = ReminderSnapshot("c-1", planWeek, benDeadline, CookState.NOT_SUBMITTED, emptyList(), emptyMap())
+
+    @Test
+    fun `REQ-MEAL-051 child offline with pending cooking shows whatsapp hint`() {
+        login(childSession)
+        reminderStore.snapshot = pendingSnapshot()
+        repository.weekResult = { ApiResult.Failure(AppError.Network) }
+        cooking.statusResult = { ApiResult.Failure(AppError.Network) }
+
+        val viewModel = planViewModel(saturday)
+
+        assertEquals(true, viewModel.state.value.showsWhatsAppHint)
+    }
+
+    @Test
+    fun `REQ-MEAL-051 child online never shows the whatsapp hint`() {
+        login(childSession)
+        reminderStore.snapshot = pendingSnapshot()
+
+        val viewModel = planViewModel(saturday)
+
+        assertNotNull(viewModel.state.value.pendingCooking)
+        assertFalse(viewModel.state.value.showsWhatsAppHint)
+    }
+
+    @Test
+    fun `REQ-MEAL-051 child offline without pending cooking shows no hint`() {
+        login(childSession)
+        repository.weekResult = { ApiResult.Failure(AppError.Network) }
+
+        assertFalse(planViewModel(saturday).state.value.showsWhatsAppHint)
+    }
+
+    @Test
+    fun `REQ-MEAL-051 parent never shows the whatsapp hint`() {
+        reminderStore.snapshot = pendingSnapshot().copy(memberId = "p-1")
+        repository.weekResult = { ApiResult.Failure(AppError.Network) }
+
+        val viewModel = planViewModel(saturday)
+
+        assertNull(viewModel.state.value.pendingCooking)
+        assertFalse(viewModel.state.value.showsWhatsAppHint)
     }
 }

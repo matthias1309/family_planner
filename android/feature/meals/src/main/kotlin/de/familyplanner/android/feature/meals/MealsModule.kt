@@ -11,6 +11,11 @@ import de.familyplanner.android.feature.meals.data.recipe.PageScriptLoader
 import de.familyplanner.android.feature.meals.data.recipe.RemoteRecipeRepository
 import de.familyplanner.android.feature.meals.data.recipe.WebRecipeSource
 import de.familyplanner.android.feature.meals.data.recipe.WebViewPageScriptLoader
+import de.familyplanner.android.feature.meals.data.reminder.AlarmReminderScheduler
+import de.familyplanner.android.feature.meals.data.reminder.AndroidNotifier
+import de.familyplanner.android.feature.meals.data.reminder.DataStoreReminderStore
+import de.familyplanner.android.feature.meals.data.reminder.ReminderStoreSerializer
+import de.familyplanner.android.feature.meals.data.reminder.WorkManagerReminderSync
 import de.familyplanner.android.feature.meals.data.shopping.RemoteShoppingRepository
 import de.familyplanner.android.feature.meals.domain.attendance.AddExceptionUseCase
 import de.familyplanner.android.feature.meals.domain.attendance.AttendanceRepository
@@ -43,6 +48,14 @@ import de.familyplanner.android.feature.meals.domain.recipe.RecipeRepository
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeSource
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeUseCases
 import de.familyplanner.android.feature.meals.domain.recipe.SaveRecipeUseCase
+import de.familyplanner.android.feature.meals.domain.reminder.LoadPendingCookingUseCase
+import de.familyplanner.android.feature.meals.domain.reminder.Notifier
+import de.familyplanner.android.feature.meals.domain.reminder.ReminderScheduler
+import de.familyplanner.android.feature.meals.domain.reminder.ReminderStore
+import de.familyplanner.android.feature.meals.domain.reminder.ReminderSync
+import de.familyplanner.android.feature.meals.domain.reminder.RestoreRemindersUseCase
+import de.familyplanner.android.feature.meals.domain.reminder.ShowDueReminderUseCase
+import de.familyplanner.android.feature.meals.domain.reminder.SyncRemindersUseCase
 import de.familyplanner.android.feature.meals.domain.shopping.AddShoppingItemUseCase
 import de.familyplanner.android.feature.meals.domain.shopping.DeleteShoppingItemUseCase
 import de.familyplanner.android.feature.meals.domain.shopping.LoadShoppingListUseCase
@@ -66,6 +79,7 @@ import org.koin.dsl.module
 import retrofit2.Retrofit
 
 private const val PLAN_CACHE_FILE = "meal_plan_cache.json"
+private const val REMINDER_STORE_FILE = "meal_reminders.json"
 
 val mealsModule =
     module {
@@ -100,13 +114,13 @@ val mealsModule =
         factory {
             DishUseCases(
                 LoadDishEditorUseCase(get(), get()),
-                SaveDishUseCase(get()),
-                DeleteDishUseCase(get()),
+                SaveDishUseCase(get(), get()),
+                DeleteDishUseCase(get(), get()),
                 ReviewDishUseCase(get()),
                 LoadRecipeUseCase(get()),
             )
         }
-        viewModel { WeekPlanViewModel(get(), get(), get()) }
+        viewModel { WeekPlanViewModel(get(), get(), get(), get()) }
         viewModel { params -> DishEditViewModel(params.get(), get(), get()) }
 
         // recipe
@@ -129,7 +143,32 @@ val mealsModule =
 
         // cooking
         single<CookingRepository> { RemoteCookingRepository(get(), get()) }
-        factory { CookingUseCases(LoadWeekStatusUseCase(get(), get()), CancelCookingUseCase(get()), WithdrawCancellationUseCase(get())) }
+        factory {
+            CookingUseCases(
+                LoadWeekStatusUseCase(get(), get()),
+                CancelCookingUseCase(get(), get()),
+                WithdrawCancellationUseCase(get(), get()),
+            )
+        }
+
+        // reminder
+        single<ReminderStore> {
+            DataStoreReminderStore(
+                DataStoreFactory.create(
+                    serializer = ReminderStoreSerializer(get()),
+                    produceFile = { androidContext().dataStoreFile(REMINDER_STORE_FILE) },
+                ),
+            )
+        }
+        single<ReminderScheduler> { AlarmReminderScheduler(androidContext()) }
+        single<Notifier> { AndroidNotifier(androidContext()) }
+        single<ReminderSync> { WorkManagerReminderSync(androidContext()) }
+        // single wegen des Mutex: periodischer und sofortiger Abgleich dürfen nicht gleichzeitig laufen.
+        single { SyncRemindersUseCase(get(), get(), get(), get(), get(), get()) }
+        factory { ShowDueReminderUseCase(get(), get(), get()) }
+        factory { RestoreRemindersUseCase(get(), get()) }
+        factory { LoadPendingCookingUseCase(get(), get()) }
+        single { PlanOpenRequests() }
 
         // shopping
         single<ShoppingRepository> { RemoteShoppingRepository(get(), get()) }

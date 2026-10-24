@@ -7,6 +7,7 @@ navigation-compose = "2.10.2"
 lifecycle = "2.11.0"
 core-ktx = "1.19.1"
 datastore = "1.2.1"
+work = "2.12.0"
 tink = "1.23.0"
 koin = "4.2.2"
 retrofit = "3.0.0"
@@ -45,6 +46,7 @@ lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel
 lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 core-ktx = { module = "androidx.core:core-ktx", version.ref = "core-ktx" }
 datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
+work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 tink = { module = "com.google.crypto.tink:tink-android", version.ref = "tink" }
 
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }

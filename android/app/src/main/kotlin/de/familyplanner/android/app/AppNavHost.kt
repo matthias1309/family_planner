@@ -21,6 +21,7 @@ import de.familyplanner.android.feature.auth.WelcomeRoute
 import de.familyplanner.android.feature.auth.authGraph
 import de.familyplanner.android.feature.auth.mainGraph
 import de.familyplanner.android.feature.meals.MealsHomeActions
+import de.familyplanner.android.feature.meals.PlanOpenRequests
 import de.familyplanner.android.feature.meals.RecipeListRoute
 import de.familyplanner.android.feature.meals.SharedRecipeInbox
 import de.familyplanner.android.feature.meals.ShoppingListRoute
@@ -62,13 +63,23 @@ private fun AuthHost(signedOutNotice: Boolean) {
 }
 
 @Composable
-private fun MainHost(inbox: SharedRecipeInbox = koinInject()) {
+private fun MainHost(
+    inbox: SharedRecipeInbox = koinInject(),
+    planRequests: PlanOpenRequests = koinInject(),
+) {
     val navController = rememberNavController()
     val shared by inbox.pending.collectAsStateWithLifecycle()
     LaunchedEffect(shared) {
         shared?.let { text ->
             inbox.consume()
             navController.openRecipeImport(text)
+        }
+    }
+    val openPlan by planRequests.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(openPlan) {
+        if (openPlan) {
+            planRequests.consume()
+            navController.navigate(WeekPlanRoute)
         }
     }
     NavHost(navController = navController, startDestination = HomeRoute) {

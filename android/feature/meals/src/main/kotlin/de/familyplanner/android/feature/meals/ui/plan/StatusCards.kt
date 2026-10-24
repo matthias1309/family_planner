@@ -26,6 +26,7 @@ import de.familyplanner.android.feature.meals.R
 import de.familyplanner.android.feature.meals.domain.cooking.CookOverview
 import de.familyplanner.android.feature.meals.domain.cooking.CookState
 import de.familyplanner.android.feature.meals.domain.cooking.StatusOverview
+import de.familyplanner.android.feature.meals.domain.reminder.PendingCooking
 import de.familyplanner.android.feature.meals.ui.dish.DishEditArgs
 import de.familyplanner.android.feature.meals.ui.formatDeadline
 import de.familyplanner.android.feature.meals.ui.weekdayShort
@@ -205,5 +206,22 @@ private fun CookingButtons(
     ) { Text(stringResource(label)) }
     OutlinedButton(onClick = { actions.onCancel(memberId) }, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.cooking_cancel))
+    }
+}
+
+/** Kind außer Haus mit offener Einreichung: Gericht und Zutaten per WhatsApp an die Eltern (REQ-MEAL-051). */
+@Composable
+fun WhatsAppHintCard(
+    pending: PendingCooking,
+    onShare: () -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(CardPadding)) {
+            Text(stringResource(R.string.whatsapp_hint_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.whatsapp_hint_text))
+            if (pending.rejected) Text(stringResource(R.string.whatsapp_hint_rejected))
+            Text(stringResource(R.string.cooking_deadline, formatDeadline(pending.deadline)))
+            Button(onClick = onShare, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.whatsapp_hint_send)) }
+        }
     }
 }

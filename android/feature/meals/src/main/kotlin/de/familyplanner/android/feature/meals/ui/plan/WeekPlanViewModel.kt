@@ -18,6 +18,8 @@ import de.familyplanner.android.feature.meals.domain.plan.PlanLimits
 import de.familyplanner.android.feature.meals.domain.plan.PlannedDay
 import de.familyplanner.android.feature.meals.domain.plan.WeekPlanLoad
 import de.familyplanner.android.feature.meals.domain.plan.WeekPlanSnapshot
+import de.familyplanner.android.feature.meals.domain.reminder.LoadPendingCookingUseCase
+import de.familyplanner.android.feature.meals.domain.reminder.PendingCooking
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -48,7 +50,12 @@ data class WeekPlanUiState(
     val cancelReason: String = "",
     val isBusy: Boolean = false,
     val actionError: AppError? = null,
+    /** Offene Einreichung laut lokalem Stand (wochenunabhängig, REQ-MEAL-051). */
+    val pendingCooking: PendingCooking? = null,
 ) {
+    /** Kind ohne Verbindung zum Heimnetz mit offener Einreichung: Hinweis auf den Weg per WhatsApp. */
+    val showsWhatsAppHint: Boolean
+        get() = !isParent && pendingCooking != null && (isOffline || error.isUnreachable() || statusError.isUnreachable())
     val canEdit: Boolean get() = isParent && !isOffline && week != null
     val showsStatus: Boolean get() = weekStart >= planWeek && !isOffline
     val myCooking: CookOverview? get() = if (isParent) null else status?.cooks?.firstOrNull { it.status.memberId == memberId }
@@ -77,6 +84,8 @@ data class WeekPlanUiState(
     val canGoPrevious: Boolean get() = weekStart.minusWeeks(1).year >= AttendanceLimits.MIN_YEAR
     val canGoNext: Boolean get() = weekStart.plusWeeks(1).year <= AttendanceLimits.MAX_YEAR
 }
+
+private fun AppError?.isUnreachable() = this == AppError.Network || this == AppError.Certificate
 
 sealed interface WeekPlanEvent {
     data object Refresh : WeekPlanEvent
@@ -108,6 +117,7 @@ class WeekPlanViewModel(
     sessions: SessionStore,
     private val loadWeekPlan: LoadWeekPlanUseCase,
     private val cooking: CookingUseCases,
+    private val loadPendingCooking: LoadPendingCookingUseCase,
     private val clock: Clock = Clock.system(BerlinZone),
 ) : ViewModel() {
     private val _state =
@@ -233,6 +243,12 @@ class WeekPlanViewModel(
                 _state.update { it.withResult(result) }
             }
         loadStatus(requested)
+        loadPending()
+    }
+
+    private fun loadPending() {
+        if (_state.value.isParent) return
+        viewModelScope.launch { _state.update { it.copy(pendingCooking = loadPendingCooking()) } }
     }
 
     /** Wochenstatus nur ab der Planwoche, parallel zum Plan; späte Antworten einer anderen Woche werden verworfen. */
