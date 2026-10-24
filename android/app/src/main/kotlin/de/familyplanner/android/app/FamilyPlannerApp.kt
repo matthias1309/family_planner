@@ -6,6 +6,8 @@ import de.familyplanner.android.core.data.network.sessionModule
 import de.familyplanner.android.feature.auth.authModule
 import de.familyplanner.android.feature.meals.domain.reminder.ReminderSync
 import de.familyplanner.android.feature.meals.mealsModule
+import de.familyplanner.android.feature.tasks.domain.board.TaskSync
+import de.familyplanner.android.feature.tasks.tasksModule
 import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -15,8 +17,9 @@ class FamilyPlannerApp : Application() {
         super.onCreate()
         startKoin {
             androidContext(this@FamilyPlannerApp)
-            modules(appModule, sessionModule, networkModule, authModule, mealsModule)
+            modules(appModule, sessionModule, networkModule, authModule, mealsModule, tasksModule)
         }
         get<ReminderSync>().schedulePeriodic()
+        get<TaskSync>().schedulePeriodic()
     }
 }

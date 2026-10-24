@@ -208,3 +208,18 @@ Der Schalter kann auch als `fp.testInstance=true` in `local.properties` stehen. 
 - [x] Offline (WLAN aus): „Heute“ zeigt Offline-Hinweis und das Gericht aus dem Cache
 - [x] Familien-App auf einem Familienhandy unverändert (kein Testgericht sichtbar)
 
+## Abnahme-Checkliste TASK Phase 3 (manuell, Testhandys gegen die Testinstanz)
+
+- [ ] Test-Build 0.9.0-test auf Eltern- und Kind-Testhandy (Update über 0.8.0-test, gleiche Signatur); Benachrichtigungen erlaubt
+- [ ] Eltern: Katalog öffnen, 4 Aufgaben anlegen (mit Emoji, unterschiedliche Punkte), eine bearbeiten, eine archivieren
+- [ ] Eltern: „Zuweisen“ → Testkind, 3 Aufgaben → Board des Kindes zeigt 3 Karten in Todo
+- [ ] Kind (≤ 30 min oder App öffnen): Hinweis „Neue Aufgabe …“; Tippen öffnet Aufgaben
+- [ ] Kind: eigene Spur zuerst; „Erledigt“ bei einer Karte → „Zur Abnahme“; „Zurückziehen“ funktioniert
+- [ ] Eltern: Hinweis „… hat „…“ erledigt“; Badge an „Aufgaben“ zeigt 1; Reiter „Zur Abnahme (1)“; „Heute“ zeigt „1 wartet auf Abnahme“
+- [ ] Eltern: „Zurückweisen“ mit Grund → Kind erhält Hinweis mit Grund, Karte in Todo mit rotem Grund
+- [ ] Kind meldet erneut → Eltern „Abnehmen“ → Kind erhält „abgenommen, +n Punkte“; Karte unter „Erledigt“; Badge 0
+- [ ] Eltern: Todo-Karte „Direkt abnehmen“ und eine andere „Entfernen“ (je mit Bestätigung)
+- [ ] „Verlauf anzeigen“ zeigt erledigte Karten
+- [ ] Offline (WLAN aus): Board mit „Offline – Stand vom …“, keine Aktionen; „Heute“ zeigt Aufgaben aus dem Stand
+- [ ] Erfolgssignal Phase 3: eine Woche Küchenboard auf den Testhandys vollständig nachgespielt
+

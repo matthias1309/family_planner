@@ -18,6 +18,7 @@ import de.familyplanner.android.core.data.session.Role
 import de.familyplanner.android.feature.auth.FamilyRoute
 import de.familyplanner.android.feature.auth.HomeRoute
 import de.familyplanner.android.feature.meals.MealsHomeRoute
+import de.familyplanner.android.feature.tasks.TasksHomeRoute
 
 /** Hauptbereiche der unteren Leiste (ADR-0014); Reihenfolge = Anzeige. */
 enum class TopLevelDestination(
@@ -27,7 +28,7 @@ enum class TopLevelDestination(
 ) {
     TODAY(HomeRoute, R.string.nav_today, Icons.Filled.Home),
     MEALS(MealsHomeRoute, R.string.nav_meals, Icons.Filled.DateRange),
-    TASKS(TasksRoute, R.string.nav_tasks, Icons.Filled.CheckCircle),
+    TASKS(TasksHomeRoute, R.string.nav_tasks, Icons.Filled.CheckCircle),
     ME(MeRoute, R.string.nav_me, Icons.Filled.Face),
     FAMILY(FamilyRoute, R.string.nav_family, Icons.Filled.AccountCircle),
 }
