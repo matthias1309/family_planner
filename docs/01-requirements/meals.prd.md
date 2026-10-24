@@ -315,12 +315,18 @@ Als Elternteil möchte ich Einträge ergänzen und abhaken (bestellt), damit ich
 #### Erinnerungen
 
 ##### REQ-MEAL-050 Erinnerung vor der Kind-Frist
-Als kochendes Kind möchte ich 2 Tage und 1 Tag vor meiner Frist erinnert werden, wenn ich noch nichts eingereicht habe.
+Als kochendes Kind möchte ich 3 Tage, 2 Tage und 1 Tag vor meiner Frist erinnert werden, wenn ich noch nichts
+eingereicht habe oder mein Gericht abgelehnt wurde und ich es noch nicht überarbeitet habe.
 
 **Abnahmekriterien**
-- Given meine Frist ist Donnerstag und ich habe nichts eingereicht, When es Dienstag bzw. Mittwoch ist, Then erhalte
-  ich je eine Android-Benachrichtigung der App.
-- Given ich habe eingereicht, When der Erinnerungszeitpunkt kommt, Then erhalte ich keine Erinnerung.
+- Given meine Frist ist Donnerstag 16:00 und ich habe nichts eingereicht, When es Montag, Dienstag bzw. Mittwoch
+  16:00 ist (72/48/24 h vor der Frist, gleiche Uhrzeit), Then erhalte ich je eine Android-Benachrichtigung der App.
+- Given mein Gericht wurde abgelehnt und ich habe es nicht überarbeitet, When der Erinnerungszeitpunkt kommt, Then
+  erhalte ich eine Erinnerung, das Gericht zu überarbeiten.
+- Given ich habe eingereicht (wartet auf Freigabe oder freigegeben) oder abgesagt, When der Erinnerungszeitpunkt
+  kommt, Then erhalte ich keine Erinnerung.
+- Given ein Erinnerungszeitpunkt liegt beim Abgleich schon in der Vergangenheit, When die Erinnerungen eingeplant
+  werden, Then entfällt diese Erinnerung (keine nachgeholte Benachrichtigung).
 - Given mein Handy ist nicht im Heimnetz, When der Erinnerungszeitpunkt kommt, Then erhalte ich die Erinnerung
   trotzdem (lokal eingeplant).
 
@@ -337,6 +343,20 @@ Als kochendes Kind möchte ich benachrichtigt werden, wenn mein Gericht freigege
 **Abnahmekriterien**
 - Given mein Gericht wurde abgelehnt, When mein Handy das nächste Mal im Heimnetz synchronisiert, Then erhalte ich
   eine Benachrichtigung mit der Begründung.
+- Given mein Gericht wurde freigegeben, When mein Handy das nächste Mal im Heimnetz synchronisiert, Then erhalte ich
+  eine Benachrichtigung „freigegeben“.
+
+##### REQ-MEAL-053 Neue Einreichung an Eltern melden
+Als Elternteil möchte ich benachrichtigt werden, wenn ein Kind ein Gericht eingereicht hat, damit ich es zeitnah
+freigeben oder ablehnen kann.
+
+**Abnahmekriterien**
+- Given ein Kind reicht ein Gericht für die Planwoche ein, When mein Handy das nächste Mal im Heimnetz
+  synchronisiert, Then erhalte ich eine Benachrichtigung mit Kind, Gericht und Tag („wartet auf Freigabe“).
+- Given ein Kind ändert ein freigegebenes oder abgelehntes Gericht (erneut eingereicht), When synchronisiert wird,
+  Then erhalte ich erneut eine Benachrichtigung.
+- Given ein Elternteil trägt ein Gericht ein (auch stellvertretend), When synchronisiert wird, Then erhalte ich keine
+  Benachrichtigung.
 
 #### Voraussetzung aus `AUTH` (minimal, wird in `auth.prd.md` ausgearbeitet)
 
@@ -355,7 +375,7 @@ Als kochendes Kind möchte ich benachrichtigt werden, wenn mein Gericht freigege
 | Must | Rezeptsammlung, REWE-Import, Gericht aus Rezept (REQ-MEAL-060–062) | Kein Abtippen; richtige Mengen; Grundlage der Einkaufsliste (ADR-0012) |
 | Must | Einkaufsliste mit Zusammenführung (REQ-MEAL-040/041) | Grundlage für die Picnic-Bestellung |
 | Should | Rezept beim Kochen ansehen (REQ-MEAL-063) | Kinder kochen nach Rezept; Daten liegen ohnehin vor |
-| Must | Erinnerungen (REQ-MEAL-050–052) | Ersetzt das Hinterherlaufen |
+| Must | Erinnerungen (REQ-MEAL-050–053) | Ersetzt das Hinterherlaufen (Kinder) und das Nachfragen nach Freigaben (Eltern) |
 | Later | Vorschläge der Kinder für Elterngerichte | Mitsprache — nach MVP |
 | Later | Einheiten-Umrechnung auf der Einkaufsliste (g/kg, ml/l) | Erst wenn Mischungen in der Praxis stören |
 | Later | Rezepte offline lesen | Gericht samt Zutaten ist schon offline sichtbar (ADR-0011) |
@@ -372,7 +392,7 @@ von der Einreichung bis zur Bestellung ohne WhatsApp-Abstimmung abbilden und die
 ### User Flow
 
 1. Eltern pflegen einmalig Mitglieder, Kochkinder und Anwesenheitsmuster.
-2. Montag–Sonntag: App plant Erinnerungen je Kind 2 Tage und 1 Tag vor dessen Frist.
+2. Montag–Sonntag: App plant Erinnerungen je Kind 3, 2 und 1 Tag vor dessen Frist; Eltern erfahren neue Einreichungen beim nächsten Abgleich im Heimnetz.
 3. Kind reicht Gericht + Zutaten (frei oder aus einem Rezept) für einen Anwesenheitstag der kommenden Woche ein (oder schickt es außer Haus per
    WhatsApp → Eltern tragen es ein).
 4. Eltern geben frei oder lehnen mit Begründung ab; Kind überarbeitet.
@@ -404,7 +424,7 @@ stehen muss.
 | Risk | Likelihood | Mitigation |
 |------|------------|------------|
 | Anwesenheitsmuster/Ferien falsch berechnet → falsche Fristen | M | Reine Domänenfunktion, Unit-Tests für beide Wochentypen, Ausnahmen, Jahres-/DST-Wechsel |
-| Lokale Erinnerungen werden von Android (Doze, Herstelleroptimierung) verzögert | M | Exakte Alarme anfragen, auf Testgeräten der Familie prüfen |
+| Lokale Erinnerungen werden von Android (Doze, Herstelleroptimierung) verzögert | M | Alarme mit „allow while idle“ (ADR-0013), Abgleich und Neu-Einplanung nach Neustart, auf Testgeräten der Familie prüfen |
 | Kind außer Haus kann nicht einreichen | M | Frist vor Abreise (ADR-0007) + WhatsApp-Fallback mit Eltern-Eintrag |
 | `AUTH` verzögert den Start | M | Minimal halten (5 feste Mitglieder, Geräte-Anmeldung) |
 | Freitext-Zutaten erschweren spätere Picnic-Übergabe | M | Strukturierte Zutaten mit Phase 5 (ADR-0012) |
@@ -430,8 +450,8 @@ stehen muss.
 | 3 | Wochenplan & Elterngerichte | Plan ansehen, Elterngerichte, Offline-Cache (REQ-MEAL-001/002/032) — aufgeteilt in 3a Backend/API und 3b App inkl. Offline-Cache | complete | with 2 | 1 | 3a: `.claude/PRPs/plans/completed/wochenplan-elterngerichte-backend.plan.md` (Backend umgesetzt, Report: `.claude/PRPs/reports/wochenplan-elterngerichte-backend-report.md`); 3b: `.claude/PRPs/plans/completed/wochenplan-elterngerichte-android.plan.md` (umgesetzt, Report: `.claude/PRPs/reports/wochenplan-elterngerichte-android-report.md`; Geräte-Abnahme 2026-10-18 durch den Anwender, alle Punkte der Checkliste) |
 | 4 | Einreichung & Freigabe | Kindergericht, Absage, Freigabe, Stellvertretung, Wochenstatus (REQ-MEAL-020–031/033) — aufgeteilt in 4a Backend/API und 4b App | complete | - | 2, 3 | 4a: `.claude/PRPs/plans/completed/einreichung-freigabe-backend.plan.md` (Backend umgesetzt, Report: `.claude/PRPs/reports/einreichung-freigabe-backend-report.md`); 4b: `.claude/PRPs/plans/completed/einreichung-freigabe-android.plan.md` (umgesetzt, Report: `.claude/PRPs/reports/einreichung-freigabe-android-report.md`) |
 | 5 | Rezeptsammlung | Rezepte mit strukturierten Zutaten, REWE-Import über die App, Gericht aus Rezept (REQ-MEAL-060–063, ADR-0012) — aufgeteilt in 5a Backend/API, 5b App (Rezepte, Auswahl, Ansicht) und 5c REWE-Import | complete | with 7 | 4 | 5a: `.claude/PRPs/plans/completed/rezeptsammlung-backend.plan.md` (Backend umgesetzt, Report: `.claude/PRPs/reports/rezeptsammlung-backend-report.md`); 5b: `.claude/PRPs/plans/completed/rezepte-app.plan.md` (umgesetzt, Report: `.claude/PRPs/reports/rezepte-app-report.md`); 5c: `.claude/PRPs/plans/completed/rezepte-import.plan.md` (umgesetzt und auf dem Gerät abgenommen; Report: `.claude/PRPs/reports/rezepte-import-report.md`) |
-| 6 | Einkaufsliste | Zusammengeführte Zutaten, ergänzen, abhaken (REQ-MEAL-040/041) — aufgeteilt in 6a Backend/API und 6b App | in-progress | with 7 | 5 | 6a umgesetzt (Bericht: `.claude/PRPs/reports/einkaufsliste-backend-report.md`); 6b umgesetzt (Bericht: `.claude/PRPs/reports/einkaufsliste-app-report.md`), Geräte-Abnahme offen |
-| 7 | Erinnerungen | Lokale Erinnerungen, WhatsApp-Hinweis, Status-Sync (REQ-MEAL-050–052) | pending | with 5, 6 | 4 | - |
+| 6 | Einkaufsliste | Zusammengeführte Zutaten, ergänzen, abhaken (REQ-MEAL-040/041) — aufgeteilt in 6a Backend/API und 6b App | complete | with 7 | 5 | 6a umgesetzt (Bericht: `.claude/PRPs/reports/einkaufsliste-backend-report.md`); 6b umgesetzt (Bericht: `.claude/PRPs/reports/einkaufsliste-app-report.md`), Geräte-Abnahme 2026-10-24 durch den Anwender |
+| 7 | Erinnerungen | Lokale Erinnerungen, WhatsApp-Hinweis, Status-Sync, Freigabe-Hinweis für Eltern (REQ-MEAL-050–053) | in-progress | with 5, 6 | 4 | `.claude/PRPs/plans/erinnerungen-app.plan.md` |
 | 8 | Pilot | 4 Wochen Echtbetrieb, Messung der Hypothese | pending | - | 6, 7 | - |
 
 ### Phase Details
@@ -471,7 +491,7 @@ stehen muss.
 
 **Phase 7: Erinnerungen**
 - **Goal**: Kein Hinterherlaufen mehr.
-- **Scope**: Lokale Erinnerungen 2 Tage/1 Tag vor Frist, WhatsApp-Hinweis, Benachrichtigung bei Statusänderung.
+- **Scope**: Lokale Erinnerungen 72/48/24 h vor der Kind-Frist (auch nach Ablehnung), WhatsApp-Hinweis, Benachrichtigung bei Freigabe/Ablehnung (Kind) und neuer Einreichung (Eltern) per Hintergrund-Abgleich im Heimnetz; nur App, keine API-Änderung.
 - **Success signal**: Kinder erhalten Erinnerungen auch außer Haus pünktlich.
 
 **Phase 8: Pilot**
