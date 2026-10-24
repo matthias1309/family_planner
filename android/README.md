@@ -130,21 +130,21 @@ Abgenommen am 2026-10-18 durch den Anwender, alle Punkte.
 
 ## Abnahme-Checkliste Phase 6b (manuell, echte Geräte gegen den Pi)
 
-- [ ] Pi läuft mit Image inkl. Migration V6 (6a); Release-APK 0.6.0 (gleiche Signatur) per `adb install -r` auf Eltern- und Kinderhandy
-- [ ] Planwoche mit mindestens zwei freigegebenen Gerichten mit gemeinsamer Zutat (z. B. „2 Stange(n) Lauch“ in beiden) und einem
+- [x] Pi läuft mit Image inkl. Migration V6 (6a); Release-APK 0.6.0 (gleiche Signatur) per `adb install -r` auf Eltern- und Kinderhandy
+- [x] Planwoche mit mindestens zwei freigegebenen Gerichten mit gemeinsamer Zutat (z. B. „2 Stange(n) Lauch“ in beiden) und einem
       Kindergericht „wartet auf Freigabe“
-- [ ] Elternhandy: Startseite → „Einkaufsliste“ öffnet die Planwoche; Lauch steht einmal mit addierter Menge und beiden Gerichten als
+- [x] Elternhandy: Startseite → „Einkaufsliste“ öffnet die Planwoche; Lauch steht einmal mit addierter Menge und beiden Gerichten als
       Herkunft; „Salz“ ohne Menge einmal; Zutaten des wartenden Gerichts fehlen
-- [ ] „200 g Sahne“ und „1 Becher Sahne“ bleiben getrennte Einträge
-- [ ] Essensplan → Wochenstatus → „Einkaufsliste ›“ öffnet dieselbe Woche
-- [ ] Abhaken → Eintrag wandert durchgestrichen nach „Erledigt“; erneut tippen → wieder offen
-- [ ] „2 kg Kartoffeln“ hinzufügen → erscheint als „2 kg Kartoffeln“ mit „Eigener Eintrag“; löschen → verschwindet
-- [ ] Leeres Feld → „Hinzufügen“ deaktiviert
-- [ ] Zweites Elternhandy sieht nach Pull-to-Refresh dieselben Häkchen
-- [ ] Kind gibt danach ein weiteres Gericht frei bzw. Eltern geben das wartende Gericht frei → neue Zutaten erscheinen; ein abgehakter
+- [x] „200 g Sahne“ und „1 Becher Sahne“ bleiben getrennte Einträge
+- [x] Essensplan → Wochenstatus → „Einkaufsliste ›“ öffnet dieselbe Woche
+- [x] Abhaken → Eintrag wandert durchgestrichen nach „Erledigt“; erneut tippen → wieder offen
+- [x] „2 kg Kartoffeln“ hinzufügen → erscheint als „2 kg Kartoffeln“ mit „Eigener Eintrag“; löschen → verschwindet
+- [x] Leeres Feld → „Hinzufügen“ deaktiviert
+- [x] Zweites Elternhandy sieht nach Pull-to-Refresh dieselben Häkchen
+- [x] Kind gibt danach ein weiteres Gericht frei bzw. Eltern geben das wartende Gericht frei → neue Zutaten erscheinen; ein abgehakter
       Eintrag mit geänderter Menge ist wieder offen
-- [ ] Kinderhandy: Liste sichtbar, keine Checkboxen, kein Eingabefeld, kein Löschen; erledigte Einträge mit „✓“
-- [ ] WLAN aus: „Server nicht erreichbar. Bist du im Heim-WLAN?“
+- [x] Kinderhandy: Liste sichtbar, keine Checkboxen, kein Eingabefeld, kein Löschen; erledigte Einträge mit „✓“
+- [x] WLAN aus: „Server nicht erreichbar. Bist du im Heim-WLAN?“
 - [ ] Erfolgssignal Phase 6: Sonntagsbestellung bei Picnic nur anhand der Liste
 
 ## Abnahme-Checkliste Phase 5c (manuell, echtes Gerät mit Internet)

@@ -29,3 +29,4 @@
 | REQ-MEAL-050 | Erinnerung vor Frist | | | | | offen |
 | REQ-MEAL-051 | WhatsApp-Hinweis außer Haus | | | | | offen |
 | REQ-MEAL-052 | Statusänderungen melden | | | | | offen |
+| REQ-MEAL-053 | Neue Einreichung an Eltern melden | | | | | offen |
