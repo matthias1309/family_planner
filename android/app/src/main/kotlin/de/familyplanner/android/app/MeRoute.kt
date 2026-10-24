@@ -11,10 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
 
-/** Hauptbereich „Aufgaben“; Inhalt folgt mit TASK Phase 3 (ADR-0014). */
-@Serializable
-data object TasksRoute
-
 /** Hauptbereich „Ich“ (Kinder); Inhalt folgt mit GAME Phase 1 (ADR-0014). */
 @Serializable
 data object MeRoute

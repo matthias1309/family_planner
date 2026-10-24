@@ -35,6 +35,10 @@ import de.familyplanner.android.feature.meals.mealsGraph
 import de.familyplanner.android.feature.meals.openRecipeImport
 import de.familyplanner.android.feature.meals.openWeekPlan
 import de.familyplanner.android.feature.meals.ui.today.TodayMealRoute
+import de.familyplanner.android.feature.tasks.TaskOpenRequests
+import de.familyplanner.android.feature.tasks.tasksGraph
+import de.familyplanner.android.feature.tasks.ui.ReviewBadge
+import de.familyplanner.android.feature.tasks.ui.today.TodayTasksRoute
 import org.koin.compose.koinInject
 
 /** Die Session bestimmt den Graphen: abgemeldet → Auth-Screens, angemeldet → Hauptscreens. */
@@ -73,6 +77,8 @@ private fun MainHost(
     role: Role,
     inbox: SharedRecipeInbox = koinInject(),
     planRequests: PlanOpenRequests = koinInject(),
+    taskRequests: TaskOpenRequests = koinInject(),
+    reviewBadge: ReviewBadge = koinInject(),
 ) {
     val navController = rememberNavController()
     val shared by inbox.pending.collectAsStateWithLifecycle()
@@ -89,21 +95,36 @@ private fun MainHost(
             navController.openMealsAndThen { openWeekPlan() }
         }
     }
+    val openTasks by taskRequests.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(openTasks) {
+        if (openTasks) {
+            taskRequests.consume()
+            navController.navigateToTopLevel(TopLevelDestination.TASKS)
+        }
+    }
+    val reviews by reviewBadge.count.collectAsStateWithLifecycle(initialValue = 0)
     val destinations = remember(role) { topLevelDestinations(role) }
     val entry by navController.currentBackStackEntryAsState()
     val current = entry?.destination.topLevelOf(destinations)
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
-            current?.let { AppNavigationBar(destinations, it) { destination -> navController.navigateToTopLevel(destination) } }
+            current?.let {
+                AppNavigationBar(
+                    destinations,
+                    it,
+                    badges = mapOf(TopLevelDestination.TASKS to reviews),
+                ) { destination -> navController.navigateToTopLevel(destination) }
+            }
         },
     ) { padding ->
         NavHost(navController = navController, startDestination = HomeRoute, modifier = Modifier.padding(padding)) {
-            mainGraph { TodayMealRoute(onOpenPlan = { navController.openMealsAndThen { openWeekPlan() } }) }
-            mealsGraph(navController)
-            composable<TasksRoute> {
-                ComingSoonScreen(stringResource(R.string.nav_tasks), stringResource(R.string.tasks_coming_soon))
+            mainGraph {
+                TodayMealRoute(onOpenPlan = { navController.openMealsAndThen { openWeekPlan() } })
+                TodayTasksRoute(onOpenTasks = { navController.navigateToTopLevel(TopLevelDestination.TASKS) })
             }
+            mealsGraph(navController)
+            tasksGraph(navController)
             composable<MeRoute> {
                 ComingSoonScreen(stringResource(R.string.nav_me), stringResource(R.string.me_coming_soon))
             }

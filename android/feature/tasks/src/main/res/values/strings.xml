@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tasks_title">Aufgaben</string>
+    <string name="tasks_back">Zurück</string>
+    <string name="tasks_cancel">Abbrechen</string>
+    <string name="tasks_retry">Erneut versuchen</string>
+    <string name="tasks_catalog_open">Katalog</string>
+    <string name="tasks_tab_review">Zur Abnahme (%1$d)</string>
+    <string name="tasks_no_children">Noch keine Kinder in der Familie.</string>
+    <string name="tasks_offline">Offline – Stand vom %1$s</string>
+
+    <string name="tasks_section_todo">Todo</string>
+    <string name="tasks_section_review">Zur Abnahme</string>
+    <string name="tasks_section_done">Erledigt (7 Tage)</string>
+    <string name="tasks_empty_todo">Nichts offen.</string>
+    <string name="tasks_empty_review">Nichts zur Abnahme.</string>
+    <string name="tasks_empty_done">Noch nichts erledigt.</string>
+
+    <string name="tasks_card_points">%1$d P.</string>
+    <string name="tasks_card_reported">gemeldet %1$s</string>
+    <string name="tasks_card_done">erledigt %1$s</string>
+    <string name="tasks_card_child_reported">%1$s · gemeldet %2$s</string>
+    <string name="tasks_card_rejected">Zurückgewiesen: „%1$s“</string>
+    <string name="tasks_card_more">Weitere Aktionen</string>
+
+    <string name="tasks_action_report">Erledigt</string>
+    <string name="tasks_action_withdraw">Zurückziehen</string>
+    <string name="tasks_action_accept">Abnehmen</string>
+    <string name="tasks_action_reject">Zurückweisen</string>
+    <string name="tasks_action_accept_directly">Direkt abnehmen</string>
+    <string name="tasks_action_remove">Entfernen</string>
+
+    <string name="tasks_reject_title">Aufgabe zurückweisen?</string>
+    <string name="tasks_reject_text">„%1$s“ geht zurück nach Todo.</string>
+    <string name="tasks_reject_reason">Begründung (optional)</string>
+    <string name="tasks_accept_directly_title">Direkt abnehmen?</string>
+    <string name="tasks_accept_directly_text">„%1$s“ wurde noch nicht gemeldet. Trotzdem als erledigt abnehmen?</string>
+    <string name="tasks_remove_title">Aufgabe entfernen?</string>
+    <string name="tasks_remove_text">„%1$s“ wird entfernt. Das lässt sich nicht rückgängig machen.</string>
+
+    <string name="tasks_history_show">Verlauf anzeigen</string>
+    <string name="tasks_history_title">Verlauf: %1$s</string>
+    <string name="tasks_history_empty">Noch nichts erledigt.</string>
+    <string name="tasks_history_done">erledigt am %1$s</string>
+
+    <string name="tasks_assign_fab">Zuweisen</string>
+    <string name="tasks_assign_title">Aufgaben zuweisen</string>
+    <string name="tasks_assign_child">Kind</string>
+    <string name="tasks_assign_submit">Zuweisen (%1$d)</string>
+    <string name="tasks_assign_empty">Noch keine Aufgaben im Katalog.</string>
+    <string name="tasks_assign_open_catalog">Katalog öffnen</string>
+    <string name="tasks_assign_too_many">Höchstens %1$d Aufgaben auf einmal.</string>
+
+    <string name="tasks_catalog_title">Aufgabenkatalog</string>
+    <string name="tasks_catalog_new">Neu</string>
+    <string name="tasks_catalog_empty">Noch keine Aufgaben im Katalog.</string>
+    <string name="tasks_catalog_edit_new">Neue Aufgabe</string>
+    <string name="tasks_catalog_edit_existing">Aufgabe bearbeiten</string>
+    <string name="tasks_field_title">Titel</string>
+    <string name="tasks_field_emoji">Symbol (optional)</string>
+    <string name="tasks_field_emoji_hint">z. B. 🧹</string>
+    <string name="tasks_field_points">Punkte</string>
+    <string name="tasks_points_less">Weniger Punkte</string>
+    <string name="tasks_points_more">Mehr Punkte</string>
+    <string name="tasks_save">Speichern</string>
+    <string name="tasks_archive">Archivieren</string>
+    <string name="tasks_archive_title">Aufgabe archivieren?</string>
+    <string name="tasks_archive_text">Die Aufgabe kann danach nicht mehr zugewiesen werden. Bereits verteilte Karten bleiben.</string>
+
+    <string name="tasks_today_title_child">Deine Aufgaben</string>
+    <string name="tasks_today_title_parent">Aufgaben</string>
+    <string name="tasks_today_open">%1$d offen</string>
+    <string name="tasks_today_rejected">%1$d zurückgewiesen</string>
+    <string name="tasks_today_all_done">Alles erledigt 🎉</string>
+    <string name="tasks_today_review_none">Nichts zur Abnahme.</string>
+    <string name="tasks_today_unavailable">Aufgaben gerade nicht erreichbar.</string>
+    <plurals name="tasks_today_review">
+        <item quantity="one">%1$d wartet auf Abnahme</item>
+        <item quantity="other">%1$d warten auf Abnahme</item>
+    </plurals>
+
+    <string name="tasks_channel">Aufgaben</string>
+    <string name="tasks_notice_reported_title">%1$s hat „%2$s“ erledigt</string>
+    <string name="tasks_notice_reported_text">Bitte abnehmen.</string>
+    <string name="tasks_notice_assigned_title">Neue Aufgabe: %1$s</string>
+    <string name="tasks_notice_assigned_text">Erledige sie, wann es passt.</string>
+    <string name="tasks_notice_accepted_title">„%1$s“ abgenommen</string>
+    <string name="tasks_notice_rejected_title">„%1$s“ zurückgewiesen</string>
+    <string name="tasks_notice_rejected_text">Bitte noch einmal ansehen.</string>
+    <plurals name="tasks_points">
+        <item quantity="one">+%1$d Punkt</item>
+        <item quantity="other">+%1$d Punkte</item>
+    </plurals>
+</resources>

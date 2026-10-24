@@ -3,6 +3,7 @@ package de.familyplanner.android.app
 import android.app.Application
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -54,6 +55,15 @@ import de.familyplanner.android.feature.meals.domain.reminder.ReminderSync
 import de.familyplanner.android.feature.meals.ui.plan.WeekPlanViewModel
 import de.familyplanner.android.feature.meals.ui.recipe.RecipeEditViewModel
 import de.familyplanner.android.feature.meals.ui.today.TodayMealViewModel
+import de.familyplanner.android.feature.tasks.TaskOpenRequests
+import de.familyplanner.android.feature.tasks.domain.board.LoadBoardUseCase
+import de.familyplanner.android.feature.tasks.domain.board.MoveCardUseCase
+import de.familyplanner.android.feature.tasks.domain.board.RemoveCardUseCase
+import de.familyplanner.android.feature.tasks.domain.board.TaskLane
+import de.familyplanner.android.feature.tasks.domain.board.TaskStatus
+import de.familyplanner.android.feature.tasks.ui.ReviewBadge
+import de.familyplanner.android.feature.tasks.ui.board.BoardViewModel
+import de.familyplanner.android.feature.tasks.ui.today.TodayTasksViewModel
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -101,6 +111,10 @@ class AppNavHostTest {
 
     private val inbox = SharedRecipeInbox()
     private val planRequests = PlanOpenRequests()
+    private val taskRequests = TaskOpenRequests()
+    private val boardCache = MemoryBoardCache()
+    private var boardLanes: List<TaskLane> = emptyList()
+    private val taskRepository by lazy { StaticTaskRepository(boardLanes) }
 
     private val recipeRepository =
         object : RecipeRepository {
@@ -193,6 +207,17 @@ class AppNavHostTest {
                     factory { HomeViewModel(sessions, RefreshMeUseCase(authRepository, sessions)) }
                     single { inbox }
                     single { planRequests }
+                    single { taskRequests }
+                    single { ReviewBadge(boardCache, sessions) }
+                    viewModel {
+                        BoardViewModel(
+                            sessions,
+                            LoadBoardUseCase(taskRepository, boardCache, sessions),
+                            MoveCardUseCase(taskRepository, boardCache, sessions),
+                            RemoveCardUseCase(taskRepository, boardCache, sessions),
+                        )
+                    }
+                    viewModel { TodayTasksViewModel(sessions, LoadBoardUseCase(taskRepository, boardCache, sessions)) }
                     viewModel {
                         WeekPlanViewModel(
                             sessions,
@@ -292,15 +317,92 @@ class AppNavHostTest {
     }
 
     @Test
-    fun `REQ-TASK-001 tasks and me show coming soon`() {
+    fun `REQ-TASK-001 tasks area shows the board`() {
+        boardLanes = listOf(TaskLane("m", "Lea", listOf(taskCard("t-1", "m", "Bad putzen"))))
         sessions.setCurrent(session)
         show()
 
         compose.onNode(hasText("Aufgaben") and hasClickAction()).performClick()
-        compose.onNodeWithText("Hier entsteht das Aufgaben-Board.").assertIsDisplayed()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Bad putzen").assertIsDisplayed()
+        compose.onNodeWithText("Erledigt").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-TASK-001 me shows coming soon`() {
+        sessions.setCurrent(session)
+        show()
 
         compose.onNode(hasText("Ich") and hasClickAction()).performClick()
         compose.onNodeWithText("Hier findest du bald Punkte, Badges und deinen Avatar.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-TASK-003 parent sees badge with review count`() {
+        boardLanes =
+            listOf(
+                TaskLane(
+                    "c",
+                    "Ben",
+                    listOf(taskCard("t-1", "c", "Bad", TaskStatus.REVIEW), taskCard("t-2", "c", "Müll", TaskStatus.REVIEW)),
+                ),
+            )
+        sessions.setCurrent(Session("tok", "p", "Anna", Role.PARENT, "d"))
+        kotlinx.coroutines.runBlocking {
+            boardCache.write(
+                "p",
+                de.familyplanner.android.feature.tasks.domain.board
+                    .BoardSnapshot(boardLanes, java.time.Instant.EPOCH),
+            )
+        }
+        show()
+        compose.waitForIdle()
+
+        compose.onNode(hasContentDescription("2 zur Abnahme"), useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-TASK-003 children see no badge`() {
+        boardLanes = listOf(TaskLane("m", "Lea", listOf(taskCard("t-1", "m", "Bad", TaskStatus.REVIEW))))
+        sessions.setCurrent(session)
+        kotlinx.coroutines.runBlocking {
+            boardCache.write(
+                "m",
+                de.familyplanner.android.feature.tasks.domain.board
+                    .BoardSnapshot(boardLanes, java.time.Instant.EPOCH),
+            )
+        }
+        show()
+        compose.waitForIdle()
+
+        compose.onNode(hasContentDescription("1 zur Abnahme"), useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `REQ-TASK-002 today shows the tasks card and a tap opens the board`() {
+        boardLanes = listOf(TaskLane("m", "Lea", listOf(taskCard("t-1", "m", "Bad putzen"), taskCard("t-2", "m", "Müll"))))
+        sessions.setCurrent(session)
+        show()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Deine Aufgaben").assertIsDisplayed()
+        compose.onNodeWithText("2 offen").assertIsDisplayed().performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Todo").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-TASK-030 notification tap opens tasks and empties the request`() {
+        boardLanes = listOf(TaskLane("m", "Lea", listOf(taskCard("t-1", "m", "Bad putzen"))))
+        sessions.setCurrent(session)
+        taskRequests.request()
+        show()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Todo").assertIsDisplayed()
+        assertFalse(taskRequests.pending.value)
     }
 
     @Test

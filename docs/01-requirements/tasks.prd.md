@@ -275,7 +275,7 @@ bereits; neu sind das Modul, das erste Domänenereignis und der Umbau der Naviga
 |---|-------|-------------|--------|----------|---------|----------|
 | 1 | Navigation & Testinstanz | Untere Leiste, „Essen“-Bereich, Startseite „Heute“ (nur Essen-Inhalte), Testinstanz auf dem Pi + Test-Build (REQ-TASK-001/002) | complete | with 2 | - | `.claude/PRPs/plans/completed/navigation-testinstanz.plan.md`, Bericht: `.claude/PRPs/reports/navigation-testinstanz-report.md` (Geräte-Abnahme 2026-10-24 bestanden) |
 | 2 | Board Backend/API | ADR Domänenereignisse, Modul `tasks`, Katalog, Karten, Statusübergänge, Ereignis (REQ-TASK-010, 020–025) | complete | with 1 | - | `.claude/PRPs/plans/completed/board-backend.plan.md`, Bericht: `.claude/PRPs/reports/board-backend-report.md` |
-| 3 | Board App | Katalog-, Zuweisungs- und Board-Screens, Offline-Lesen, Aufgaben auf „Heute“, Abnahme-Badge, Hinweise (REQ-TASK-002/003, 020–025, 030) | in-progress | - | 1, 2 | `.claude/PRPs/plans/board-app.plan.md` |
+| 3 | Board App | Katalog-, Zuweisungs- und Board-Screens, Offline-Lesen, Aufgaben auf „Heute“, Abnahme-Badge, Hinweise (REQ-TASK-002/003, 020–025, 030) | in-progress | - | 1, 2 | `.claude/PRPs/plans/completed/board-app.plan.md`, Bericht: `.claude/PRPs/reports/board-app-report.md` (Status bleibt `in-progress` bis zur Geräte-Abnahme) |
 
 Fortsetzung in [gamification.prd.md](gamification.prd.md): Punkte, Rangliste, Badges, Belohnungen, Avatar und die
 gemeinsame Testphase auf den beiden Testhandys.
