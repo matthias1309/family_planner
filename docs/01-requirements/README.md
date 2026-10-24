@@ -21,4 +21,8 @@ Als Familienmitglied möchte ich eine Aufgabe als erledigt markieren, damit alle
 1. `AUTH` (minimal): Familie & Mitglieder, Rollen, Geräte-Anmeldung — siehe [auth.prd.md](auth.prd.md)
 2. `MEAL`: Essensplaner — siehe [meals.prd.md](meals.prd.md)
 
-Danach als eigene Module: `TASK` (inkl. Aufgaben für Kinder: Putzen, Zimmer, Hausaufgaben), `GAME`, `BOARD`.
+Danach als eigene Module:
+
+3. `TASK`: Aufgaben-Board mit Abnahme und neue Navigation — siehe [tasks.prd.md](tasks.prd.md)
+4. `GAME`: Punkte, Rangliste, Badges, Avatar, echte Belohnungen — siehe [gamification.prd.md](gamification.prd.md)
+5. `BOARD`: Infoboard — noch offen
