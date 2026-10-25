@@ -47,8 +47,14 @@ fun NavGraphBuilder.authGraph(
     }
 }
 
-/** [todayContent] nimmt die Inhalte anderer Feature-Module für „Heute“ auf (feature:auth kennt sie nicht). */
-fun NavGraphBuilder.mainGraph(todayContent: @Composable () -> Unit = {}) {
+/**
+ * [todayContent] und [familyContent] nehmen die Inhalte anderer Feature-Module für „Heute“ und „Familie“ auf
+ * (feature:auth kennt sie nicht).
+ */
+fun NavGraphBuilder.mainGraph(
+    todayContent: @Composable () -> Unit = {},
+    familyContent: @Composable () -> Unit = {},
+) {
     composable<HomeRoute> { HomeRoute(todayContent = todayContent) }
-    composable<FamilyRoute> { FamilyRoute() }
+    composable<FamilyRoute> { FamilyRoute(familyContent = familyContent) }
 }

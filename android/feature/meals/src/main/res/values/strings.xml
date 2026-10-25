@@ -81,6 +81,8 @@
     <string name="plan_week_link">Zur Planwoche %1$s–%2$s ›</string>
     <string name="plan_badge_submitted">wartet auf Freigabe</string>
     <string name="plan_badge_rejected">abgelehnt</string>
+    <string name="plan_badge_cooked">Gekocht ✓</string>
+    <string name="plan_badge_confirm_cooking">Kochen bestätigen?</string>
     <string name="plan_badge_late">nach Frist</string>
     <string name="plan_badge_invalid">⚠ Tag ungültig</string>
 
@@ -146,6 +148,12 @@
     <string name="dish_move">Verschieben</string>
     <string name="dish_reason_label">Begründung</string>
 
+    <string name="dish_cooked_confirm">Als gekocht bestätigen</string>
+    <string name="dish_cooked_hint">%1$s bekommt dafür Kochpunkte.</string>
+    <string name="dish_cooked_at">Gekocht bestätigt am %1$s</string>
+    <string name="dish_cooked_dialog_title">Gekocht bestätigen?</string>
+    <string name="dish_cooked_dialog_text">%1$s bekommt dafür Kochpunkte. Das lässt sich nicht zurücknehmen.</string>
+    <string name="dish_cooked_dialog_confirm">Bestätigen</string>
     <string name="review_title">Gericht prüfen</string>
     <string name="review_submitted_by">%1$s hat eingereicht</string>
     <string name="review_late">nach Frist</string>

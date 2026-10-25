@@ -13,13 +13,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import de.familyplanner.android.R
 import de.familyplanner.android.core.data.session.Role
 import de.familyplanner.android.core.data.session.SessionEvent
 import de.familyplanner.android.core.data.session.SessionEvents
@@ -29,6 +26,9 @@ import de.familyplanner.android.feature.auth.HomeRoute
 import de.familyplanner.android.feature.auth.WelcomeRoute
 import de.familyplanner.android.feature.auth.authGraph
 import de.familyplanner.android.feature.auth.mainGraph
+import de.familyplanner.android.feature.gamification.gamificationGraph
+import de.familyplanner.android.feature.gamification.openChildAccount
+import de.familyplanner.android.feature.gamification.ui.family.FamilyPointsRoute
 import de.familyplanner.android.feature.meals.PlanOpenRequests
 import de.familyplanner.android.feature.meals.SharedRecipeInbox
 import de.familyplanner.android.feature.meals.mealsGraph
@@ -119,15 +119,16 @@ private fun MainHost(
         },
     ) { padding ->
         NavHost(navController = navController, startDestination = HomeRoute, modifier = Modifier.padding(padding)) {
-            mainGraph {
-                TodayMealRoute(onOpenPlan = { navController.openMealsAndThen { openWeekPlan() } })
-                TodayTasksRoute(onOpenTasks = { navController.navigateToTopLevel(TopLevelDestination.TASKS) })
-            }
+            mainGraph(
+                todayContent = {
+                    TodayMealRoute(onOpenPlan = { navController.openMealsAndThen { openWeekPlan() } })
+                    TodayTasksRoute(onOpenTasks = { navController.navigateToTopLevel(TopLevelDestination.TASKS) })
+                },
+                familyContent = { FamilyPointsRoute(onOpenChild = navController::openChildAccount) },
+            )
             mealsGraph(navController)
             tasksGraph(navController)
-            composable<MeRoute> {
-                ComingSoonScreen(stringResource(R.string.nav_me), stringResource(R.string.me_coming_soon))
-            }
+            gamificationGraph(navController)
         }
     }
 }

@@ -39,12 +39,14 @@ fun statusOf(
 class FakeCookingRepository : CookingRepository {
     var statusResult: (LocalDate) -> ApiResult<WeekStatus> = { ApiResult.Success(statusOf(it, cookStatus())) }
     var approveResult: ApiResult<Unit> = ApiResult.Success(Unit)
+    var confirmCookedResult: ApiResult<Unit> = ApiResult.Success(Unit)
     var rejectResult: ApiResult<Unit> = ApiResult.Success(Unit)
     var cancelResult: ApiResult<Unit> = ApiResult.Success(Unit)
     var withdrawResult: ApiResult<Unit> = ApiResult.Success(Unit)
 
     val requestedWeeks = mutableListOf<LocalDate>()
     val approved = mutableListOf<String>()
+    val confirmedCooked = mutableListOf<String>()
     val rejected = mutableListOf<Pair<String, String>>()
     val cancelled = mutableListOf<Triple<LocalDate, String, String>>()
     val withdrawn = mutableListOf<Pair<LocalDate, String>>()
@@ -66,6 +68,11 @@ class FakeCookingRepository : CookingRepository {
         approved += dishId
         approveGate?.await()
         return approveResult
+    }
+
+    override suspend fun confirmCooked(dishId: String): ApiResult<Unit> {
+        confirmedCooked += dishId
+        return confirmCookedResult
     }
 
     override suspend fun reject(

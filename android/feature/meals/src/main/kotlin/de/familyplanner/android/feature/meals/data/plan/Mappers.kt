@@ -2,6 +2,7 @@ package de.familyplanner.android.feature.meals.data.plan
 
 import de.familyplanner.android.feature.meals.data.mapAllOrNull
 import de.familyplanner.android.feature.meals.data.parseDate
+import de.familyplanner.android.feature.meals.data.parseInstant
 import de.familyplanner.android.feature.meals.data.recipe.toApi
 import de.familyplanner.android.feature.meals.domain.plan.Dish
 import de.familyplanner.android.feature.meals.domain.plan.DishDraft
@@ -22,7 +23,21 @@ internal fun ApiDishStatus.toDomain(): DishStatus? = DishStatus.entries.firstOrN
 internal fun ApiDish.toDomain(): Dish? {
     val day = parseDate(date) ?: return null
     val mappedStatus = status.toDomain() ?: return null
-    return Dish(id, day, cookId, name, ingredients, mappedStatus, rejectionReason, late, dayValid, recipeId, servings)
+    val cooked = cookedAt?.let { parseInstant(it) ?: return null }
+    return Dish(
+        id,
+        day,
+        cookId,
+        name,
+        ingredients,
+        mappedStatus,
+        rejectionReason,
+        late,
+        dayValid,
+        recipeId,
+        servings,
+        cookedAt = cooked,
+    )
 }
 
 internal fun ApiPlanDay.toDomain(): PlanDay? {

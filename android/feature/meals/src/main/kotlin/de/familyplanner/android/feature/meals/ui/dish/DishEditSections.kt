@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.familyplanner.android.core.ui.formatDate
+import de.familyplanner.android.core.ui.formatDateTime
 import de.familyplanner.android.feature.meals.R
 import de.familyplanner.android.feature.meals.domain.plan.DishStatus
 import de.familyplanner.android.feature.meals.domain.plan.EditorMode
@@ -52,6 +53,29 @@ internal fun ReviewSection(
         Text(stringResource(R.string.review_save_hint), style = MaterialTheme.typography.bodySmall)
     }
 }
+
+/** Kochbestätigung (REQ-MEAL-034): Button für Eltern, danach nur noch der Zeitpunkt. */
+@Composable
+internal fun CookedSection(
+    state: DishEditUiState,
+    onEvent: (DishEditEvent) -> Unit,
+) {
+    val cookedAt = state.existing?.cookedAt
+    if (cookedAt != null) {
+        Text(stringResource(R.string.dish_cooked_at, formatDateTime(cookedAt)), style = MaterialTheme.typography.titleSmall)
+        return
+    }
+    if (!state.canConfirmCooking) return
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Button(onClick = { onEvent(DishEditEvent.RequestConfirmCooked) }, enabled = !state.isBusy, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.dish_cooked_confirm))
+        }
+        Text(stringResource(R.string.dish_cooked_hint, state.cookName()), style = MaterialTheme.typography.bodySmall)
+        HorizontalDivider()
+    }
+}
+
+internal fun DishEditUiState.cookName(): String = children.firstOrNull { it.memberId == cookId }?.name.orEmpty()
 
 @Composable
 internal fun MoveBanner(state: DishEditUiState) {

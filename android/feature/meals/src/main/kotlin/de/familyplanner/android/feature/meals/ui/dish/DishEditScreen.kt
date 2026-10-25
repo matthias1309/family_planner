@@ -118,6 +118,7 @@ private fun EditorBody(
     if (state.childCook != null && state.allowedDates.isEmpty()) {
         Text(stringResource(R.string.dish_no_allowed_day), color = MaterialTheme.colorScheme.error)
     }
+    CookedSection(state, onEvent)
     DayChips(state, onEvent)
     CookSection(state, onEvent)
     RecipeSection(state, onEvent, onPickRecipe)
@@ -151,6 +152,15 @@ private fun EditorDialogs(
             confirmLabel = stringResource(R.string.dish_delete_confirm),
             onConfirm = { onEvent(DishEditEvent.ConfirmDelete) },
             onDismiss = { onEvent(DishEditEvent.CancelDelete) },
+        )
+    }
+    if (state.showCookedConfirm) {
+        ConfirmDialog(
+            title = stringResource(R.string.dish_cooked_dialog_title),
+            text = stringResource(R.string.dish_cooked_dialog_text, state.cookName()),
+            confirmLabel = stringResource(R.string.dish_cooked_dialog_confirm),
+            onConfirm = { onEvent(DishEditEvent.ConfirmCooked) },
+            onDismiss = { onEvent(DishEditEvent.CancelConfirmCooked) },
         )
     }
     if (state.showRejectDialog) {

@@ -17,6 +17,7 @@ import de.familyplanner.android.feature.meals.domain.plan.EditorMode
 import de.familyplanner.android.feature.meals.domain.plan.PlanLimits
 import de.familyplanner.android.feature.meals.domain.plan.PlanMember
 import de.familyplanner.android.feature.meals.domain.plan.allowedDates
+import de.familyplanner.android.feature.meals.domain.plan.canConfirmCooking
 import de.familyplanner.android.feature.meals.domain.plan.editorMode
 import de.familyplanner.android.feature.meals.domain.plan.preselectDate
 import de.familyplanner.android.feature.meals.domain.recipe.Recipe
@@ -62,6 +63,9 @@ data class DishEditUiState(
     val recipe: Recipe? = null,
     val isRecipeLoading: Boolean = false,
     val presentByDate: Map<LocalDate, Int> = emptyMap(),
+    /** Eltern dürfen das Kochen dieses Kindergerichts bestätigen (REQ-MEAL-034). */
+    val canConfirmCooking: Boolean = false,
+    val showCookedConfirm: Boolean = false,
 ) {
     val canUseRecipe: Boolean get() = !isLoading && loadError == null && !fieldsLocked && !isBusy && !isRecipeLoading
     val recipeRef: RecipeRef? get() = recipeId?.let { id -> servings?.let { RecipeRef(id, it) } }
@@ -112,6 +116,12 @@ sealed interface DishEditEvent {
 
     data object RequestReject : DishEditEvent
 
+    data object RequestConfirmCooked : DishEditEvent
+
+    data object CancelConfirmCooked : DishEditEvent
+
+    data object ConfirmCooked : DishEditEvent
+
     data class RejectReasonChanged(
         val value: String,
     ) : DishEditEvent
@@ -133,6 +143,7 @@ sealed interface DishEditEvent {
     data object ClearRecipe : DishEditEvent
 }
 
+@Suppress("TooManyFunctions")
 class DishEditViewModel(
     private val args: DishEditArgs,
     private val sessions: SessionStore,
@@ -204,6 +215,19 @@ class DishEditViewModel(
     private fun onReview(event: DishEditEvent) {
         when (event) {
             DishEditEvent.Approve -> approve()
+            DishEditEvent.RequestConfirmCooked ->
+                _state.update {
+                    if (it.canConfirmCooking) {
+                        it.copy(
+                            showCookedConfirm = true,
+                            error = null,
+                        )
+                    } else {
+                        it
+                    }
+                }
+            DishEditEvent.CancelConfirmCooked -> _state.update { it.copy(showCookedConfirm = false, error = null) }
+            DishEditEvent.ConfirmCooked -> confirmCooked()
             DishEditEvent.RequestReject ->
                 _state.update {
                     if (it.mode ==
@@ -290,6 +314,7 @@ class DishEditViewModel(
         return copy(
             cookId = cookId,
             mode = editorMode(isParent, existing, cookIsChild = child != null),
+            canConfirmCooking = canConfirmCooking(isParent, existing, child != null, clock.instant().atZone(BerlinZone).toLocalDate()),
             allowedDates = allowed,
             date = existing?.date ?: preselectDate(args.date, allowed) ?: args.date,
             name = existing?.name.orEmpty(),
@@ -321,6 +346,19 @@ class DishEditViewModel(
             when (val result = dishes.review.approve(id)) {
                 is ApiResult.Success -> _state.update { it.copy(isBusy = false, isDone = true) }
                 is ApiResult.Failure -> _state.update { it.copy(isBusy = false, error = result.error) }
+            }
+        }
+    }
+
+    private fun confirmCooked() {
+        val current = _state.value
+        val id = dishId ?: return
+        if (current.isBusy || !current.canConfirmCooking) return
+        _state.update { it.copy(isBusy = true, error = null) }
+        viewModelScope.launch {
+            when (val result = dishes.review.confirmCooked(id)) {
+                is ApiResult.Success -> _state.update { it.copy(isBusy = false, showCookedConfirm = false, isDone = true) }
+                is ApiResult.Failure -> _state.update { it.copy(isBusy = false, showCookedConfirm = false, error = result.error) }
             }
         }
     }

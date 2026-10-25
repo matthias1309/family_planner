@@ -400,6 +400,12 @@ Das bedingte `UPDATE … WHERE status = 'APPROVED' AND cooked_at IS NULL AND mea
 `CookingConfirmationService` `EventNotifier.dispatchPending()`. Es gibt kein Zurücknehmen; Korrektur per manueller Gegenbuchung in `gamification`.
 Tests: `CookingConfirmationServiceTest`, `ExposedMealPlanRepositoryTest` (`REQ-MEAL-034 …`), API: `MealsCookingConfirmationApiTest`.
 
+**App:** Im Gericht-Editor (Eltern) erscheint „Als gekocht bestätigen“ mit Bestätigungsdialog, wenn `canConfirmCooking(isParent, dish, cookIsChild, heute)`
+gilt: Kindergericht, `APPROVED`, `cookedAt == null`, Kochtag ≤ heute (Berlin). Danach zeigt der Editor „Gekocht bestätigt am …“; ein `409` (z. B. schon
+bestätigt) erscheint mit der Servermeldung. Der Wochenplan markiert bestätigte Gerichte mit „Gekocht ✓“ (alle) und offene für Eltern online mit
+„Kochen bestätigen?“. `Dish.cookedAt` und `PlannedDay.cookIsChild` stehen auch im lokalen Plan (`cookedAtMillis`, `cookIsChild`; Defaults, alte
+Cache-Dateien bleiben lesbar). Tests: `EditorRulesTest`, `CookedConfirmationTest`, `CookedDataTest` (`REQ-MEAL-034 …`).
+
 ## App-Seite (Phase 7)
 
 Erinnerungen und Status-Meldungen in `feature:meals`: Pakete `domain/reminder`, `data/reminder`. `api/` und `backend/` bleiben unverändert

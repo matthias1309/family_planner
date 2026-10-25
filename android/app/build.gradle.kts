@@ -32,8 +32,8 @@ android {
         applicationId = "de.familyplanner.android"
         minSdk = 29
         targetSdk = 37
-        versionCode = 10
-        versionName = "0.9.0"
+        versionCode = 11
+        versionName = "0.10.0"
         manifestPlaceholders["appLabel"] = if (testInstance) "Familienplaner Test" else "@string/app_name"
         if (testInstance) {
             applicationIdSuffix = ".test"
@@ -83,6 +83,7 @@ dependencies {
     implementation(project(":feature:auth"))
     implementation(project(":feature:meals"))
     implementation(project(":feature:tasks"))
+    implementation(project(":feature:gamification"))
     implementation(libs.activity.compose)
     implementation(libs.navigation.compose)
     implementation(libs.lifecycle.runtime.compose)
@@ -107,6 +108,7 @@ dependencies {
     kover(project(":feature:auth"))
     kover(project(":feature:meals"))
     kover(project(":feature:tasks"))
+    kover(project(":feature:gamification"))
 }
 
 kover {

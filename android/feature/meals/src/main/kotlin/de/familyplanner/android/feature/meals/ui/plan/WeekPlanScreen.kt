@@ -265,7 +265,14 @@ private fun PlanDayRow(
         }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = rowModifier.padding(vertical = 4.dp)) {
         DayLabel(day, isToday)
-        DishSummary(day, state.canEdit, showRecipeLink = !state.isOffline, onOpenRecipe = onOpenRecipe, modifier = Modifier.weight(1f))
+        DishSummary(
+            day,
+            state.canEdit,
+            state.needsCookingConfirmation(day),
+            showRecipeLink = !state.isOffline,
+            onOpenRecipe = onOpenRecipe,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -291,6 +298,7 @@ private fun DayLabel(
 private fun DishSummary(
     day: PlannedDay,
     canEdit: Boolean,
+    canConfirm: Boolean,
     showRecipeLink: Boolean,
     onOpenRecipe: (RecipeViewArgs) -> Unit,
     modifier: Modifier = Modifier,
@@ -304,7 +312,7 @@ private fun DishSummary(
         }
         Text(dish.name, style = MaterialTheme.typography.titleMedium)
         day.cookName?.let { Text(stringResource(R.string.plan_cook, it), style = MaterialTheme.typography.bodyMedium) }
-        DishBadges(dish)
+        DishBadges(dish, canConfirm)
         if (dish.ingredients.isNotEmpty()) {
             Text(
                 dish.ingredients.joinToString(", "),
@@ -326,9 +334,14 @@ private fun DishSummary(
 }
 
 @Composable
-private fun DishBadges(dish: Dish) {
+private fun DishBadges(
+    dish: Dish,
+    canConfirm: Boolean,
+) {
     val badges =
         listOfNotNull(
+            if (dish.cookedAt != null) stringResource(R.string.plan_badge_cooked) else null,
+            if (canConfirm) stringResource(R.string.plan_badge_confirm_cooking) else null,
             when (dish.status) {
                 DishStatus.SUBMITTED -> stringResource(R.string.plan_badge_submitted)
                 DishStatus.REJECTED -> stringResource(R.string.plan_badge_rejected)

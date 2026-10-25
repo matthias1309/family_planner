@@ -1,0 +1,54 @@
+package de.familyplanner.android.feature.gamification.domain
+
+import de.familyplanner.android.core.data.AppError
+import java.time.Instant
+
+enum class EntryKind { TASK, COOKING, MANUAL, SHOP, REWARD, REWARD_REFUND }
+
+data class LedgerEntry(
+    val id: String,
+    val kind: EntryKind,
+    val amount: Int,
+    val title: String,
+    val note: String?,
+    val bookedAt: Instant,
+)
+
+data class PointsAccount(
+    val memberId: String,
+    val collected: Int,
+    val balance: Int,
+    val entries: List<LedgerEntry>,
+)
+
+data class RankedChild(
+    val memberId: String,
+    val name: String,
+    val rank: Int,
+    val collected: Int,
+)
+
+/** Stand vom Server oder aus dem lokalen Stand (ADR-0011); [account] nur für Kinder (eigenes Konto). */
+data class PointsSnapshot(
+    val account: PointsAccount?,
+    val leaderboard: List<RankedChild>,
+    val syncedAt: Instant,
+)
+
+sealed interface PointsLoad {
+    data class Fresh(
+        val snapshot: PointsSnapshot,
+    ) : PointsLoad
+
+    data class Cached(
+        val snapshot: PointsSnapshot,
+        val error: AppError,
+    ) : PointsLoad
+
+    data class Failed(
+        val error: AppError,
+    ) : PointsLoad
+}
+
+/** Platz des Kindes in der Rangliste; `null`, wenn es fehlt. */
+fun List<RankedChild>.rankOf(memberId: String): RankedChild? = firstOrNull { it.memberId == memberId }

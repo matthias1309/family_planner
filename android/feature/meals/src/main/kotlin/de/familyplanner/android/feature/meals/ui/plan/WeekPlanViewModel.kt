@@ -18,6 +18,7 @@ import de.familyplanner.android.feature.meals.domain.plan.PlanLimits
 import de.familyplanner.android.feature.meals.domain.plan.PlannedDay
 import de.familyplanner.android.feature.meals.domain.plan.WeekPlanLoad
 import de.familyplanner.android.feature.meals.domain.plan.WeekPlanSnapshot
+import de.familyplanner.android.feature.meals.domain.plan.canConfirmCooking
 import de.familyplanner.android.feature.meals.domain.reminder.LoadPendingCookingUseCase
 import de.familyplanner.android.feature.meals.domain.reminder.PendingCooking
 import kotlinx.coroutines.Job
@@ -57,6 +58,10 @@ data class WeekPlanUiState(
     val showsWhatsAppHint: Boolean
         get() = !isParent && pendingCooking != null && (isOffline || error.isUnreachable() || statusError.isUnreachable())
     val canEdit: Boolean get() = isParent && !isOffline && week != null
+
+    /** Eltern sehen an freigegebenen Kindergerichten, dass die Kochbestätigung noch offen ist (REQ-MEAL-034). */
+    fun needsCookingConfirmation(day: PlannedDay): Boolean = canConfirmCooking(canEdit, day.dish, day.cookIsChild, today)
+
     val showsStatus: Boolean get() = weekStart >= planWeek && !isOffline
     val myCooking: CookOverview? get() = if (isParent) null else status?.cooks?.firstOrNull { it.status.memberId == memberId }
     val showsPlanWeekLink: Boolean get() = weekStart == planWeek.minusWeeks(1)

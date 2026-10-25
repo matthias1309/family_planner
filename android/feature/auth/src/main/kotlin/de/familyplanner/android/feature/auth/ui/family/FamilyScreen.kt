@@ -35,10 +35,13 @@ import de.familyplanner.android.feature.auth.domain.FamilyMember
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun FamilyRoute(onBack: (() -> Unit)? = null) {
+fun FamilyRoute(
+    onBack: (() -> Unit)? = null,
+    familyContent: @Composable () -> Unit = {},
+) {
     val viewModel = koinViewModel<FamilyViewModel>()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    FamilyScreen(state = state, onEvent = viewModel::onEvent, onBack = onBack)
+    FamilyScreen(state = state, onEvent = viewModel::onEvent, onBack = onBack, familyContent = familyContent)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,6 +50,7 @@ fun FamilyScreen(
     state: FamilyUiState,
     onEvent: (FamilyEvent) -> Unit,
     onBack: (() -> Unit)?,
+    familyContent: @Composable () -> Unit = {},
 ) {
     PullToRefreshBox(
         isRefreshing = state.isLoading,
@@ -59,6 +63,7 @@ fun FamilyScreen(
         ) {
             item { Text(stringResource(R.string.family_title), style = MaterialTheme.typography.headlineMedium) }
             item { ErrorText(state.error) }
+            item { familyContent() }
             item { Text(stringResource(R.string.family_members), style = MaterialTheme.typography.titleMedium) }
             items(state.members, key = { "m-${it.id}" }) { member -> MemberRow(member) { onEvent(FamilyEvent.RequestCode(member)) } }
             item {
