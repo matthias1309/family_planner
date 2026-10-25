@@ -41,6 +41,17 @@ interface MealPlanRepository {
         at: Instant,
     ): ReviewOutcome
 
+    /**
+     * Atomically marks the dish cooked if it is APPROVED, not cooked yet and dated on or before [today];
+     * on success records [de.familyplanner.core.events.CookingConfirmed] in the same transaction.
+     */
+    suspend fun confirmCooked(
+        id: DishId,
+        by: MemberId,
+        today: LocalDate,
+        at: Instant,
+    ): CookOutcome
+
     suspend fun findCancellations(week: PlanWeek): List<Cancellation>
 
     /** Atomically stores (or replaces) the cancellation and deletes the cook's dishes in that week, ingredients included. */

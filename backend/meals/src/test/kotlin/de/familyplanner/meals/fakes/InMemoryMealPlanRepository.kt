@@ -1,8 +1,10 @@
 package de.familyplanner.meals.fakes
 
+import de.familyplanner.core.events.CookingConfirmed
 import de.familyplanner.core.member.MemberId
 import de.familyplanner.meals.attendance.PlanWeek
 import de.familyplanner.meals.plan.Cancellation
+import de.familyplanner.meals.plan.CookOutcome
 import de.familyplanner.meals.plan.Dish
 import de.familyplanner.meals.plan.DishId
 import de.familyplanner.meals.plan.DishStatus
@@ -14,6 +16,7 @@ import java.time.LocalDate
 
 class InMemoryMealPlanRepository : MealPlanRepository {
     private val dishes = mutableMapOf<DishId, Dish>()
+    val recordedEvents = mutableListOf<CookingConfirmed>()
     private val cancellations = mutableMapOf<Pair<MemberId, PlanWeek>, Cancellation>()
 
     override suspend fun findBetween(
@@ -58,6 +61,26 @@ class InMemoryMealPlanRepository : MealPlanRepository {
         if (dish.status != DishStatus.SUBMITTED) return ReviewOutcome.NOT_PENDING
         dishes[id] = dish.copy(status = status, rejectionReason = reason)
         return ReviewOutcome.SAVED
+    }
+
+    override suspend fun confirmCooked(
+        id: DishId,
+        by: MemberId,
+        today: LocalDate,
+        at: Instant,
+    ): CookOutcome {
+        val dish = dishes[id] ?: return CookOutcome.NOT_FOUND
+        val outcome =
+            when {
+                dish.cookedAt != null -> CookOutcome.ALREADY_COOKED
+                dish.status != DishStatus.APPROVED -> CookOutcome.NOT_APPROVED
+                dish.date.isAfter(today) -> CookOutcome.TOO_EARLY
+                else -> CookOutcome.CONFIRMED
+            }
+        if (outcome != CookOutcome.CONFIRMED) return outcome
+        dishes[id] = dish.copy(cookedAt = at)
+        recordedEvents += CookingConfirmed(id.value, dish.cookId.value, dish.name, dish.date.toString(), by.value, at.toEpochMilli())
+        return outcome
     }
 
     override suspend fun findCancellations(week: PlanWeek): List<Cancellation> = cancellations.values.filter { it.week == week }

@@ -60,12 +60,12 @@ ein Item gekauft hat** und das Küchenboard **4 Wochen** nicht mehr benötigt wi
   von Phase 5; Lizenz der Bausteine prüfen (Kandidaten: DiceBear-Stile mit CC0, „Avataaars“).
 - [ ] **Item-Preise:** fest im Katalog oder von den Eltern einstellbar? Vorschlag: Standardpreise, Eltern dürfen
   später anpassen (Could).
-- [ ] **Rangliste:** nur „Gesammelt gesamt“ oder zusätzlich Woche/Monat? Vorschlag: gesamt im MVP; Zeitraum als Could,
-  falls der Altersunterschied (10 vs. 18) die Rangliste unfair wirken lässt.
-- [ ] **Punkte fürs Kochen:** Standardwert? Vorschlag: einstellbar durch Eltern, Startwert 3 (Kochen ist mehr Arbeit
-  als eine Karte).
-- [ ] Startpunkte vom Küchenboard: Übernehmen die Eltern den aktuellen Stand je Kind als Startbuchung? (Vorschlag: ja,
-  über REQ-GAME-013, zählt für Gesammelt und Guthaben.)
+- [x] **Rangliste:** nur „Gesammelt gesamt“ oder zusätzlich Woche/Monat? Vorschlag: gesamt im MVP; Zeitraum als Could,
+  falls der Altersunterschied (10 vs. 18) die Rangliste unfair wirken lässt. *Entschieden 2026-10-25: gesamt.*
+- [x] **Punkte fürs Kochen:** Standardwert? Vorschlag: einstellbar durch Eltern, Startwert 3 (Kochen ist mehr Arbeit
+  als eine Karte). *Entschieden 2026-10-25: wie vorgeschlagen (einstellbar, Standard 3, Bereich 1–20).*
+- [x] Startpunkte vom Küchenboard: Übernehmen die Eltern den aktuellen Stand je Kind als Startbuchung? (Vorschlag: ja,
+  über REQ-GAME-013, zählt für Gesammelt und Guthaben.) *Entschieden 2026-10-25: ja.*
 
 ---
 
@@ -309,7 +309,7 @@ werden sollen, blockieren aber Avatar und Belohnungen nicht.
 
 | # | Phase | Description | Status | Parallel | Depends | PRP Plan |
 |---|-------|-------------|--------|----------|---------|----------|
-| 1 | Punktekonto | Journal, Punkte aus Aufgaben und Kochen (inkl. REQ-MEAL-034), manuelle Buchung, Stand, Verlauf, Rangliste, Bereich „Ich“ — aufgeteilt in 1a Backend/API und 1b App (REQ-GAME-010–014) | pending | - | TASK 2 (1b: TASK 1) | - |
+| 1 | Punktekonto | Journal, Punkte aus Aufgaben und Kochen (inkl. REQ-MEAL-034), manuelle Buchung, Stand, Verlauf, Rangliste, Bereich „Ich“ — aufgeteilt in 1a Backend/API und 1b App (REQ-GAME-010–014) | in-progress | - | TASK 2 (1b: TASK 1) | 1a: `.claude/PRPs/reports/punktekonto-backend-report.md` (Backend umgesetzt); 1b: offen |
 | 2 | Badges | Badge-Katalog, Regeln, Vergabe, Übersicht inkl. geheimer Badges (REQ-GAME-020/021) | pending | with 3, 4 | 1 | - |
 | 3 | Echte Belohnungen | Ausloben, Sparziel, Einlösen, Bestätigen (REQ-GAME-040–043) | pending | with 2, 4 | 1 | - |
 | 4 | Avatar & Shop | Spike + ADR zu Bausteinen/Lizenz, Avatar gestalten, Shop, Avatar in Rangliste/Board (REQ-GAME-030/031) | pending | with 2, 3 | 1 | - |
@@ -369,6 +369,7 @@ wenn nur eine Phase gleichzeitig läuft.
 | Avatar-Stil (2026-10-24) | Comic-Avatar für alle Kinder | Schlichter Stil für Ältere | Aussage Eltern: auch der 18-Jährige nutzt Comic |
 | Belohnungen (2026-10-24) | Nur Eltern loben aus mit Preis; jedes Kind spart für sich | Gemeinsames Sparen | Aussage Eltern |
 | Spartöpfe (2026-10-24) | Ein Guthaben plus optionales Sparziel mit Hinweis beim Kauf | Getrennte Konten für Avatar und Belohnungen | KISS: ein Konto ist für Kinder verständlicher; Sparziel macht das Sparen sichtbar. Nach dem Testbetrieb neu bewerten, falls Items das Sparen verhindern |
+| Phase 1a (2026-10-25) | Offene Fragen Rangliste/Kochpunkte/Startpunkte wie vorgeschlagen entschieden; Gutschrift per Ereignis mindestens einmal + idempotent (ADR-0016) statt „derselben Transaktion“ | Gutschrift in Statuswechsel-Transaktion | Modulgrenze `tasks`/`meals` ↔ `gamification`; Details in `docs/03-design/gamification.md` |
 | Journal | Unveränderliche Buchungen, Korrektur per Gegenbuchung | Punktestand als Zahl überschreiben | Nachvollziehbar für Kinder und Eltern; Immutability-Regel des Projekts |
 | Grafiken | Freie Comic-Bausteine | Selbst zeichnen; KI-generiert | Kein Grafikaufwand; Lizenz klar prüfbar |
 

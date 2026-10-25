@@ -1,5 +1,6 @@
 package de.familyplanner.app
 
+import de.familyplanner.api.model.DishResponse
 import de.familyplanner.api.model.MeResponse
 import de.familyplanner.api.model.MemberResponse
 import de.familyplanner.api.model.PairingCodeResponse
@@ -103,4 +104,24 @@ suspend fun ApplicationTestBuilder.setupFamilyWithChild(): Family {
         )
     val pairedData = checkNotNull(paired.data)
     return Family(parentToken, childId, pairedData.token, pairedData.device.id)
+}
+
+const val CHILD_ALWAYS_COOKS = """{"cooks":true,"pattern":{"type":"ALWAYS","weekA":[],"weekB":[]}}"""
+
+/** Makes the family's child a cook (profile with `ALWAYS` attendance). */
+suspend fun HttpClient.makeChildCook(family: Family) {
+    val response = call(HttpMethod.Put, "/api/v1/meals/profiles/${family.childId}", family.parentToken, CHILD_ALWAYS_COOKS)
+    assertEquals(HttpStatusCode.OK, response.status)
+}
+
+/** A parent enters a dish cooked by the child on [date]; parents' dishes are approved right away. Returns the dish id. */
+suspend fun HttpClient.enterApprovedChildDish(
+    family: Family,
+    date: String,
+    name: String = "Spaghetti",
+): String {
+    val body = """{"date":"$date","cookId":"${family.childId}","name":"$name","ingredients":["Nudeln"]}"""
+    val response = call(HttpMethod.Post, "/api/v1/meals/dishes", family.parentToken, body)
+    assertEquals(HttpStatusCode.Created, response.status)
+    return checkNotNull(json.decodeFromString<DishResponse>(response.bodyAsText()).data).id
 }

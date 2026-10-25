@@ -12,6 +12,8 @@ object MealDishesTable : Table("meal_dishes") {
     val late = bool("late")
     val recipeId = varchar("recipe_id", ID_LENGTH).nullable()
     val servings = integer("servings").nullable()
+    val cookedAt = long("cooked_at").nullable()
+    val cookedBy = varchar("cooked_by", ID_LENGTH).nullable()
     val createdAt = long("created_at")
     val updatedAt = long("updated_at")
 

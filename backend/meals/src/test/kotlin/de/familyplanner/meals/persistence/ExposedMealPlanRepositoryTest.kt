@@ -6,10 +6,12 @@ import de.familyplanner.core.member.ExposedMemberRepository
 import de.familyplanner.core.member.MemberId
 import de.familyplanner.core.member.Role
 import de.familyplanner.core.persistence.DatabaseFactory
+import de.familyplanner.core.persistence.DomainEventsTable
 import de.familyplanner.core.persistence.dbQuery
 import de.familyplanner.meals.attendance.PlanWeek
 import de.familyplanner.meals.fakes.lines
 import de.familyplanner.meals.plan.Cancellation
+import de.familyplanner.meals.plan.CookOutcome
 import de.familyplanner.meals.plan.Dish
 import de.familyplanner.meals.plan.DishId
 import de.familyplanner.meals.plan.DishStatus
@@ -19,7 +21,11 @@ import de.familyplanner.meals.plan.ReviewOutcome
 import de.familyplanner.meals.plan.SaveOutcome
 import de.familyplanner.meals.recipe.Recipe
 import de.familyplanner.meals.recipe.RecipeId
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.io.TempDir
@@ -339,5 +345,62 @@ class ExposedMealPlanRepositoryTest {
     fun `REQ-MEAL-030 find by id returns null for unknown dish`() =
         runTest {
             assertNull(repository.findById(DishId("nope")))
+        }
+
+    private suspend fun storedChildDish(
+        id: String,
+        date: String,
+        status: DishStatus = DishStatus.APPROVED,
+    ): Dish {
+        val child = ExposedMemberRepository(db).create(aMember(role = Role.CHILD)).id
+        return dish(id, date).copy(cookId = child, status = status).also { repository.createIfDayFree(it, now) }
+    }
+
+    private suspend fun cookingEvents() =
+        dbQuery(db) {
+            DomainEventsTable.selectAll().where { DomainEventsTable.type eq "cooking.confirmed.v1" }.map { it[DomainEventsTable.payload] }
+        }
+
+    @Test
+    fun `REQ-MEAL-034 confirming writes cooked_at and the event atomically`() =
+        runTest {
+            val dish = storedChildDish("d1", "2026-10-14")
+
+            val outcome = repository.confirmCooked(dish.id, cookId, LocalDate.parse("2026-10-14"), now)
+
+            assertEquals(CookOutcome.CONFIRMED, outcome)
+            assertEquals(now, repository.findById(dish.id)?.cookedAt)
+            val payload = cookingEvents().single()
+            assertTrue(payload.contains(dish.cookId.value))
+            assertTrue(payload.contains("Spaghetti"))
+        }
+
+    @Test
+    fun `REQ-MEAL-034 concurrent confirmations record exactly one event`() =
+        runTest {
+            val dish = storedChildDish("d1", "2026-10-14")
+            val today = LocalDate.parse("2026-10-14")
+
+            val outcomes =
+                listOf(
+                    async(Dispatchers.Default) { repository.confirmCooked(dish.id, cookId, today, now) },
+                    async(Dispatchers.Default) { repository.confirmCooked(dish.id, cookId, today, now) },
+                ).awaitAll()
+
+            assertEquals(setOf(CookOutcome.CONFIRMED, CookOutcome.ALREADY_COOKED), outcomes.toSet())
+            assertEquals(1, cookingEvents().size)
+        }
+
+    @Test
+    fun `REQ-MEAL-034 outcomes for missing, pending and future dishes`() =
+        runTest {
+            val pending = storedChildDish("d1", "2026-10-13", DishStatus.SUBMITTED)
+            val future = storedChildDish("d2", "2026-10-15")
+            val today = LocalDate.parse("2026-10-14")
+
+            assertEquals(CookOutcome.NOT_FOUND, repository.confirmCooked(DishId("x"), cookId, today, now))
+            assertEquals(CookOutcome.NOT_APPROVED, repository.confirmCooked(pending.id, cookId, today, now))
+            assertEquals(CookOutcome.TOO_EARLY, repository.confirmCooked(future.id, cookId, today, now))
+            assertEquals(0, cookingEvents().size)
         }
 }

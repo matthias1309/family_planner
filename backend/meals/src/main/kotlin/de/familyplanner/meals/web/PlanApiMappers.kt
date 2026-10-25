@@ -27,6 +27,7 @@ fun Dish.toApi(dayValid: Boolean = true) =
         rejectionReason = rejectionReason,
         late = late,
         dayValid = dayValid,
+        cookedAt = cookedAt?.toString(),
     )
 
 fun PlanDay.toApi() = ApiPlanDay(date = date.toString(), dish = dish?.toApi(dayValid))

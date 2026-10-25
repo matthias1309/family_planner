@@ -14,9 +14,16 @@ import de.familyplanner.core.pairing.SetupService
 import de.familyplanner.core.web.authRoutes
 import de.familyplanner.core.web.deviceRoutes
 import de.familyplanner.core.web.memberRoutes
+import de.familyplanner.gamification.POINTS_SUBSCRIBER
+import de.familyplanner.gamification.account.AccountService
+import de.familyplanner.gamification.gamificationModule
+import de.familyplanner.gamification.ledger.PointsEventHandler
+import de.familyplanner.gamification.settings.GameSettingsService
+import de.familyplanner.gamification.web.gamificationRoutes
 import de.familyplanner.meals.attendance.AttendanceService
 import de.familyplanner.meals.attendance.DeadlineSettingsService
 import de.familyplanner.meals.mealsModule
+import de.familyplanner.meals.plan.CookingConfirmationService
 import de.familyplanner.meals.plan.CookingWeekService
 import de.familyplanner.meals.plan.DishReviewService
 import de.familyplanner.meals.plan.MealPlanService
@@ -87,8 +94,11 @@ fun Application.module(
 ) {
     install(Koin) {
         slf4jLogger()
-        modules(coreModule(config.dbPath, config.setupToken, clock), mealsModule(clock), tasksModule(clock))
+        modules(coreModule(config.dbPath, config.setupToken, clock), mealsModule(clock), tasksModule(clock), gamificationModule(clock))
     }
+    // Subscribe before the first request and before the catch-up delivery below (ADR-0016).
+    val pointsHandler = get<PointsEventHandler>()
+    get<DomainEventDispatcher>().subscribe(POINTS_SUBSCRIBER) { pointsHandler.handle(it) }
     configureSerialization()
     configureStatusPages()
     configureMonitoring()
@@ -102,10 +112,11 @@ fun Application.module(
         deviceRoutes(get<DeviceService>())
         attendanceRoutes(get<AttendanceService>(), get<DeadlineSettingsService>())
         planRoutes(get<MealPlanService>())
-        cookingRoutes(get<DishReviewService>(), get<CookingWeekService>())
+        cookingRoutes(get<DishReviewService>(), get<CookingWeekService>(), get<CookingConfirmationService>())
         recipeRoutes(get<RecipeService>())
         shoppingRoutes(get<ShoppingListService>())
         taskRoutes(get<CatalogService>(), get<BoardService>())
+        gamificationRoutes(get<AccountService>(), get<GameSettingsService>())
     }
 
     // Catch-up delivery for events logged before the last shutdown (ADR-0016).

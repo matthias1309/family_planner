@@ -9,6 +9,7 @@ Kotlin/Ktor, modularer Monolith, SQLite (WAL) via Exposed, Migrationen mit Flywa
 | `api-contract` | Modelle, generiert aus `../api/openapi.yaml` (OpenAPI Generator, kotlinx.serialization) |
 | `core` | AUTH: Mitglieder, Geräte, Kopplungscodes, Persistenz, Bearer-Authentifizierung, Routen |
 | `meals` | Anwesenheit & Fristen (Muster, Ausnahmen, Bestell-/Einreichfristen), Wochenplan mit Elterngerichten, Einreichung & Freigabe der Kindergerichte, Absage, Wochenstatus, Rezeptsammlung mit strukturierten Zutaten; weitere Essensplaner-Phasen folgen. Design: `docs/03-design/meals.md` |
+| `gamification` | Punktekonto: unveränderliches Buchungsjournal je Kind, Gutschriften aus `task.accepted.v1` und `cooking.confirmed.v1` (Abonnent `gamification.points`), manuelle Buchung, Rangliste, Kochpunktwert. Design: `docs/03-design/gamification.md` |
 | `tasks` | Aufgabenkatalog („Magnetschilder“), Karten je Kind, Statusübergänge Todo → Abnahme → Done mit Rechteprüfung; schreibt bei Abnahme das Ereignis `task.accepted.v1` (ADR-0016). Design: `docs/03-design/tasks.md` |
 | `app` | Ktor-Server (Netty, TLS), Konfiguration aus Umgebungsvariablen, Plugins, `/health` |
 

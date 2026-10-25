@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Family Planner API
-  version: 0.6.0
+  version: 0.7.0
   description: Vertrag zwischen Android-App und Backend (ADR-0004). Alle Antworten nutzen den Envelope {success, data, error}.
 servers:
   - url: https://planner.home.arpa:8095
@@ -14,6 +14,7 @@ tags:
   - name: devices
   - name: meals
   - name: tasks
+  - name: gamification
 
 paths:
   /health:
@@ -673,6 +674,24 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/meals/dishes/{dishId}/cooking-confirmation:
+    post:
+      operationId: confirmDishCooked
+      tags: [meals]
+      summary: Kindergericht als gekocht bestätigen (nur Eltern, am oder nach dem Kochtag)
+      parameters:
+        - $ref: '#/components/parameters/DishId'
+      responses:
+        '204':
+          description: Gericht als gekocht bestätigt; das Kind bekommt Kochpunkte
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
   /api/v1/tasks/catalog:
     get:
       operationId: listCatalogTasks
@@ -910,6 +929,97 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/gamification/leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [gamification]
+      summary: Rangliste der Kinder nach gesammelten Punkten
+      responses:
+        '200':
+          description: Kinder mit Rang und gesammelten Punkten
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LeaderboardResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/gamification/members/{memberId}/account:
+    get:
+      operationId: getPointsAccount
+      tags: [gamification]
+      summary: Punktekonto eines Kindes (Kind nur das eigene, Eltern alle), Buchungen neueste zuerst
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+        - $ref: '#/components/parameters/HistoryLimit'
+      responses:
+        '200':
+          description: Gesammelt, Guthaben und Buchungen
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PointsAccountResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/gamification/members/{memberId}/entries:
+    post:
+      operationId: bookPoints
+      tags: [gamification]
+      summary: Punkte manuell buchen oder korrigieren (nur Eltern)
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ManualEntryRequest' }
+      responses:
+        '201':
+          description: Angelegte Buchung
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LedgerEntryResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/gamification/settings:
+    get:
+      operationId: getGameSettings
+      tags: [gamification]
+      summary: Einstellungen der Punktevergabe lesen
+      responses:
+        '200':
+          description: Aktuelle Einstellungen
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GameSettingsResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    put:
+      operationId: updateGameSettings
+      tags: [gamification]
+      summary: Einstellungen der Punktevergabe ändern (nur Eltern)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GameSettings' }
+      responses:
+        '200':
+          description: Gespeicherte Einstellungen
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GameSettingsResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
 components:
@@ -1435,6 +1545,7 @@ components:
         rejectionReason: { type: string, maxLength: 200, nullable: true }
         late: { type: boolean, description: Vom Kind nach seiner Frist gespeichert }
         dayValid: { type: boolean, description: 'false, wenn das kochende Kind an dem Tag nicht (mehr) anwesend ist' }
+        cookedAt: { type: string, format: date-time, nullable: true, description: Von einem Elternteil als gekocht bestätigt }
 
     SaveDishRequest:
       type: object
@@ -1843,6 +1954,119 @@ components:
         data:
           allOf:
             - $ref: '#/components/schemas/TaskBoard'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    LedgerEntryKind:
+      type: string
+      enum: [TASK, COOKING, MANUAL, SHOP, REWARD, REWARD_REFUND]
+
+    LedgerEntry:
+      type: object
+      required: [id, kind, amount, title, bookedAt]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: '#/components/schemas/LedgerEntryKind' }
+        amount: { type: integer, description: 'Positiv = gutgeschrieben, negativ = abgezogen' }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        note: { type: string, nullable: true }
+        bookedAt: { type: string, format: date-time }
+
+    PointsAccount:
+      type: object
+      required: [memberId, collected, balance, items]
+      properties:
+        memberId: { type: string, format: uuid }
+        collected: { type: integer, description: 'Verdiente Punkte insgesamt (Aufgaben, Kochen, manuelle Buchungen)' }
+        balance: { type: integer, description: 'Verfügbares Guthaben (Summe aller Buchungen)' }
+        items:
+          type: array
+          description: Buchungen, neueste zuerst
+          items: { $ref: '#/components/schemas/LedgerEntry' }
+
+    LeaderboardEntry:
+      type: object
+      required: [memberId, name, rank, collected]
+      properties:
+        memberId: { type: string, format: uuid }
+        name: { type: string }
+        rank: { type: integer, minimum: 1, description: 'Bei Gleichstand gleicher Rang (1, 1, 3)' }
+        collected: { type: integer }
+
+    Leaderboard:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/LeaderboardEntry' }
+
+    ManualEntryRequest:
+      type: object
+      required: [amount, reason]
+      properties:
+        amount: { type: integer, minimum: -1000, maximum: 1000, description: 'Darf nicht 0 sein' }
+        reason: { type: string, minLength: 1, maxLength: 200 }
+
+    GameSettings:
+      type: object
+      required: [cookingPoints]
+      properties:
+        cookingPoints: { type: integer, minimum: 1, maximum: 20, description: 'Punkte für ein bestätigtes Kochen' }
+
+    LedgerEntryResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/LedgerEntry'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    PointsAccountResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/PointsAccount'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    LeaderboardResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Leaderboard'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    GameSettingsResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/GameSettings'
           nullable: true
         error:
           allOf:

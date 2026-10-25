@@ -33,6 +33,7 @@ data class Dish(
     val rejectionReason: String? = null,
     val late: Boolean = false,
     val recipe: RecipeRef? = null,
+    val cookedAt: Instant? = null,
 )
 
 /** A day of the plan; [dish] is null while the day is still open; [dayValid] is false if the cooking child is absent. */
@@ -66,6 +67,8 @@ data class WeekPlan(
 enum class SaveOutcome { SAVED, DAY_TAKEN, NOT_FOUND, COOK_WEEK_TAKEN, COOK_CANCELLED }
 
 enum class ReviewOutcome { SAVED, NOT_FOUND, NOT_PENDING }
+
+enum class CookOutcome { CONFIRMED, NOT_FOUND, NOT_APPROVED, TOO_EARLY, ALREADY_COOKED }
 
 /** Seven days Monday..Sunday; days without a dish stay open. Dishes outside [week] are ignored. */
 fun weekPlanOf(

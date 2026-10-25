@@ -383,6 +383,23 @@ Regeln:
 Unit-Testfälle: `UseCasesTest` (shopping), `ShoppingViewModelTest`, `ShoppingScreensTest`, Link in der Statuskarte (`CookingScreensTest`);
 Integration gegen MockWebServer: `RemoteShoppingRepositoryTest`.
 
+## Kochbestätigung (REQ-MEAL-034)
+
+Ein Elternteil bestätigt, dass ein Kind sein freigegebenes Gericht gekocht hat (`POST /api/v1/meals/dishes/{dishId}/cooking-confirmation`, `204`).
+Das Gericht bekommt `cookedAt` (`Dish.cookedAt`, nullable; Migration `V9__meals_cooking_confirmation.sql`: `cooked_at`, `cooked_by`).
+
+| Ergebnis (`CookOutcome`) | HTTP |
+|---|---|
+| `CONFIRMED` | 204 |
+| `NOT_FOUND` | 404 |
+| Koch ist Elternteil | 400 |
+| `NOT_APPROVED` (wartet/abgelehnt), `TOO_EARLY` (Kochtag liegt nach heute, `Europe/Berlin`), `ALREADY_COOKED` | 409 |
+
+Das bedingte `UPDATE … WHERE status = 'APPROVED' AND cooked_at IS NULL AND meal_date <= heute` entscheidet atomar; bei Erfolg wird im selben
+`dbQuery` das Ereignis `cooking.confirmed.v1` geschrieben (parallele Doppelbestätigung → genau ein Ereignis). Danach ruft
+`CookingConfirmationService` `EventNotifier.dispatchPending()`. Es gibt kein Zurücknehmen; Korrektur per manueller Gegenbuchung in `gamification`.
+Tests: `CookingConfirmationServiceTest`, `ExposedMealPlanRepositoryTest` (`REQ-MEAL-034 …`), API: `MealsCookingConfirmationApiTest`.
+
 ## App-Seite (Phase 7)
 
 Erinnerungen und Status-Meldungen in `feature:meals`: Pakete `domain/reminder`, `data/reminder`. `api/` und `backend/` bleiben unverändert
