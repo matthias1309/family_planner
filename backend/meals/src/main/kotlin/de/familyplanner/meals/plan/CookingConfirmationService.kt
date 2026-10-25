@@ -6,6 +6,7 @@ import de.familyplanner.core.member.MemberId
 import de.familyplanner.core.member.MemberRepository
 import de.familyplanner.core.member.Role
 import de.familyplanner.meals.attendance.ZONE
+import kotlinx.coroutines.CancellationException
 import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.LocalDate
@@ -30,7 +31,20 @@ class CookingConfirmationService(
         val now = clock.instant()
         requireConfirmed(plan.confirmCooked(id, by, LocalDate.ofInstant(now, ZONE), now))
         log.info("Dish cooked: {}", id.value)
-        events.dispatchPending()
+        notifySubscribers()
+    }
+
+    /** A failing delivery never fails the request; the event stays in the log and is retried (ADR-0016). */
+    private suspend fun notifySubscribers() {
+        try {
+            events.dispatchPending()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (
+            @Suppress("TooGenericExceptionCaught") failure: Exception,
+        ) {
+            log.error("Event delivery failed", failure)
+        }
     }
 
     private fun requireConfirmed(outcome: CookOutcome) {

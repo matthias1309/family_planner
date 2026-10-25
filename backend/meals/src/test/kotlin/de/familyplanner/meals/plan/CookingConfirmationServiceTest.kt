@@ -122,4 +122,16 @@ class CookingConfirmationServiceTest {
 
             assertEquals(1, fixture.planRepository.recordedEvents.size)
         }
+
+    @Test
+    fun `REQ-MEAL-034 failing event delivery does not fail the confirmation`() =
+        runTest {
+            val failing = CookingConfirmationService(fixture.members, fixture.planRepository, { error("down") }, fixture.clock)
+            val (_, dish) = approvedChildDish("2026-10-14")
+
+            failing.confirm(dish.id, fixture.parent().id)
+
+            assertNotNull(fixture.planRepository.findById(dish.id)?.cookedAt)
+            assertEquals(1, fixture.planRepository.recordedEvents.size)
+        }
 }
