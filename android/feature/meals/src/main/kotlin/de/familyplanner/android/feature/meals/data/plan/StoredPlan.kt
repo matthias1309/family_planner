@@ -32,6 +32,7 @@ data class StoredDay(
     val date: String,
     val dish: StoredDish? = null,
     val cookName: String? = null,
+    val cookIsChild: Boolean = false,
 )
 
 @Serializable
@@ -45,9 +46,11 @@ data class StoredDish(
     val rejectionReason: String? = null,
     val late: Boolean = false,
     val dayValid: Boolean = true,
+    val cookedAtMillis: Long? = null,
 )
 
-internal fun Dish.toStored() = StoredDish(id, cookId, name, ingredients, status.name, rejectionReason, late, dayValid)
+internal fun Dish.toStored() =
+    StoredDish(id, cookId, name, ingredients, status.name, rejectionReason, late, dayValid, cookedAt?.toEpochMilli())
 
 internal fun WeekPlanSnapshot.toStored() =
     StoredWeek(
@@ -55,7 +58,7 @@ internal fun WeekPlanSnapshot.toStored() =
         syncedAtMillis = syncedAt.toEpochMilli(),
         days =
             days.map { day ->
-                StoredDay(day.date.toString(), day.dish?.toStored(), day.cookName)
+                StoredDay(day.date.toString(), day.dish?.toStored(), day.cookName, day.cookIsChild)
             },
     )
 
@@ -69,10 +72,21 @@ internal fun StoredWeek.toDomain(): WeekPlanSnapshot? {
 private fun StoredDay.toDomain(): PlannedDay? {
     val day = parseDate(date) ?: return null
     val mapped = dish?.let { it.toDomain(day) ?: return null }
-    return PlannedDay(day, mapped, cookName)
+    return PlannedDay(day, mapped, cookName, cookIsChild)
 }
 
 private fun StoredDish.toDomain(day: LocalDate): Dish? {
     val parsed = DishStatus.entries.firstOrNull { it.name == status } ?: return null
-    return Dish(id, day, cookId, name, ingredients, parsed, rejectionReason, late, dayValid)
+    return Dish(
+        id,
+        day,
+        cookId,
+        name,
+        ingredients,
+        parsed,
+        rejectionReason,
+        late,
+        dayValid,
+        cookedAt = cookedAtMillis?.let(Instant::ofEpochMilli),
+    )
 }

@@ -3,6 +3,7 @@ package de.familyplanner.android.feature.meals.domain.plan
 import de.familyplanner.android.feature.meals.fakes.childDish
 import de.familyplanner.android.feature.meals.fakes.planWeek
 import de.familyplanner.android.feature.meals.fakes.someDish
+import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -68,5 +69,23 @@ class EditorRulesTest {
     fun `REQ-MEAL-032 parent dish opens edit mode`() {
         assertEquals(EditorMode.PARENT_EDIT, editorMode(true, someDish, false))
         assertEquals(EditorMode.PARENT_EDIT, editorMode(true, null, false))
+    }
+
+    private val approved = childDish.copy(status = DishStatus.APPROVED, date = tuesday)
+
+    @Test
+    fun `REQ-MEAL-034 parent can confirm an approved child dish on or after the cooking day`() {
+        assertEquals(true, canConfirmCooking(true, approved, true, tuesday))
+        assertEquals(true, canConfirmCooking(true, approved, true, wednesday))
+        assertEquals(false, canConfirmCooking(true, approved, true, planWeek))
+    }
+
+    @Test
+    fun `REQ-MEAL-034 confirmation is not offered for parents' dishes, pending or cooked dishes, or children`() {
+        assertEquals(false, canConfirmCooking(true, approved, false, wednesday))
+        assertEquals(false, canConfirmCooking(true, approved.copy(status = DishStatus.SUBMITTED), true, wednesday))
+        assertEquals(false, canConfirmCooking(true, approved.copy(cookedAt = Instant.EPOCH), true, wednesday))
+        assertEquals(false, canConfirmCooking(false, approved, true, wednesday))
+        assertEquals(false, canConfirmCooking(true, null, true, wednesday))
     }
 }

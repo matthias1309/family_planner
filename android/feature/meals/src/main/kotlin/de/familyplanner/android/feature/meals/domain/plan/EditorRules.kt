@@ -47,3 +47,12 @@ fun preselectDate(
     tapped: LocalDate,
     allowed: Set<LocalDate>,
 ): LocalDate? = tapped.takeIf { it in allowed } ?: allowed.minOrNull()
+
+/** Eltern bestätigen ein freigegebenes Kindergericht am oder nach dem Kochtag (REQ-MEAL-034). */
+fun canConfirmCooking(
+    isParent: Boolean,
+    dish: Dish?,
+    cookIsChild: Boolean,
+    today: LocalDate,
+): Boolean =
+    isParent && cookIsChild && dish != null && dish.status == DishStatus.APPROVED && dish.cookedAt == null && !dish.date.isAfter(today)

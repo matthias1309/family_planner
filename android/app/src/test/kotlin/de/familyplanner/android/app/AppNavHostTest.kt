@@ -17,9 +17,21 @@ import de.familyplanner.android.core.data.session.SessionEvent
 import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.core.ui.theme.FamilyPlannerTheme
 import de.familyplanner.android.feature.auth.domain.AuthRepository
+import de.familyplanner.android.feature.auth.domain.CreateMemberUseCase
+import de.familyplanner.android.feature.auth.domain.CreatePairingCodeUseCase
+import de.familyplanner.android.feature.auth.domain.LoadFamilyUseCase
 import de.familyplanner.android.feature.auth.domain.Me
 import de.familyplanner.android.feature.auth.domain.RefreshMeUseCase
+import de.familyplanner.android.feature.auth.domain.RevokeDeviceUseCase
+import de.familyplanner.android.feature.auth.ui.family.FamilyViewModel
 import de.familyplanner.android.feature.auth.ui.home.HomeViewModel
+import de.familyplanner.android.feature.gamification.domain.BookPointsUseCase
+import de.familyplanner.android.feature.gamification.domain.CookingPointsUseCase
+import de.familyplanner.android.feature.gamification.domain.LoadChildAccountUseCase
+import de.familyplanner.android.feature.gamification.domain.LoadPointsUseCase
+import de.familyplanner.android.feature.gamification.ui.account.ChildAccountViewModel
+import de.familyplanner.android.feature.gamification.ui.family.FamilyPointsViewModel
+import de.familyplanner.android.feature.gamification.ui.me.MeViewModel
 import de.familyplanner.android.feature.meals.PlanOpenRequests
 import de.familyplanner.android.feature.meals.SharedRecipeInbox
 import de.familyplanner.android.feature.meals.domain.cooking.CancelCookingUseCase
@@ -114,6 +126,9 @@ class AppNavHostTest {
     private val taskRequests = TaskOpenRequests()
     private val boardCache = MemoryBoardCache()
     private var boardLanes: List<TaskLane> = emptyList()
+    private val pointsRepository = StaticPointsRepository()
+    private val pointsCache = MemoryPointsCache()
+    private val familyRepository = EmptyFamilyRepository()
     private val taskRepository by lazy { StaticTaskRepository(boardLanes) }
 
     private val recipeRepository =
@@ -159,6 +174,8 @@ class AppNavHostTest {
 
             override suspend fun approve(dishId: String): ApiResult<Unit> = ApiResult.Failure(AppError.Network)
 
+            override suspend fun confirmCooked(dishId: String): ApiResult<Unit> = ApiResult.Failure(AppError.Network)
+
             override suspend fun reject(
                 dishId: String,
                 reason: String,
@@ -197,6 +214,29 @@ class AppNavHostTest {
             override suspend fun write(snapshot: ReminderSnapshot) = Unit
 
             override suspend fun clear() = Unit
+        }
+
+    private val pointsModule =
+        module {
+            viewModel { MeViewModel(LoadPointsUseCase(pointsRepository, pointsCache, sessions), sessions) }
+            viewModel {
+                FamilyPointsViewModel(
+                    LoadPointsUseCase(pointsRepository, pointsCache, sessions),
+                    CookingPointsUseCase(pointsRepository),
+                )
+            }
+            viewModel { params ->
+                ChildAccountViewModel(params.get(), LoadChildAccountUseCase(pointsRepository), BookPointsUseCase(pointsRepository))
+            }
+            viewModel {
+                FamilyViewModel(
+                    sessions,
+                    LoadFamilyUseCase(familyRepository),
+                    CreateMemberUseCase(familyRepository),
+                    CreatePairingCodeUseCase(familyRepository),
+                    RevokeDeviceUseCase(familyRepository, sessions),
+                )
+            }
         }
 
     @Before
@@ -245,6 +285,7 @@ class AppNavHostTest {
                         )
                     }
                 },
+                pointsModule,
             )
         }
     }
@@ -330,12 +371,44 @@ class AppNavHostTest {
     }
 
     @Test
-    fun `REQ-TASK-001 me shows coming soon`() {
+    fun `REQ-GAME-012 me shows collected points and balance`() {
         sessions.setCurrent(session)
         show()
 
         compose.onNode(hasText("Ich") and hasClickAction()).performClick()
-        compose.onNodeWithText("Hier findest du bald Punkte, Badges und deinen Avatar.").assertIsDisplayed()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Gesammelt").assertIsDisplayed()
+        compose.onNodeWithText("Guthaben").assertIsDisplayed()
+        compose.onNodeWithText("Platz 2 von 2").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-GAME-014 parent sees the leaderboard under family`() {
+        sessions.setCurrent(Session("tok", "p", "Anna", Role.PARENT, "d"))
+        show()
+
+        compose.onNode(hasText("Familie") and hasClickAction()).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Punkte").assertIsDisplayed()
+        compose.onNodeWithText("Ben").assertIsDisplayed()
+        compose.onNodeWithText("Kochpunkte: 3").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-GAME-013 tapping a child opens its points account`() {
+        sessions.setCurrent(Session("tok", "p", "Anna", Role.PARENT, "d"))
+        show()
+        compose.onNode(hasText("Familie") and hasClickAction()).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Lea").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Punktekonto Lea").assertIsDisplayed()
+        compose.onNodeWithText("Punkte buchen").assertIsDisplayed()
+        compose.onNode(hasText("Aufgaben") and hasClickAction()).assertDoesNotExist()
     }
 
     @Test

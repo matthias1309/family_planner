@@ -20,6 +20,8 @@ class RemoteCookingRepository(
 
     override suspend fun approve(dishId: String): ApiResult<Unit> = apiCallNoContent(json) { meals.approveDish(dishId) }
 
+    override suspend fun confirmCooked(dishId: String): ApiResult<Unit> = apiCallNoContent(json) { meals.confirmDishCooked(dishId) }
+
     override suspend fun reject(
         dishId: String,
         reason: String,

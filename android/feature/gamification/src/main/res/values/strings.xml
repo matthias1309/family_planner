@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="game_me_title">Ich</string>
+    <string name="game_back">Zurück</string>
+    <string name="game_cancel">Abbrechen</string>
+    <string name="game_offline">Offline – Stand vom %1$s</string>
+    <string name="game_collected">Gesammelt</string>
+    <string name="game_balance">Guthaben</string>
+    <string name="game_rank_of">Platz %1$d von %2$d</string>
+    <string name="game_leaderboard">Rangliste</string>
+    <string name="game_leaderboard_empty">Noch keine Kinder in der Familie</string>
+    <string name="game_history">Verlauf</string>
+    <string name="game_history_empty">Noch keine Punkte – erledige eine Aufgabe oder koche.</string>
+    <string name="game_kind_task">Aufgabe</string>
+    <string name="game_kind_cooking">Kochen</string>
+    <string name="game_kind_manual">Korrektur</string>
+    <string name="game_kind_shop">Shop</string>
+    <string name="game_kind_reward">Belohnung</string>
+    <string name="game_kind_reward_refund">Rückbuchung</string>
+
+    <string name="game_family_title">Punkte</string>
+    <string name="game_cooking_points">Kochpunkte: %1$d</string>
+    <string name="game_cooking_points_edit">Ändern</string>
+    <string name="game_cooking_points_hint">Gilt für künftige Bestätigungen.</string>
+    <string name="game_cooking_points_dialog_title">Kochpunkte</string>
+    <string name="game_save">Speichern</string>
+    <string name="game_points_less">Weniger Punkte</string>
+    <string name="game_points_more">Mehr Punkte</string>
+
+    <string name="game_account_title">Punktekonto %1$s</string>
+    <string name="game_book_points">Punkte buchen</string>
+    <string name="game_book_credit">Gutschreiben</string>
+    <string name="game_book_debit">Abziehen</string>
+    <string name="game_book_amount">Betrag</string>
+    <string name="game_book_amount_max">Höchstens %1$d</string>
+    <string name="game_book_reason">Begründung</string>
+    <string name="game_book_reason_placeholder">z. B. Übernahme Küchenboard</string>
+    <string name="game_book_submit">Buchen</string>
+</resources>

@@ -15,4 +15,4 @@ dependencyResolutionManagement {
     }
 }
 
-include(":app", ":core:api", ":core:data", ":core:ui", ":core:testing", ":feature:auth", ":feature:meals", ":feature:tasks")
+include(":app", ":core:api", ":core:data", ":core:ui", ":core:testing", ":feature:auth", ":feature:meals", ":feature:tasks", ":feature:gamification")

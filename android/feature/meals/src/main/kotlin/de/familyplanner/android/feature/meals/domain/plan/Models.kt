@@ -23,6 +23,8 @@ data class Dish(
     /** Rezept, aus dem das Gericht übernommen wurde (ADR-0012); `null` nach Löschen des Rezepts. */
     val recipeId: String? = null,
     val servings: Int? = null,
+    /** Von einem Elternteil als gekocht bestätigt (REQ-MEAL-034). */
+    val cookedAt: Instant? = null,
 )
 
 data class PlanDay(
@@ -80,6 +82,8 @@ data class PlannedDay(
     val date: LocalDate,
     val dish: Dish?,
     val cookName: String?,
+    /** Das Gericht kocht ein Kind (nur dann gibt es Kochpunkte, REQ-MEAL-034). */
+    val cookIsChild: Boolean = false,
 )
 
 data class WeekPlanSnapshot(

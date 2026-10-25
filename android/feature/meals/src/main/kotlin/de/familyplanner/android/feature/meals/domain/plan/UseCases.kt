@@ -48,9 +48,22 @@ class LoadWeekPlanUseCase(
             if (weekResult !is ApiResult.Success) return@coroutineScope weekResult as ApiResult.Failure
             if (membersResult !is ApiResult.Success) return@coroutineScope membersResult as ApiResult.Failure
             val names = membersResult.data.associate { it.id to it.name }
+            val childIds =
+                membersResult.data
+                    .filterNot { it.isParent }
+                    .map { it.id }
+                    .toSet()
             val plan = weekResult.data
             // Ein evtl. gerade gelöschtes Mitglied ist kein Fehler: Name unbekannt, Gericht trotzdem zeigen.
-            val days = plan.days.map { PlannedDay(it.date, it.dish, it.dish?.let { dish -> names[dish.cookId] ?: UNKNOWN_NAME }) }
+            val days =
+                plan.days.map {
+                    PlannedDay(
+                        it.date,
+                        it.dish,
+                        it.dish?.let { dish -> names[dish.cookId] ?: UNKNOWN_NAME },
+                        cookIsChild = it.dish?.cookId in childIds,
+                    )
+                }
             ApiResult.Success(WeekPlanSnapshot(plan.weekStart, days, clock.instant()))
         }
 }

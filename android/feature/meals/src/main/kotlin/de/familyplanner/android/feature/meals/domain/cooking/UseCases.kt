@@ -34,6 +34,8 @@ class ReviewDishUseCase(
 ) {
     suspend fun approve(dishId: String): ApiResult<Unit> = cooking.approve(dishId)
 
+    suspend fun confirmCooked(dishId: String): ApiResult<Unit> = cooking.confirmCooked(dishId)
+
     suspend fun reject(
         dishId: String,
         reason: String,

@@ -8,6 +8,9 @@ interface CookingRepository {
 
     suspend fun approve(dishId: String): ApiResult<Unit>
 
+    /** Bestätigt das Kochen; das Kind erhält die Kochpunkte (REQ-MEAL-034). */
+    suspend fun confirmCooked(dishId: String): ApiResult<Unit>
+
     suspend fun reject(
         dishId: String,
         reason: String,

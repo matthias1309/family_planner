@@ -56,3 +56,25 @@ Betrag ±1–1000, Begründung 1–200, Kochpunkte 1–20, Verlauf-`limit` 1–1
 `GameSettingsServiceTest`. Integration: `ExposedLedgerRepositoryTest` (Idempotenz, Summen, Reihenfolge, Migrations-`CHECK`),
 `PointsSubscriptionTest` (Dispatcher + Handler + echte DB, Nachholen, verlorener Cursor), API: `GamificationApiTest`
 (Vertragsprüfung gegen `openapi.yaml`).
+
+## App-Seite (Phase 1b)
+
+Modul `android/feature/gamification` (`domain/`, `data/`, `ui/`, kennt `meals`/`tasks`/`auth` nicht; nur `app` verbindet). `api/` und `backend/`
+bleiben unverändert (Vertrag 0.7.0).
+
+| Bildschirm | Inhalt |
+|---|---|
+| „Ich“ (Kind, `MeHomeRoute`) | Kacheln Gesammelt / Guthaben, „Platz n von m“, Rangliste (eigene Zeile fett), Verlauf (letzte 50, `HISTORY_LIMIT`) |
+| „Familie“ → Abschnitt „Punkte“ (Eltern) | Rangliste (antippbar), „Kochpunkte: n · Ändern“ (Stepper 1–20, gilt für künftige Bestätigungen) |
+| Punktekonto (Eltern, `ChildAccountRoute`, ohne Leiste) | Stand, Verlauf, „Punkte buchen“ (Gutschreiben/Abziehen, Betrag 1–1000, Begründung 1–200 mit Zähler) |
+
+Der Abschnitt „Punkte“ wird über den Slot `familyContent` von `mainGraph`/`FamilyScreen` eingehängt (`feature:auth` kennt das Modul nicht).
+
+- **Sichtbarkeit:** Kind lädt nur das eigene Konto (`LoadPointsUseCase`: Konto + Rangliste parallel); Eltern nur die Rangliste, das Konto eines Kindes über `LoadChildAccountUseCase` (ohne lokalen Stand).
+- **Lokaler Stand** (ADR-0011): Datei `game_points.json`, je Mitglied (`memberId`), Version 1, Zeitpunkte als Epoch-Millis. Nur bei `Network`/`Certificate`/`Server` als Rückfall; `Unauthorized` leert den Stand; ein halber Ladeerfolg wird nicht gespeichert. Schreibaktionen (Buchen, Kochpunkte ändern) nur online.
+- **Laden:** nur über `ON_RESUME`/Pull-to-Refresh (kein Laden im `init`, sonst doppelt); ein neuer Ladevorgang bricht den alten ab.
+- **Rangliste:** Reihenfolge und Rang wie vom Server (Gleichstand 1, 1, 3); Avatar-Platzhalter = Anfangsbuchstabe (Avatar folgt in Phase 4).
+- **Grenzen** (`PointsLimits`): Betrag ≠ 0, |Betrag| ≤ 1000; Begründung 1–200 nach `trim`; Kochpunkte 1–20.
+
+Unit-Tests: `ValidationTest`, `UseCasesTest`, `ViewModelsTest` (Me/Familie/Punktekonto), `ScreensTest` (Robolectric),
+`RemotePointsRepositoryTest` (MockWebServer), `DataStorePointsCacheTest`, `GamificationModuleTest`; Navigation: `AppNavHostTest` (`app`).
