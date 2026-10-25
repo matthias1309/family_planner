@@ -9,6 +9,7 @@ import de.familyplanner.core.auth.principalOrThrow
 import de.familyplanner.core.auth.requireParent
 import de.familyplanner.core.auth.uuidParameter
 import de.familyplanner.core.member.MemberId
+import de.familyplanner.meals.plan.CookingConfirmationService
 import de.familyplanner.meals.plan.CookingWeekService
 import de.familyplanner.meals.plan.DishId
 import de.familyplanner.meals.plan.DishReviewService
@@ -26,6 +27,7 @@ import io.ktor.server.routing.put
 fun Route.cookingRoutes(
     reviews: DishReviewService,
     cooking: CookingWeekService,
+    confirmations: CookingConfirmationService,
 ) {
     authenticate(AUTH_DEVICE) {
         post("/api/v1/meals/dishes/{dishId}/approval") {
@@ -37,6 +39,11 @@ fun Route.cookingRoutes(
             call.requireParent()
             val id = DishId(call.uuidParameter("dishId"))
             reviews.reject(id, call.receive<RejectDishRequest>().reason)
+            call.respond(HttpStatusCode.NoContent)
+        }
+        post("/api/v1/meals/dishes/{dishId}/cooking-confirmation") {
+            val parent = call.requireParent()
+            confirmations.confirm(DishId(call.uuidParameter("dishId")), parent.memberId)
             call.respond(HttpStatusCode.NoContent)
         }
         put("/api/v1/meals/weeks/{weekStart}/cancellations/{memberId}") {

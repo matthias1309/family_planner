@@ -1,9 +1,12 @@
 package de.familyplanner.meals.persistence
 
+import de.familyplanner.core.events.CookingConfirmed
+import de.familyplanner.core.events.recordEvent
 import de.familyplanner.core.member.MemberId
 import de.familyplanner.core.persistence.dbQuery
 import de.familyplanner.meals.attendance.PlanWeek
 import de.familyplanner.meals.plan.Cancellation
+import de.familyplanner.meals.plan.CookOutcome
 import de.familyplanner.meals.plan.Dish
 import de.familyplanner.meals.plan.DishId
 import de.familyplanner.meals.plan.DishStatus
@@ -18,6 +21,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.lessEq
 import org.jetbrains.exposed.v1.core.neq
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -144,6 +148,39 @@ class ExposedMealPlanRepository(
             }
         }
 
+    override suspend fun confirmCooked(
+        id: DishId,
+        by: MemberId,
+        today: LocalDate,
+        at: Instant,
+    ): CookOutcome =
+        dbQuery(db) {
+            val changed =
+                MealDishesTable.update({
+                    (MealDishesTable.id eq id.value) and
+                        (MealDishesTable.status eq DishStatus.APPROVED.name) and
+                        MealDishesTable.cookedAt.isNull() and
+                        (MealDishesTable.mealDate lessEq today.toString())
+                }) {
+                    it[cookedAt] = at.toEpochMilli()
+                    it[cookedBy] = by.value
+                    it[updatedAt] = at.toEpochMilli()
+                }
+            if (changed == 0) return@dbQuery cookOutcomeOf(id)
+            val row = MealDishesTable.selectAll().where { MealDishesTable.id eq id.value }.single()
+            val event =
+                CookingConfirmed(
+                    dishId = id.value,
+                    memberId = row[MealDishesTable.cookMemberId],
+                    dishName = row[MealDishesTable.name],
+                    date = row[MealDishesTable.mealDate],
+                    confirmedBy = by.value,
+                    confirmedAt = at.toEpochMilli(),
+                )
+            recordEvent(event, at)
+            CookOutcome.CONFIRMED
+        }
+
     override suspend fun findCancellations(week: PlanWeek): List<Cancellation> =
         dbQuery(db) {
             MealCookingCancellationsTable
@@ -227,6 +264,16 @@ class ExposedMealPlanRepository(
     }
 }
 
+/** Why [confirmCooked] changed nothing. */
+private fun JdbcTransaction.cookOutcomeOf(id: DishId): CookOutcome {
+    val row = MealDishesTable.selectAll().where { MealDishesTable.id eq id.value }.firstOrNull() ?: return CookOutcome.NOT_FOUND
+    return when {
+        row[MealDishesTable.cookedAt] != null -> CookOutcome.ALREADY_COOKED
+        row[MealDishesTable.status] != DishStatus.APPROVED.name -> CookOutcome.NOT_APPROVED
+        else -> CookOutcome.TOO_EARLY
+    }
+}
+
 internal fun ResultRow.toIngredient() =
     Ingredient(
         name = this[MealDishIngredientsTable.text],
@@ -245,6 +292,7 @@ internal fun ResultRow.toDish(ingredients: List<Ingredient>) =
         rejectionReason = this[MealDishesTable.rejectionReason],
         late = this[MealDishesTable.late],
         recipe = toRecipeRef(),
+        cookedAt = this[MealDishesTable.cookedAt]?.let(Instant::ofEpochMilli),
     )
 
 /** Both columns are set together; after the recipe is deleted `recipe_id` is null and the reference is gone. */

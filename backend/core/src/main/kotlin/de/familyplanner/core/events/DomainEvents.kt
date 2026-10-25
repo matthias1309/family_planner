@@ -17,6 +17,17 @@ data class TaskAccepted(
     val acceptedAt: Long,
 ) : DomainEvent
 
+/** A parent confirmed that a child cooked its approved dish (REQ-MEAL-034); GAME credits cooking points once per [dishId]. */
+@Serializable
+data class CookingConfirmed(
+    val dishId: String,
+    val memberId: String,
+    val dishName: String,
+    val date: String,
+    val confirmedBy: String,
+    val confirmedAt: Long,
+) : DomainEvent
+
 /** An event as read back from the log; [event] is `null` for a type this build does not know. */
 data class StoredEvent(
     val seq: Long,

@@ -9,6 +9,7 @@ import de.familyplanner.meals.persistence.ExposedDeadlineSettingsRepository
 import de.familyplanner.meals.persistence.ExposedMealPlanRepository
 import de.familyplanner.meals.persistence.ExposedRecipeRepository
 import de.familyplanner.meals.persistence.ExposedShoppingListRepository
+import de.familyplanner.meals.plan.CookingConfirmationService
 import de.familyplanner.meals.plan.CookingWeekService
 import de.familyplanner.meals.plan.DishReviewService
 import de.familyplanner.meals.plan.MealPlanRepository
@@ -32,6 +33,7 @@ fun mealsModule(clock: Clock) =
         single { RecipeService(get(), clock) }
         single { MealPlanService(get(), get(), get(), get(), clock) }
         single { DishReviewService(get(), clock) }
+        single { CookingConfirmationService(get(), get(), get(), clock) }
         single { CookingWeekService(get(), get(), get(), get(), clock) }
         single<ShoppingListRepository> { ExposedShoppingListRepository(get()) }
         single { ShoppingListService(get(), get(), clock) }

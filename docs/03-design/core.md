@@ -90,10 +90,10 @@ Module teilen Fakten über ein dauerhaftes Ereignisprotokoll in `core` ([ADR-001
 |---|---|
 | Tabellen (`V7__core_domain_events.sql`) | `core_domain_events` (`seq` AUTOINCREMENT, `type`, `payload` JSON, `occurred_at`), `core_event_cursors` (`subscriber`, `last_seq`) |
 | `JdbcTransaction.recordEvent(event, at)` | schreibt ein Ereignis in der Transaktion des Aufrufers — im selben `dbQuery`-Block wie die Änderung, nie über ein zweites `dbQuery` |
-| `DomainEvent` / `TaskAccepted` | versionierte Payloads in `core.events`; Typname `task.accepted.v1`, Codec mit explizitem `when`; unbekannter Typ → `event = null` |
+| `DomainEvent` / `TaskAccepted` / `CookingConfirmed` | versionierte Payloads in `core.events`; Typnamen `task.accepted.v1`, `cooking.confirmed.v1` (von `meals`, REQ-MEAL-034), Codec mit explizitem `when`; unbekannter Typ → `event = null` |
 | `DomainEventDispatcher` | `subscribe(name, handler)`, `dispatchPending()` liefert je Abonnent ab Cursor in `seq`-Reihenfolge; Cursor wird nach jedem verarbeiteten Ereignis gespeichert; Mutex prozessweit |
 | `EventNotifier` | schmale Schnittstelle (`dispatchPending`), die Module statt des Dispatchers nutzen |
 
 Garantien: mindestens einmal (Abonnenten idempotent), Reihenfolge je Abonnent, Rollback verwirft das Ereignis, Fehler eines Abonnenten
 werden geloggt und stoppen nur diesen Abonnenten bis zum nächsten Aufruf. Zugestellt wird nach dem Request und einmal beim Start; neue Abonnenten
-starten bei `seq` 0. Tests: `DomainEventCodecTest`, `DomainEventDispatcherTest`.
+starten bei `seq` 0. Erster Abonnent: `gamification.points` ([gamification.md](gamification.md)). Tests: `DomainEventCodecTest`, `DomainEventDispatcherTest`.

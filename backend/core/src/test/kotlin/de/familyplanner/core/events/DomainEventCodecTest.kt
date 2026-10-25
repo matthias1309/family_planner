@@ -16,6 +16,16 @@ class DomainEventCodecTest {
     }
 
     @Test
+    fun `DomainEventCodec round-trips CookingConfirmed`() {
+        val confirmed = CookingConfirmed("d1", "m1", "Spaghetti", "2026-10-14", "p1", 2_000L)
+
+        val (type, payload) = DomainEventCodec.encode(confirmed)
+
+        assertEquals("cooking.confirmed.v1", type)
+        assertEquals(confirmed, DomainEventCodec.decode(type, payload))
+    }
+
+    @Test
     fun `DomainEventCodec decodes an unknown type to null`() {
         assertNull(DomainEventCodec.decode("future.thing.v9", "{}"))
     }
