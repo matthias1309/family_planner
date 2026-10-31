@@ -25,14 +25,18 @@ import de.familyplanner.android.feature.auth.domain.RefreshMeUseCase
 import de.familyplanner.android.feature.auth.domain.RevokeDeviceUseCase
 import de.familyplanner.android.feature.auth.ui.family.FamilyViewModel
 import de.familyplanner.android.feature.auth.ui.home.HomeViewModel
+import de.familyplanner.android.feature.gamification.RewardOpenRequests
 import de.familyplanner.android.feature.gamification.domain.BookPointsUseCase
 import de.familyplanner.android.feature.gamification.domain.CookingPointsUseCase
+import de.familyplanner.android.feature.gamification.domain.CountPendingRedemptionsUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadBadgesUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadChildAccountUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadPointsUseCase
+import de.familyplanner.android.feature.gamification.domain.LoadTodaySavingsUseCase
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountViewModel
 import de.familyplanner.android.feature.gamification.ui.family.FamilyPointsViewModel
 import de.familyplanner.android.feature.gamification.ui.me.MeViewModel
+import de.familyplanner.android.feature.gamification.ui.today.TodaySavingsViewModel
 import de.familyplanner.android.feature.meals.PlanOpenRequests
 import de.familyplanner.android.feature.meals.SharedRecipeInbox
 import de.familyplanner.android.feature.meals.domain.cooking.CancelCookingUseCase
@@ -129,6 +133,8 @@ class AppNavHostTest {
     private var boardLanes: List<TaskLane> = emptyList()
     private val pointsRepository = StaticPointsRepository()
     private val pointsCache = MemoryPointsCache()
+    private val rewardRepository = StaticRewardRepository()
+    private val rewardRequests = RewardOpenRequests()
     private val familyRepository = EmptyFamilyRepository()
     private val taskRepository by lazy { StaticTaskRepository(boardLanes) }
 
@@ -219,13 +225,15 @@ class AppNavHostTest {
 
     private val pointsModule =
         module {
-            viewModel { MeViewModel(LoadPointsUseCase(pointsRepository, pointsCache, sessions), sessions) }
+            viewModel { MeViewModel(LoadPointsUseCase(pointsRepository, rewardRepository, pointsCache, sessions), sessions) }
             viewModel {
                 FamilyPointsViewModel(
-                    LoadPointsUseCase(pointsRepository, pointsCache, sessions),
+                    LoadPointsUseCase(pointsRepository, rewardRepository, pointsCache, sessions),
                     CookingPointsUseCase(pointsRepository),
+                    CountPendingRedemptionsUseCase(rewardRepository),
                 )
             }
+            viewModel { TodaySavingsViewModel(LoadTodaySavingsUseCase(rewardRepository, pointsCache, sessions)) }
             viewModel { params ->
                 ChildAccountViewModel(
                     params.get(),
@@ -254,6 +262,7 @@ class AppNavHostTest {
                     single { inbox }
                     single { planRequests }
                     single { taskRequests }
+                    single { rewardRequests }
                     single { ReviewBadge(boardCache, sessions) }
                     viewModel {
                         BoardViewModel(

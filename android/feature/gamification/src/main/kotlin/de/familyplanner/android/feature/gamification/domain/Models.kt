@@ -28,12 +28,13 @@ data class RankedChild(
     val collected: Int,
 )
 
-/** Stand vom Server oder aus dem lokalen Stand (ADR-0011); [account] und [badges] nur für Kinder (eigene). */
+/** Stand vom Server oder aus dem lokalen Stand (ADR-0011); [account], [badges] und [savingsGoal] nur für Kinder (eigene). */
 data class PointsSnapshot(
     val account: PointsAccount?,
     val leaderboard: List<RankedChild>,
     val syncedAt: Instant,
     val badges: BadgeOverview? = null,
+    val savingsGoal: SavingsGoal? = null,
 )
 
 sealed interface PointsLoad {

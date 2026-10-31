@@ -32,8 +32,8 @@ android {
         applicationId = "de.familyplanner.android"
         minSdk = 29
         targetSdk = 37
-        versionCode = 12
-        versionName = "0.11.0"
+        versionCode = 13
+        versionName = "0.12.0"
         manifestPlaceholders["appLabel"] = if (testInstance) "Familienplaner Test" else "@string/app_name"
         if (testInstance) {
             applicationIdSuffix = ".test"

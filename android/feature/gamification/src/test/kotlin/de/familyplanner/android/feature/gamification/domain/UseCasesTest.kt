@@ -4,9 +4,11 @@ import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.feature.gamification.fakes.FakePointsRepository
+import de.familyplanner.android.feature.gamification.fakes.FakeRewardRepository
 import de.familyplanner.android.feature.gamification.fakes.InMemoryPointsCache
 import de.familyplanner.android.feature.gamification.fakes.badge
 import de.familyplanner.android.feature.gamification.fakes.childSession
+import de.familyplanner.android.feature.gamification.fakes.goal
 import de.familyplanner.android.feature.gamification.fakes.networkDown
 import de.familyplanner.android.feature.gamification.fakes.noon
 import de.familyplanner.android.feature.gamification.fakes.overview
@@ -23,11 +25,12 @@ import kotlin.test.assertNull
 
 class UseCasesTest {
     private val repository = FakePointsRepository()
+    private val rewards = FakeRewardRepository()
     private val cache = InMemoryPointsCache()
     private val clock = Clock.fixed(noon, ZoneOffset.UTC)
 
     private fun load(session: de.familyplanner.android.core.data.session.Session? = childSession) =
-        LoadPointsUseCase(repository, cache, InMemorySessionStore(session), clock)
+        LoadPointsUseCase(repository, rewards, cache, InMemorySessionStore(session), clock)
 
     @Test
     fun `REQ-GAME-012 child loads own account and leaderboard and stores them`() =
@@ -192,5 +195,35 @@ class UseCasesTest {
             assertIs<ApiResult.Success<*>>(result)
             assertEquals(listOf("c-2"), repository.badgesCalls)
             assertEquals(0, cache.writes)
+        }
+
+    @Test
+    fun `REQ-GAME-041 child load stores the savings goal`() =
+        runTest {
+            rewards.goalResult = ApiResult.Success(goal())
+
+            val fresh = assertIs<PointsLoad.Fresh>(load()())
+
+            assertEquals(goal(), fresh.snapshot.savingsGoal)
+            assertEquals(goal(), cache.stored?.savingsGoal)
+        }
+
+    @Test
+    fun `REQ-GAME-041 failed savings goal stores nothing`() =
+        runTest {
+            rewards.goalResult = networkDown
+
+            val result = load()()
+
+            assertIs<PointsLoad.Failed>(result)
+            assertEquals(0, cache.writes)
+        }
+
+    @Test
+    fun `REQ-GAME-041 parent does not load a savings goal`() =
+        runTest {
+            load(parentSession)()
+
+            assertEquals(emptyList(), rewards.goalCalls)
         }
 }

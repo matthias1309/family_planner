@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.feature.gamification.domain.CookingPointsUseCase
+import de.familyplanner.android.feature.gamification.domain.CountPendingRedemptionsUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadPointsUseCase
 import de.familyplanner.android.feature.gamification.domain.PointsLimits
 import de.familyplanner.android.feature.gamification.domain.PointsLoad
@@ -21,6 +22,8 @@ import kotlinx.coroutines.launch
 data class FamilyPointsUiState(
     val snapshot: PointsSnapshot? = null,
     val cookingPoints: Int? = null,
+    /** Wartende Einlösungen; `null`, solange unbekannt. */
+    val pendingRedemptions: Int? = null,
     val isOffline: Boolean = false,
     val isLoading: Boolean = true,
     val error: AppError? = null,
@@ -47,6 +50,7 @@ sealed interface FamilyPointsEvent {
 class FamilyPointsViewModel(
     private val loadPoints: LoadPointsUseCase,
     private val cookingPointsUseCase: CookingPointsUseCase,
+    private val countPending: CountPendingRedemptionsUseCase,
 ) : ViewModel() {
     private val _state = MutableStateFlow(FamilyPointsUiState())
     val state: StateFlow<FamilyPointsUiState> = _state.asStateFlow()
@@ -73,13 +77,15 @@ class FamilyPointsViewModel(
         _state.update { it.copy(isLoading = true, error = null) }
         loadJob =
             viewModelScope.launch {
-                val (points, settings) =
+                val (points, settings, pendingResult) =
                     coroutineScope {
                         val p = async { loadPoints() }
                         val s = async { cookingPointsUseCase.load() }
-                        p.await() to s.await()
+                        val c = async { countPending() }
+                        Triple(p.await(), s.await(), c.await())
                     }
                 val cooking = (settings as? ApiResult.Success)?.data
+                val pending = (pendingResult as? ApiResult.Success)?.data
                 _state.update {
                     when (points) {
                         is PointsLoad.Fresh ->
@@ -88,6 +94,7 @@ class FamilyPointsViewModel(
                                 snapshot = points.snapshot,
                                 isOffline = false,
                                 cookingPoints = cooking ?: it.cookingPoints,
+                                pendingRedemptions = pending ?: it.pendingRedemptions,
                             )
                         is PointsLoad.Cached ->
                             it.copy(
@@ -95,12 +102,14 @@ class FamilyPointsViewModel(
                                 snapshot = points.snapshot,
                                 isOffline = true,
                                 cookingPoints = cooking ?: it.cookingPoints,
+                                pendingRedemptions = pending ?: it.pendingRedemptions,
                             )
                         is PointsLoad.Failed ->
                             it.copy(
                                 isLoading = false,
                                 error = points.error,
                                 cookingPoints = cooking ?: it.cookingPoints,
+                                pendingRedemptions = pending ?: it.pendingRedemptions,
                             )
                     }
                 }

@@ -22,3 +22,27 @@ fun validateCookingPoints(points: Int): AppError.Validation? =
     } else {
         AppError.Validation("Kochpunkte müssen zwischen ${PointsLimits.COOKING_POINTS_MIN} und ${PointsLimits.COOKING_POINTS_MAX} liegen")
     }
+
+/** `null` = gültig (REQ-GAME-040). */
+fun validateReward(
+    title: String,
+    emoji: String,
+    price: Int,
+): AppError.Validation? =
+    when {
+        title.trim().length !in 1..RewardLimits.TITLE_MAX ->
+            AppError.Validation("Titel muss zwischen 1 und ${RewardLimits.TITLE_MAX} Zeichen lang sein")
+        emoji.trim().length > RewardLimits.EMOJI_MAX ->
+            AppError.Validation("Symbol darf höchstens ${RewardLimits.EMOJI_MAX} Zeichen lang sein")
+        price !in RewardLimits.PRICE_MIN..RewardLimits.PRICE_MAX ->
+            AppError.Validation("Preis muss zwischen ${RewardLimits.PRICE_MIN} und ${RewardLimits.PRICE_MAX} liegen")
+        else -> null
+    }
+
+/** `null` = gültig (REQ-GAME-043). */
+fun validateRejection(reason: String): AppError.Validation? =
+    if (reason.trim().length in 1..RewardLimits.REASON_MAX) {
+        null
+    } else {
+        AppError.Validation("Begründung muss zwischen 1 und ${RewardLimits.REASON_MAX} Zeichen lang sein")
+    }

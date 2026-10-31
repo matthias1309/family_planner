@@ -47,4 +47,69 @@
     </plurals>
     <string name="game_new_badge_ok">Super!</string>
     <string name="game_member_badges_title">Badges von %1$s</string>
+    <string name="game_channel_rewards">Belohnungen</string>
+    <string name="game_notice_someone">Ein Kind</string>
+    <string name="game_notice_requested_title">%1$s möchte %2$s einlösen</string>
+    <string name="game_notice_requested_text">Unter Familie → Belohnungen bestätigen oder ablehnen.</string>
+    <string name="game_notice_fulfilled_title">%1$s erfüllt</string>
+    <string name="game_notice_fulfilled_text">Viel Spaß!</string>
+    <string name="game_notice_rejected_title">%1$s abgelehnt</string>
+    <string name="game_notice_rejected_text">Die Punkte sind zurückgebucht.</string>
+
+    <string name="game_goal_title">Sparziel</string>
+    <string name="game_goal_none">Noch kein Sparziel – such dir eine Belohnung aus.</string>
+    <string name="game_goal_progress">%1$d/%2$d</string>
+    <string name="game_goal_redeemable">Einlösbar!</string>
+    <string name="game_goal_archived">Nicht mehr einlösbar</string>
+    <string name="game_points_price">%1$d P</string>
+    <string name="game_status_pending">wartet</string>
+    <string name="game_status_fulfilled">erfüllt</string>
+    <string name="game_status_rejected">abgelehnt</string>
+    <string name="game_redemptions_title">Meine Einlösungen</string>
+    <string name="game_redemptions_empty">Noch nichts eingelöst</string>
+    <string name="game_redemption_reason">Grund: %1$s</string>
+    <string name="game_child_fallback">Kind</string>
+
+    <string name="game_rewards_open">Belohnungen</string>
+    <string name="game_rewards_title">Belohnungen</string>
+    <string name="game_rewards_balance">Dein Guthaben: %1$d</string>
+    <string name="game_rewards_empty">Noch keine Belohnungen – frag deine Eltern.</string>
+    <string name="game_rewards_is_goal">Dein Sparziel</string>
+    <string name="game_rewards_set_goal">Als Sparziel</string>
+    <string name="game_rewards_clear_goal">Kein Sparziel mehr</string>
+    <string name="game_rewards_redeem">Einlösen</string>
+    <string name="game_rewards_missing">Noch %1$d Punkte</string>
+    <string name="game_redeem_confirm_title">%1$s einlösen?</string>
+    <string name="game_redeem_confirm_text">%1$d Punkte werden abgebucht. Deine Eltern bestätigen die Einlösung.</string>
+
+    <string name="game_family_rewards">Belohnungen</string>
+    <string name="game_family_rewards_open">Öffnen</string>
+    <plurals name="game_family_pending">
+        <item quantity="one">1 wartet</item>
+        <item quantity="other">%1$d warten</item>
+    </plurals>
+
+    <string name="game_manage_title">Belohnungen verwalten</string>
+    <string name="game_manage_pending">Wartet auf euch</string>
+    <string name="game_manage_pending_empty">Keine offenen Einlösungen</string>
+    <string name="game_manage_pending_row">%1$s · %2$s · %3$d P</string>
+    <string name="game_manage_reject">Ablehnen</string>
+    <string name="game_manage_fulfill">Erfüllt</string>
+    <string name="game_manage_rewards">Belohnungen</string>
+    <string name="game_manage_rewards_empty">Noch keine Belohnungen</string>
+    <string name="game_manage_archive">Deaktivieren</string>
+    <string name="game_manage_create">Belohnung anlegen</string>
+    <string name="game_reward_new">Belohnung anlegen</string>
+    <string name="game_reward_edit">Belohnung ändern</string>
+    <string name="game_reward_title">Titel</string>
+    <string name="game_reward_emoji">Symbol</string>
+    <string name="game_reward_emoji_placeholder">🎢</string>
+    <string name="game_reward_price">Preis</string>
+    <string name="game_reward_price_range">1 bis 10 000 Punkte</string>
+    <string name="game_counter">%1$d/%2$d</string>
+    <string name="game_reject_title">%1$s ablehnen?</string>
+    <string name="game_reject_hint">Die Punkte werden zurückgebucht.</string>
+    <string name="game_reject_reason">Begründung</string>
+    <string name="game_archive_title">%1$s deaktivieren?</string>
+    <string name="game_archive_text">Sie ist danach nicht mehr einlösbar. Laufende Einlösungen bleiben.</string>
 </resources>

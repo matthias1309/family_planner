@@ -14,6 +14,7 @@ private fun AppError.allowsCachedPoints() = this == AppError.Network || this == 
 
 class LoadPointsUseCase(
     private val repository: PointsRepository,
+    private val rewards: RewardRepository,
     private val cache: PointsCache,
     private val sessions: SessionStore,
     private val clock: Clock = Clock.system(BerlinZone),
@@ -25,7 +26,7 @@ class LoadPointsUseCase(
             is ApiResult.Success -> {
                 val data = fetched.data
                 val previous = cache.read(session.memberId)?.badges
-                val snapshot = PointsSnapshot(data.account, data.leaderboard, clock.instant(), data.badges)
+                val snapshot = PointsSnapshot(data.account, data.leaderboard, clock.instant(), data.badges, data.savingsGoal)
                 cache.write(session.memberId, snapshot)
                 PointsLoad.Fresh(snapshot, data.badges?.newlyEarned(previous).orEmpty())
             }
@@ -42,7 +43,7 @@ class LoadPointsUseCase(
         return if (cached != null) PointsLoad.Cached(cached, error) else PointsLoad.Failed(error)
     }
 
-    /** Konto und Badges (nur Kinder) sowie Rangliste parallel; bei einem Fehler zählt der erste (Konto, Rangliste, Badges). */
+    /** Konto, Badges, Sparziel (nur Kinder) und Rangliste parallel; bei Fehlern zählt der erste in dieser Reihenfolge. */
     private suspend fun fetch(
         memberId: String,
         isChild: Boolean,
@@ -51,16 +52,25 @@ class LoadPointsUseCase(
             val account = if (isChild) async { repository.account(memberId, PointsLimits.HISTORY_LIMIT) } else null
             val leaderboard = async { repository.leaderboard() }
             val badges = if (isChild) async { repository.badges(memberId) } else null
+            val goal = if (isChild) async { rewards.savingsGoal(memberId) } else null
             val accountResult = account?.await()
             val leaderboardResult = leaderboard.await()
             val badgesResult = badges?.await()
-            val failure = listOfNotNull(accountResult, leaderboardResult, badgesResult).filterIsInstance<ApiResult.Failure>().firstOrNull()
+            val goalResult = goal?.await()
+            val failure =
+                listOfNotNull(
+                    accountResult,
+                    leaderboardResult,
+                    badgesResult,
+                    goalResult,
+                ).filterIsInstance<ApiResult.Failure>().firstOrNull()
             if (failure != null) return@coroutineScope failure
             ApiResult.Success(
                 Fetched(
                     account = (accountResult as ApiResult.Success?)?.data,
                     leaderboard = (leaderboardResult as ApiResult.Success).data,
                     badges = (badgesResult as ApiResult.Success?)?.data,
+                    savingsGoal = (goalResult as ApiResult.Success?)?.data,
                 ),
             )
         }
@@ -69,6 +79,7 @@ class LoadPointsUseCase(
         val account: PointsAccount?,
         val leaderboard: List<RankedChild>,
         val badges: BadgeOverview?,
+        val savingsGoal: SavingsGoal?,
     )
 }
 

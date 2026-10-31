@@ -3,6 +3,7 @@ package de.familyplanner.android.feature.gamification.data
 import androidx.datastore.core.DataStoreFactory
 import de.familyplanner.android.core.data.network.createJson
 import de.familyplanner.android.feature.gamification.fakes.badge
+import de.familyplanner.android.feature.gamification.fakes.goal
 import de.familyplanner.android.feature.gamification.fakes.overview
 import de.familyplanner.android.feature.gamification.fakes.snapshot
 import kotlinx.coroutines.CoroutineScope
@@ -80,7 +81,7 @@ class DataStorePointsCacheTest {
     fun `REQ-GAME-012 unknown entry kind counts as not stored`() =
         runBlocking {
             file.writeText(
-                """{"version":2,"memberId":"c-1","account":{"memberId":"c-1","collected":1,"balance":1,""" +
+                """{"version":3,"memberId":"c-1","account":{"memberId":"c-1","collected":1,"balance":1,""" +
                     """"entries":[{"id":"e","kind":"UFO","amount":1,"title":"t","bookedAtMillis":1}]}}""",
             )
 
@@ -116,6 +117,32 @@ class DataStorePointsCacheTest {
     fun `REQ-GAME-021 cache of version 1 counts as empty`() =
         runBlocking {
             file.writeText("""{"version":1,"memberId":"c-1","syncedAtMillis":1}""")
+
+            assertNull(newCache().read("c-1"))
+        }
+
+    @Test
+    fun `REQ-GAME-041 savings goal survives a restart`() =
+        runBlocking {
+            newCache().write("c-1", snapshot(savingsGoal = goal()))
+            closeStores()
+
+            assertEquals(snapshot(savingsGoal = goal()), newCache().read("c-1"))
+        }
+
+    @Test
+    fun `REQ-GAME-041 savings goal without reward survives a restart`() =
+        runBlocking {
+            newCache().write("c-1", snapshot(savingsGoal = goal(reward = null)))
+            closeStores()
+
+            assertEquals(snapshot(savingsGoal = goal(reward = null)), newCache().read("c-1"))
+        }
+
+    @Test
+    fun `REQ-GAME-041 cache of version 2 counts as empty`() =
+        runBlocking {
+            file.writeText("""{"version":2,"memberId":"c-1","syncedAtMillis":1}""")
 
             assertNull(newCache().read("c-1"))
         }

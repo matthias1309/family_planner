@@ -26,9 +26,13 @@ import de.familyplanner.android.feature.auth.HomeRoute
 import de.familyplanner.android.feature.auth.WelcomeRoute
 import de.familyplanner.android.feature.auth.authGraph
 import de.familyplanner.android.feature.auth.mainGraph
+import de.familyplanner.android.feature.gamification.RewardOpenRequests
 import de.familyplanner.android.feature.gamification.gamificationGraph
 import de.familyplanner.android.feature.gamification.openChildAccount
+import de.familyplanner.android.feature.gamification.openManageRewards
+import de.familyplanner.android.feature.gamification.openRewards
 import de.familyplanner.android.feature.gamification.ui.family.FamilyPointsRoute
+import de.familyplanner.android.feature.gamification.ui.today.TodaySavingsRoute
 import de.familyplanner.android.feature.meals.PlanOpenRequests
 import de.familyplanner.android.feature.meals.SharedRecipeInbox
 import de.familyplanner.android.feature.meals.mealsGraph
@@ -78,6 +82,7 @@ private fun MainHost(
     inbox: SharedRecipeInbox = koinInject(),
     planRequests: PlanOpenRequests = koinInject(),
     taskRequests: TaskOpenRequests = koinInject(),
+    rewardRequests: RewardOpenRequests = koinInject(),
     reviewBadge: ReviewBadge = koinInject(),
 ) {
     val navController = rememberNavController()
@@ -102,6 +107,19 @@ private fun MainHost(
             navController.navigateToTopLevel(TopLevelDestination.TASKS)
         }
     }
+    val openRewards by rewardRequests.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(openRewards) {
+        if (openRewards) {
+            rewardRequests.consume()
+            if (role == Role.PARENT) {
+                navController.navigateToTopLevel(TopLevelDestination.FAMILY)
+                navController.openManageRewards()
+            } else {
+                navController.navigateToTopLevel(TopLevelDestination.ME)
+                navController.openRewards()
+            }
+        }
+    }
     val reviews by reviewBadge.count.collectAsStateWithLifecycle(initialValue = 0)
     val destinations = remember(role) { topLevelDestinations(role) }
     val entry by navController.currentBackStackEntryAsState()
@@ -123,8 +141,19 @@ private fun MainHost(
                 todayContent = {
                     TodayMealRoute(onOpenPlan = { navController.openMealsAndThen { openWeekPlan() } })
                     TodayTasksRoute(onOpenTasks = { navController.navigateToTopLevel(TopLevelDestination.TASKS) })
+                    TodaySavingsRoute(
+                        onOpenRewards = {
+                            navController.navigateToTopLevel(TopLevelDestination.ME)
+                            navController.openRewards()
+                        },
+                    )
                 },
-                familyContent = { FamilyPointsRoute(onOpenChild = navController::openChildAccount) },
+                familyContent = {
+                    FamilyPointsRoute(
+                        onOpenChild = navController::openChildAccount,
+                        onOpenRewards = navController::openManageRewards,
+                    )
+                },
             )
             mealsGraph(navController)
             tasksGraph(navController)

@@ -6,10 +6,12 @@ import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.core.testing.MainDispatcherRule
 import de.familyplanner.android.feature.gamification.domain.BookPointsUseCase
 import de.familyplanner.android.feature.gamification.domain.CookingPointsUseCase
+import de.familyplanner.android.feature.gamification.domain.CountPendingRedemptionsUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadBadgesUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadChildAccountUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadPointsUseCase
 import de.familyplanner.android.feature.gamification.fakes.FakePointsRepository
+import de.familyplanner.android.feature.gamification.fakes.FakeRewardRepository
 import de.familyplanner.android.feature.gamification.fakes.InMemoryPointsCache
 import de.familyplanner.android.feature.gamification.fakes.badge
 import de.familyplanner.android.feature.gamification.fakes.childSession
@@ -47,13 +49,14 @@ class ViewModelsTest {
 
     private fun me(): MeViewModel {
         val sessions = InMemorySessionStore(childSession)
-        return MeViewModel(LoadPointsUseCase(repository, cache, sessions), sessions)
+        return MeViewModel(LoadPointsUseCase(repository, FakeRewardRepository(), cache, sessions), sessions)
     }
 
     private fun family() =
         FamilyPointsViewModel(
-            LoadPointsUseCase(repository, cache, InMemorySessionStore(parentSession)),
+            LoadPointsUseCase(repository, FakeRewardRepository(), cache, InMemorySessionStore(parentSession)),
             CookingPointsUseCase(repository),
+            CountPendingRedemptionsUseCase(FakeRewardRepository()),
         )
 
     private fun account() =

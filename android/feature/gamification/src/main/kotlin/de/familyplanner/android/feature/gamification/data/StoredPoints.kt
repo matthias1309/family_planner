@@ -8,11 +8,13 @@ import de.familyplanner.android.feature.gamification.domain.LedgerEntry
 import de.familyplanner.android.feature.gamification.domain.PointsAccount
 import de.familyplanner.android.feature.gamification.domain.PointsSnapshot
 import de.familyplanner.android.feature.gamification.domain.RankedChild
+import de.familyplanner.android.feature.gamification.domain.Reward
+import de.familyplanner.android.feature.gamification.domain.SavingsGoal
 import kotlinx.serialization.Serializable
 import java.time.Instant
 
-/** 1: Punkte (Phase 1b); 2: Badges (Phase 2b). */
-internal const val CACHE_VERSION = 2
+/** 1: Punkte (Phase 1b); 2: Badges (Phase 2b); 3: Sparziel (Phase 3b). */
+internal const val CACHE_VERSION = 3
 
 /** Dateiformat des lokalen Punktestands (ADR-0011), getrennt von der Domäne; Zeitpunkte als Epoch-Millis. */
 @Serializable
@@ -23,6 +25,7 @@ data class StoredPoints(
     val account: StoredAccount? = null,
     val leaderboard: List<StoredRankedChild> = emptyList(),
     val badges: StoredBadgeOverview? = null,
+    val savingsGoal: StoredSavingsGoal? = null,
 )
 
 @Serializable
@@ -66,6 +69,25 @@ data class StoredBadge(
 )
 
 @Serializable
+data class StoredSavingsGoal(
+    val memberId: String,
+    val balance: Int,
+    val redeemable: Boolean,
+    val reward: StoredReward? = null,
+    val progressCurrent: Int? = null,
+    val progressTarget: Int? = null,
+)
+
+@Serializable
+data class StoredReward(
+    val id: String,
+    val title: String,
+    val emoji: String? = null,
+    val price: Int,
+    val archived: Boolean,
+)
+
+@Serializable
 data class StoredRankedChild(
     val memberId: String,
     val name: String,
@@ -80,7 +102,31 @@ internal fun PointsSnapshot.toStored(memberId: String) =
         account = account?.toStored(),
         leaderboard = leaderboard.map { StoredRankedChild(it.memberId, it.name, it.rank, it.collected) },
         badges = badges?.toStored(),
+        savingsGoal = savingsGoal?.toStored(),
     )
+
+private fun SavingsGoal.toStored() =
+    StoredSavingsGoal(
+        memberId,
+        balance,
+        redeemable,
+        reward?.let { StoredReward(it.id, it.title, it.emoji, it.price, it.archived) },
+        progress?.current,
+        progress?.target,
+    )
+
+private fun StoredSavingsGoal.toDomain(): SavingsGoal {
+    val current = progressCurrent
+    val target = progressTarget
+    val progress = if (current != null && target != null) BadgeProgress(current, target) else null
+    return SavingsGoal(
+        memberId,
+        reward?.let { Reward(it.id, it.title, it.emoji, it.price, it.archived) },
+        balance,
+        progress,
+        redeemable,
+    )
+}
 
 private fun PointsAccount.toStored() =
     StoredAccount(
@@ -118,7 +164,7 @@ internal fun StoredPoints.toDomain(): Pair<String, PointsSnapshot>? {
     val mappedAccount = storedAccount?.let { it.toDomain() ?: return null }
     val ranked = leaderboard.map { RankedChild(it.memberId, it.name, it.rank, it.collected) }
     val mappedBadges = badges?.let { it.toDomain() ?: return null }
-    return owner to PointsSnapshot(mappedAccount, ranked, Instant.ofEpochMilli(syncedAtMillis), mappedBadges)
+    return owner to PointsSnapshot(mappedAccount, ranked, Instant.ofEpochMilli(syncedAtMillis), mappedBadges, savingsGoal?.toDomain())
 }
 
 private fun StoredAccount.toDomain(): PointsAccount? {
