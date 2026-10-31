@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import de.familyplanner.android.core.ui.theme.FamilyPlannerTheme
+import de.familyplanner.android.feature.gamification.RewardOpenRequests
+import de.familyplanner.android.feature.gamification.domain.RewardSync
 import de.familyplanner.android.feature.meals.PlanOpenRequests
 import de.familyplanner.android.feature.meals.SharedRecipeInbox
 import de.familyplanner.android.feature.meals.domain.reminder.ReminderSync
@@ -34,6 +36,7 @@ class MainActivity : ComponentActivity() {
             receiveShare(intent)
             receiveOpenPlan(intent)
             receiveOpenTasks(intent)
+            receiveOpenRewards(intent)
         }
         setContent {
             FamilyPlannerTheme {
@@ -48,12 +51,14 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         get<ReminderSync>().requestNow()
         get<TaskSync>().requestNow()
+        get<RewardSync>().requestNow()
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         receiveOpenPlan(intent)
         receiveOpenTasks(intent)
+        receiveOpenRewards(intent)
     }
 
     // ADR-0013: Tippen auf eine Erinnerung oder Statusmeldung öffnet den Essensplan.
@@ -64,6 +69,11 @@ class MainActivity : ComponentActivity() {
     // ADR-0013: Tippen auf einen Aufgaben-Hinweis öffnet das Board.
     private fun receiveOpenTasks(intent: Intent?) {
         if (intent?.getBooleanExtra(TaskOpenRequests.EXTRA_OPEN_TASKS, false) == true) get<TaskOpenRequests>().request()
+    }
+
+    // ADR-0013: Tippen auf einen Belohnungs-Hinweis öffnet die Verwaltung (Eltern) bzw. die Belohnungen (Kinder).
+    private fun receiveOpenRewards(intent: Intent?) {
+        if (intent?.getBooleanExtra(RewardOpenRequests.EXTRA_OPEN_REWARDS, false) == true) get<RewardOpenRequests>().request()
     }
 
     // ADR-0012: Rezept-Link aus Browser/REWE-App; der angemeldete Hauptbereich holt ihn aus der Inbox.

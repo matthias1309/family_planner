@@ -2,10 +2,12 @@ package de.familyplanner.android.feature.gamification.ui.me
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -25,17 +27,19 @@ import de.familyplanner.android.feature.gamification.ui.components.BadgeList
 import de.familyplanner.android.feature.gamification.ui.components.LeaderboardList
 import de.familyplanner.android.feature.gamification.ui.components.LedgerList
 import de.familyplanner.android.feature.gamification.ui.components.NewBadgesDialog
+import de.familyplanner.android.feature.gamification.ui.components.SavingsGoalCard
 import de.familyplanner.android.feature.gamification.ui.components.StatTiles
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun MeRoute(
     onOpenBadges: (memberId: String, name: String) -> Unit,
+    onOpenRewards: () -> Unit,
     viewModel: MeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(MeEvent.Refresh) }
-    MeScreen(state, viewModel::onEvent, onOpenBadges)
+    MeScreen(state, viewModel::onEvent, onOpenBadges, onOpenRewards)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +48,7 @@ fun MeScreen(
     state: MeUiState,
     onEvent: (MeEvent) -> Unit,
     onOpenBadges: (memberId: String, name: String) -> Unit,
+    onOpenRewards: () -> Unit,
 ) {
     PullToRefreshBox(isRefreshing = state.isLoading, onRefresh = { onEvent(MeEvent.Refresh) }, modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -57,7 +62,15 @@ fun MeScreen(
             }
             item { ErrorText(state.error) }
             if (snapshot != null) {
-                snapshot.account?.let { account -> item { StatTiles(account.collected, account.balance) } }
+                snapshot.account?.let { account ->
+                    item { StatTiles(account.collected, account.balance) }
+                    item { SavingsGoalCard(snapshot.savingsGoal, onClick = if (state.isOffline) null else onOpenRewards) }
+                    item {
+                        OutlinedButton(onClick = onOpenRewards, enabled = !state.isOffline, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.game_rewards_open))
+                        }
+                    }
+                }
                 state.myRank?.let { item { Text(stringResource(R.string.game_rank_of, it.rank, snapshot.leaderboard.size)) } }
                 item { Text(stringResource(R.string.game_leaderboard), style = MaterialTheme.typography.titleMedium) }
                 item {

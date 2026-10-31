@@ -92,7 +92,7 @@ class ScreensTest {
     @Test
     fun `REQ-GAME-012 me screen shows tiles, rank, leaderboard and history`() {
         compose.setContent {
-            FamilyPlannerTheme { MeScreen(MeUiState(memberId = "c-1", snapshot = snapshot(), isLoading = false), {}, { _, _ -> }) }
+            FamilyPlannerTheme { MeScreen(MeUiState(memberId = "c-1", snapshot = snapshot(), isLoading = false), {}, { _, _ -> }, {}) }
         }
 
         compose.onNodeWithText("Gesammelt").assertIsDisplayed()
@@ -110,6 +110,7 @@ class ScreensTest {
                     MeUiState(memberId = "c-1", snapshot = snapshot(), isLoading = false, isOffline = true),
                     { _: MeEvent -> },
                     { _, _ -> },
+                    {},
                 )
             }
         }
@@ -126,7 +127,9 @@ class ScreensTest {
                 FamilyPointsSection(
                     FamilyPointsUiState(snapshot = snapshot(), cookingPoints = 3, isLoading = false),
                     { events += it },
-                ) { id, name -> opened = id to name }
+                    { id, name -> opened = id to name },
+                    {},
+                )
             }
         }
 
@@ -146,7 +149,9 @@ class ScreensTest {
                 FamilyPointsSection(
                     FamilyPointsUiState(snapshot = snapshot(), cookingPoints = 20, isLoading = false, editingCookingPoints = 20),
                     { events += it },
-                ) { _, _ -> }
+                    { _, _ -> },
+                    {},
+                )
             }
         }
 
@@ -165,7 +170,9 @@ class ScreensTest {
                 FamilyPointsSection(
                     FamilyPointsUiState(snapshot = snapshot(), cookingPoints = 3, isOffline = true, isLoading = false),
                     {},
-                ) { _, _ -> opened = true }
+                    { _, _ -> opened = true },
+                    {},
+                )
             }
         }
 
@@ -283,7 +290,7 @@ class ScreensTest {
                 isLoading = false,
                 newBadges = listOf(badges.items[0]),
             )
-        compose.setContent { FamilyPlannerTheme { MeScreen(state, { dismissed = it == MeEvent.DismissNewBadges }, { _, _ -> }) } }
+        compose.setContent { FamilyPlannerTheme { MeScreen(state, { dismissed = it == MeEvent.DismissNewBadges }, { _, _ -> }, {}) } }
 
         compose.onNodeWithText("Neues Badge!").assertIsDisplayed()
         compose.onNodeWithText("Super!").performClick()
@@ -295,11 +302,13 @@ class ScreensTest {
     fun `REQ-GAME-021 me screen opens badges of a sibling`() {
         var opened: Pair<String, String>? = null
         val state = MeUiState(memberId = "c-1", snapshot = snapshot(badges = badges), isLoading = false)
-        compose.setContent { FamilyPlannerTheme { MeScreen(state, {}, { id, name -> opened = id to name }) } }
+        compose.setContent { FamilyPlannerTheme { MeScreen(state, {}, { id, name -> opened = id to name }, {}) } }
 
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Ben"))
         compose.onNodeWithText("Ben").performClick()
 
         assertEquals("c-2" to "Ben", opened)
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Badges 1/12"))
         compose.onNodeWithText("Badges 1/12").assertExists()
     }
 
@@ -307,8 +316,9 @@ class ScreensTest {
     fun `REQ-GAME-021 offline leaderboard is not clickable`() {
         var opened = false
         val state = MeUiState(memberId = "c-1", snapshot = snapshot(badges = badges), isLoading = false, isOffline = true)
-        compose.setContent { FamilyPlannerTheme { MeScreen(state, {}, { _, _ -> opened = true }) } }
+        compose.setContent { FamilyPlannerTheme { MeScreen(state, {}, { _, _ -> opened = true }, {}) } }
 
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Ben"))
         compose.onNodeWithText("Ben").performClick()
 
         assertEquals(false, opened)

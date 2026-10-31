@@ -14,6 +14,7 @@ import de.familyplanner.android.feature.gamification.domain.PointsCache
 import de.familyplanner.android.feature.gamification.domain.PointsRepository
 import de.familyplanner.android.feature.gamification.domain.PointsSnapshot
 import de.familyplanner.android.feature.gamification.domain.RankedChild
+import de.familyplanner.android.feature.gamification.domain.SavingsGoal
 import java.time.Instant
 
 val parentSession = Session("tok", "p-1", "Anna", Role.PARENT, "d-1")
@@ -68,7 +69,8 @@ fun snapshot(
     leaderboard: List<RankedChild> = de.familyplanner.android.feature.gamification.fakes.leaderboard,
     syncedAt: Instant = noon,
     badges: BadgeOverview? = null,
-) = PointsSnapshot(account, leaderboard, syncedAt, badges)
+    savingsGoal: SavingsGoal? = null,
+) = PointsSnapshot(account, leaderboard, syncedAt, badges, savingsGoal)
 
 class FakePointsRepository : PointsRepository {
     var leaderboardResult: ApiResult<List<RankedChild>> = ApiResult.Success(leaderboard)

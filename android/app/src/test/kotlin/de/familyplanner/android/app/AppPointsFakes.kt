@@ -14,6 +14,11 @@ import de.familyplanner.android.feature.gamification.domain.PointsCache
 import de.familyplanner.android.feature.gamification.domain.PointsRepository
 import de.familyplanner.android.feature.gamification.domain.PointsSnapshot
 import de.familyplanner.android.feature.gamification.domain.RankedChild
+import de.familyplanner.android.feature.gamification.domain.Redemption
+import de.familyplanner.android.feature.gamification.domain.RedemptionStatus
+import de.familyplanner.android.feature.gamification.domain.Reward
+import de.familyplanner.android.feature.gamification.domain.RewardRepository
+import de.familyplanner.android.feature.gamification.domain.SavingsGoal
 import java.time.Instant
 
 private val bookedAt = Instant.parse("2026-10-25T10:00:00Z")
@@ -77,4 +82,48 @@ class EmptyFamilyRepository : FamilyRepository {
     override suspend fun devices(): ApiResult<List<FamilyDevice>> = ApiResult.Success(emptyList())
 
     override suspend fun revokeDevice(deviceId: String): ApiResult<Unit> = error("not used")
+}
+
+/** Belohnungen ohne Inhalt und ohne Sparziel; Aktionen sind im Navigationstest nicht gefragt. */
+class StaticRewardRepository : RewardRepository {
+    override suspend fun rewards(): ApiResult<List<Reward>> = ApiResult.Success(emptyList())
+
+    override suspend fun create(
+        title: String,
+        emoji: String?,
+        price: Int,
+    ): ApiResult<Reward> = error("not used")
+
+    override suspend fun update(
+        rewardId: String,
+        title: String,
+        emoji: String?,
+        price: Int,
+    ): ApiResult<Reward> = error("not used")
+
+    override suspend fun archive(rewardId: String): ApiResult<Unit> = error("not used")
+
+    override suspend fun redeem(rewardId: String): ApiResult<Redemption> = error("not used")
+
+    override suspend fun redemptions(
+        status: RedemptionStatus?,
+        limit: Int,
+    ): ApiResult<List<Redemption>> = ApiResult.Success(emptyList())
+
+    override suspend fun fulfill(redemptionId: String): ApiResult<Redemption> = error("not used")
+
+    override suspend fun reject(
+        redemptionId: String,
+        reason: String,
+    ): ApiResult<Redemption> = error("not used")
+
+    override suspend fun savingsGoal(memberId: String): ApiResult<SavingsGoal> =
+        ApiResult.Success(SavingsGoal(memberId, null, 40, null, false))
+
+    override suspend fun setSavingsGoal(
+        memberId: String,
+        rewardId: String,
+    ): ApiResult<SavingsGoal> = error("not used")
+
+    override suspend fun clearSavingsGoal(memberId: String): ApiResult<Unit> = error("not used")
 }

@@ -311,7 +311,7 @@ werden sollen, blockieren aber Avatar und Belohnungen nicht.
 |---|-------|-------------|--------|----------|---------|----------|
 | 1 | Punktekonto | Journal, Punkte aus Aufgaben und Kochen (inkl. REQ-MEAL-034), manuelle Buchung, Stand, Verlauf, Rangliste, Bereich „Ich“ — aufgeteilt in 1a Backend/API und 1b App (REQ-GAME-010–014) | complete | - | TASK 2 (1b: TASK 1) | 1a: `.claude/PRPs/reports/punktekonto-backend-report.md` (Backend umgesetzt); 1b: `.claude/PRPs/plans/punktekonto-app.plan.md` → Bericht `.claude/PRPs/reports/punktekonto-app-report.md` (App umgesetzt, auf Testhandys abgenommen 2026-10-31) |
 | 2 | Badges | Badge-Katalog, Regeln, Vergabe, Übersicht inkl. geheimer Badges (REQ-GAME-020/021) — aufgeteilt in 2a Backend/API und 2b App | complete | with 3, 4 | 1 | 2a: umgesetzt, Bericht `.claude/PRPs/reports/badges-backend-report.md`; 2b: umgesetzt, auf Testhandys abgenommen, Plan `.claude/PRPs/plans/completed/badges-app.plan.md`, Bericht `.claude/PRPs/reports/badges-app-report.md` |
-| 3 | Echte Belohnungen | Ausloben, Sparziel, Einlösen, Bestätigen (REQ-GAME-040–043) — aufgeteilt in 3a Backend/API und 3b App | in-progress | with 2, 4 | 1 | 3a: umgesetzt, Bericht `.claude/PRPs/reports/belohnungen-backend-report.md`; 3b: Plan `.claude/PRPs/plans/belohnungen-app.plan.md` |
+| 3 | Echte Belohnungen | Ausloben, Sparziel, Einlösen, Bestätigen (REQ-GAME-040–043) — aufgeteilt in 3a Backend/API und 3b App | in-progress | with 2, 4 | 1 | 3a: umgesetzt, Bericht `.claude/PRPs/reports/belohnungen-backend-report.md`; 3b: umgesetzt, Plan `.claude/PRPs/plans/completed/belohnungen-app.plan.md`, Bericht `.claude/PRPs/reports/belohnungen-app-report.md` (Abnahme Testhandy offen) |
 | 4 | Avatar & Shop | Spike + ADR zu Bausteinen/Lizenz, Avatar gestalten, Shop, Avatar in Rangliste/Board (REQ-GAME-030/031) | pending | with 2, 3 | 1 | - |
 | 5 | Testbetrieb | 4 Wochen auf zwei Testhandys gegen die Testinstanz; Küchenboard parallel abbauen; Messung | pending | - | 2, 3, 4, TASK 3 | - |
 
@@ -340,7 +340,7 @@ werden sollen, blockieren aber Avatar und Belohnungen nicht.
 **Phase 4: Avatar & Shop**
 - **Goal**: Jedes Kind hat einen Avatar, den es mit Punkten ausbaut.
 - **Scope**: Spike (Bausteine, Lizenz, Darstellung in Compose) → ADR; Shop-Katalog im Backend, Kauf, Besitz,
-  An-/Ablegen; Avatar-Editor; Avatar in Rangliste, Board-Lane und „Heute“.
+  An-/Ablegen; Avatar-Editor; Avatar in Rangliste, Board-Lane und „Heute“; Kauf-Hinweis bei erreichtem Sparziel (REQ-GAME-041, 2. Kriterium).
 - **Success signal**: Testkind gestaltet einen Avatar und kauft ein Item; Avatar erscheint überall.
 
 **Phase 5: Testbetrieb**

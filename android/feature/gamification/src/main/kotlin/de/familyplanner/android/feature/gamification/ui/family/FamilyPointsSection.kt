@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -27,11 +28,12 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun FamilyPointsRoute(
     onOpenChild: (memberId: String, name: String) -> Unit,
+    onOpenRewards: () -> Unit,
     viewModel: FamilyPointsViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(FamilyPointsEvent.Refresh) }
-    FamilyPointsSection(state, viewModel::onEvent, onOpenChild)
+    FamilyPointsSection(state, viewModel::onEvent, onOpenChild, onOpenRewards)
 }
 
 @Composable
@@ -39,6 +41,7 @@ fun FamilyPointsSection(
     state: FamilyPointsUiState,
     onEvent: (FamilyPointsEvent) -> Unit,
     onOpenChild: (memberId: String, name: String) -> Unit,
+    onOpenRewards: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.game_family_title), style = MaterialTheme.typography.titleMedium)
@@ -60,6 +63,7 @@ fun FamilyPointsSection(
                 }
             }
         }
+        RewardsRow(state, onOpenRewards)
         HorizontalDivider()
     }
     state.editingCookingPoints?.let { value ->
@@ -71,5 +75,19 @@ fun FamilyPointsSection(
             onSave = { onEvent(FamilyPointsEvent.SaveCookingPoints) },
             onDismiss = { onEvent(FamilyPointsEvent.DismissDialog) },
         )
+    }
+}
+
+@Composable
+private fun RewardsRow(
+    state: FamilyPointsUiState,
+    onOpenRewards: () -> Unit,
+) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(R.string.game_family_rewards), modifier = Modifier.weight(1f))
+        state.pendingRedemptions?.takeIf { it > 0 }?.let {
+            Text(pluralStringResource(R.plurals.game_family_pending, it, it), color = MaterialTheme.colorScheme.primary)
+        }
+        TextButton(onClick = onOpenRewards, enabled = !state.isOffline) { Text(stringResource(R.string.game_family_rewards_open)) }
     }
 }

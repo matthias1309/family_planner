@@ -90,7 +90,7 @@ nur erhaltene Badges, kein Fortschritt; `totalCount` ist immer der ganze Katalog
 
 ## Belohnungen (Phase 3a)
 
-Paket `rewards`, alles im Modul `gamification`. Die App-Bildschirme folgen in Phase 3b.
+Paket `rewards`, alles im Modul `gamification`. Die App-Bildschirme stehen im Abschnitt „App-Seite Belohnungen (Phase 3b)“.
 
 **Begriffe:** *Belohnung* (`Reward`, Katalog der Eltern), *Einlösung* (`Redemption`, Momentaufnahme von Titel/Symbol/Preis), *Sparziel*
 (`SavingsGoal`, höchstens eins je Kind).
@@ -177,3 +177,28 @@ Gleiches Modul, kein Backend-/Vertragswechsel (OpenAPI 0.8.0, `GET /gamification
 - **Mapping:** erhaltenes Badge ohne lesbares Datum → ganze Übersicht ist ein Serverfehler (kein halbes Ergebnis).
 
 Tests: `BadgesTest`, `UseCasesTest`, `RemotePointsRepositoryTest`, `DataStorePointsCacheTest`, `ViewModelsTest`, `ScreensTest`, `GamificationModuleTest` (`REQ-GAME-020/021 …`).
+
+## App-Seite Belohnungen (Phase 3b)
+
+Gleiches Modul, kein Backend-/Vertragswechsel (OpenAPI 0.9.0). App 0.12.0. Hinweise folgen ADR-0013 (WorkManager, Basislinie).
+
+| Bildschirm | Inhalt |
+|---|---|
+| „Ich“ (Kind) | Karte „Sparziel“ (Emoji, Titel, Balken, „120/200“, „Einlösbar!“ bzw. „Noch kein Sparziel“) + Button „Belohnungen“; offline Karte aus lokalem Stand, Button deaktiviert |
+| „Belohnungen“ (`RewardsRoute`, ohne Leiste) | Guthaben, je aktiver Belohnung Preis, Fortschritt, „Als Sparziel“/„Kein Sparziel mehr“, „Einlösen“ (nur bei genug Guthaben, mit Bestätigung), „Meine Einlösungen“ (letzte 20, Status, Ablehnungsgrund) |
+| „Heute“ (Kind) | Karte `TodaySavingsCard`, nur mit gesetztem Sparziel; Tippen öffnet „Belohnungen“ |
+| „Familie“ → Punkte (Eltern) | Zeile „Belohnungen · n warten“ + „Öffnen“ (offline deaktiviert) |
+| „Belohnungen verwalten“ (`ManageRewardsRoute`, ohne Leiste) | „Wartet auf euch“ (Name, Belohnung, Preis; Erfüllt / Ablehnen mit Grund), Belohnungsliste (antippen → ändern, Deaktivieren mit Bestätigung), „Belohnung anlegen“ |
+
+- **Hinweise (REQ-GAME-042/043):** `SyncRewardNoticesUseCase` (WorkManager, alle 30 min und sofort bei `MainActivity.onStart` und nach eigenem Einlösen).
+  Eltern: neue wartende Einlösung → „Ben möchte 🍕 Pizzaabend einlösen“. Kind: eigene Einlösung `PENDING → FULFILLED/REJECTED`
+  → „… erfüllt“ bzw. „… abgelehnt“ (mit Grund). Tippen öffnet „Belohnungen verwalten“ bzw. „Belohnungen“ (`RewardOpenRequests`).
+- **Basislinie:** Ohne gespeicherten Abgleich-Stand (`game_redemptions.json`, Erststart, Update, anderes Mitglied) keine Meldung.
+  Eine dem Kind unbekannte, schon entschiedene Einlösung wird gemeldet, wenn `decidedAt` nach dem letzten Abgleich liegt. 401 löscht den Stand.
+- **Lokaler Stand:** Sparziel im Punkte-Stand, Cache-Version 3 (Version 2 wird verworfen: nach dem Update gilt für Badges wieder die Basislinie).
+  Belohnungs- und Verwaltungsseite nur online. Laden „Ich“: Sparziel parallel zu Konto/Badges; ein Fehler → nichts gespeichert.
+- **Namen:** Wartende Einlösungen zeigen den Kindnamen aus der Rangliste; fehlt er, „Kind“.
+- **Nicht in 3b:** Kauf-Hinweis bei Sparziel (REQ-GAME-041, 2. Kriterium) → Phase 4 (kein Shop); keine deaktivierten Belohnungen anzeigen/reaktivieren.
+
+Tests: `RewardsDomainTest`, `RewardUseCasesTest`, `RewardNoticesTest`, `SyncRewardNoticesUseCaseTest`, `RemoteRewardRepositoryTest`,
+`DataStoreRedemptionNoticeStoreTest`, `DataStorePointsCacheTest`, `UseCasesTest`, `RewardViewModelsTest`, `RewardScreensTest`, `GamificationModuleTest`.
