@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Family Planner API
-  version: 0.7.0
+  version: 0.8.0
   description: Vertrag zwischen Android-App und Backend (ADR-0004). Alle Antworten nutzen den Envelope {success, data, error}.
 servers:
   - url: https://planner.home.arpa:8095
@@ -986,6 +986,24 @@ paths:
         '400': { $ref: '#/components/responses/ValidationFailed' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/gamification/members/{memberId}/badges:
+    get:
+      operationId: getBadges
+      tags: [gamification]
+      summary: Badges eines Kindes (eigene und Eltern mit offenen Badges und Fortschritt, Geschwister nur erhaltene)
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      responses:
+        '200':
+          description: Badge-Übersicht in Katalogreihenfolge
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BadgeOverviewResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
@@ -2016,6 +2034,57 @@ components:
       required: [cookingPoints]
       properties:
         cookingPoints: { type: integer, minimum: 1, maximum: 20, description: 'Punkte für ein bestätigtes Kochen' }
+
+    BadgeProgress:
+      type: object
+      required: [current, target]
+      properties:
+        current: { type: integer, minimum: 0, description: 'Auf target gekappt' }
+        target: { type: integer, minimum: 1 }
+
+    Badge:
+      type: object
+      required: [id, secret, earned]
+      properties:
+        id: { type: string, description: 'Stabiler Schlüssel aus dem Katalog' }
+        emoji: { type: string, nullable: true, description: 'null bei geheimem, nicht erhaltenem Badge' }
+        title: { type: string, nullable: true, description: 'null bei geheimem, nicht erhaltenem Badge (App zeigt ???)' }
+        description: { type: string, nullable: true, description: 'Bedingung; null bei geheimem, nicht erhaltenem Badge' }
+        hint: { type: string, nullable: true, description: 'Nur bei geheimen Badges' }
+        secret: { type: boolean }
+        earned: { type: boolean }
+        awardedAt: { type: string, format: date-time, nullable: true }
+        progress:
+          allOf:
+            - $ref: '#/components/schemas/BadgeProgress'
+          nullable: true
+          description: 'Nur bei offenen, nicht maskierten Badges in der eigenen bzw. Eltern-Ansicht'
+
+    BadgeOverview:
+      type: object
+      required: [memberId, earnedCount, totalCount, items]
+      properties:
+        memberId: { type: string, format: uuid }
+        earnedCount: { type: integer, minimum: 0 }
+        totalCount: { type: integer, minimum: 0, description: 'Alle Badges im Katalog inkl. geheimer' }
+        items:
+          type: array
+          description: 'Katalogreihenfolge'
+          items: { $ref: '#/components/schemas/Badge' }
+
+    BadgeOverviewResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/BadgeOverview'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
 
     LedgerEntryResponse:
       type: object

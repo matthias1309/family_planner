@@ -25,8 +25,17 @@ object GameSettingsTable : Table("game_settings") {
     override val primaryKey = PrimaryKey(id)
 }
 
+object BadgeTable : Table("game_badges") {
+    val memberId = varchar("member_id", ID_LENGTH)
+    val badgeId = varchar("badge_id", BADGE_ID_LENGTH)
+    val awardedAt = long("awarded_at")
+
+    override val primaryKey = PrimaryKey(memberId, badgeId)
+}
+
 private const val ID_LENGTH = 36
 private const val KIND_LENGTH = 13
 private const val TITLE_LENGTH = 200
 private const val NOTE_LENGTH = 500
 private const val SOURCE_KEY_LENGTH = 80
+private const val BADGE_ID_LENGTH = 40

@@ -16,4 +16,7 @@ interface LedgerRepository {
         memberId: MemberId,
         limit: Int,
     ): List<LedgerEntry>
+
+    /** Every entry of the member, oldest first (insertion order). */
+    suspend fun allEntriesOf(memberId: MemberId): List<LedgerEntry>
 }

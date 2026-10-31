@@ -6,6 +6,7 @@ import de.familyplanner.core.events.TaskAccepted
 import de.familyplanner.core.member.MemberId
 import de.familyplanner.core.member.MemberRepository
 import de.familyplanner.core.member.Role
+import de.familyplanner.gamification.badges.BadgeService
 import de.familyplanner.gamification.settings.GameSettingsService
 import org.slf4j.LoggerFactory
 import java.time.Instant
@@ -16,6 +17,7 @@ class PointsEventHandler(
     private val members: MemberRepository,
     private val ledger: LedgerRepository,
     private val settings: GameSettingsService,
+    private val badges: BadgeService,
     private val newId: () -> String = { UUID.randomUUID().toString() },
 ) {
     private val log = LoggerFactory.getLogger(PointsEventHandler::class.java)
@@ -78,6 +80,8 @@ class PointsEventHandler(
         } else {
             log.debug("Points already credited for seq {}", seq)
         }
+        // Also on redelivery: a failed evaluation after a successful booking is repaired by the retry.
+        badges.evaluate(memberId)
     }
 
     private data class Credit(

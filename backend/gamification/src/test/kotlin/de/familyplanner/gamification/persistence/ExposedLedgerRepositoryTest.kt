@@ -91,6 +91,20 @@ class ExposedLedgerRepositoryTest {
         }
 
     @Test
+    fun `REQ-GAME-020 allEntriesOf returns every entry of the member only`() =
+        runTest {
+            val other = ExposedMemberRepository(db).create(aMember(role = Role.CHILD)).id
+            repeat(120) { repository.append(entry("a$it")) }
+            repository.append(entry("other").copy(memberId = other))
+
+            val all = repository.allEntriesOf(childId)
+
+            assertEquals(120, all.size)
+            assertTrue(all.all { it.memberId == childId })
+            assertEquals("a0", all.first().id.value)
+        }
+
+    @Test
     fun `migration V10 enforces kind and non-zero amount`() =
         runTest {
             suspend fun insertRaw(

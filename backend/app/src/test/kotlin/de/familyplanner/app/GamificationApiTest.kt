@@ -1,5 +1,7 @@
 package de.familyplanner.app
 
+import de.familyplanner.api.model.BadgeOverview
+import de.familyplanner.api.model.BadgeOverviewResponse
 import de.familyplanner.api.model.CatalogTaskResponse
 import de.familyplanner.api.model.GameSettingsResponse
 import de.familyplanner.api.model.LeaderboardResponse
@@ -19,6 +21,9 @@ import java.nio.file.Path
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 private const val GAME = "/api/v1/gamification"
 private const val COOKED_DAY = "2026-10-13"
@@ -36,6 +41,15 @@ class GamificationApiTest {
         val response = call(HttpMethod.Get, "$GAME/members/$memberId/account", token)
         assertEquals(HttpStatusCode.OK, response.status)
         return checkNotNull(json.decodeFromString<PointsAccountResponse>(response.bodyAsText()).data)
+    }
+
+    private suspend fun HttpClient.badgesOf(
+        token: String,
+        memberId: String,
+    ): BadgeOverview {
+        val response = call(HttpMethod.Get, "$GAME/members/$memberId/badges", token)
+        assertEquals(HttpStatusCode.OK, response.status)
+        return checkNotNull(json.decodeFromString<BadgeOverviewResponse>(response.bodyAsText()).data)
     }
 
     private suspend fun HttpClient.acceptTask(
@@ -204,6 +218,67 @@ class GamificationApiTest {
             assertEquals(
                 HttpStatusCode.OK,
                 client.call(HttpMethod.Put, "$GAME/settings", family.parentToken, """{"cookingPoints":5}""").status,
+            )
+        }
+
+    @Test
+    fun `REQ-GAME-020 accepted task shows first-task badge`() =
+        testApplication {
+            start()
+            val family = setupFamilyWithChild()
+
+            client.acceptTask(family, 2)
+
+            val overview = client.badgesOf(family.childToken, family.childId)
+            assertEquals(1, overview.earnedCount)
+            val first = overview.items.single { it.id == "first-task" }
+            assertTrue(first.earned)
+            assertNotNull(first.awardedAt)
+        }
+
+    @Test
+    fun `REQ-GAME-021 sibling sees only earned badges and secrets stay masked`() =
+        testApplication {
+            start()
+            val family = setupFamilyWithChild()
+            val (_, siblingToken, _) = client.addPairedChild(family.parentToken, "Ben")
+            client.book(family.parentToken, family.childId, 100)
+
+            val own = client.badgesOf(family.childToken, family.childId)
+            val secret = own.items.single { it.id == "points-1000" }
+            assertNull(secret.title)
+            assertNull(secret.description)
+            assertNull(secret.emoji)
+            assertNull(secret.progress)
+            assertNotNull(secret.hint)
+            assertEquals(
+                500,
+                own.items
+                    .single { it.id == "points-500" }
+                    .progress
+                    ?.current
+                    ?.let { it * 5 },
+            )
+            val seen = client.badgesOf(siblingToken, family.childId)
+            assertEquals(listOf("points-100"), seen.items.map { it.id })
+            assertTrue(seen.items.all { it.progress == null })
+            assertEquals(own.totalCount, seen.totalCount)
+        }
+
+    @Test
+    fun `REQ-GAME-021 badges of parent member 400, unknown 404`() =
+        testApplication {
+            start()
+            val family = setupFamilyWithChild()
+            val parentId = client.memberIdOf(family.parentToken)
+
+            assertEquals(
+                HttpStatusCode.BadRequest,
+                client.call(HttpMethod.Get, "$GAME/members/$parentId/badges", family.parentToken).status,
+            )
+            assertEquals(
+                HttpStatusCode.NotFound,
+                client.call(HttpMethod.Get, "$GAME/members/${UUID.randomUUID()}/badges", family.childToken).status,
             )
         }
 }

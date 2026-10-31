@@ -67,6 +67,15 @@ class ExposedLedgerRepository(
                 .limit(limit)
                 .map { it.toEntry() }
         }
+
+    override suspend fun allEntriesOf(memberId: MemberId): List<LedgerEntry> =
+        dbQuery(db) {
+            LedgerTable
+                .selectAll()
+                .where { LedgerTable.memberId eq memberId.value }
+                .orderBy(LedgerTable.seq to SortOrder.ASC)
+                .map { it.toEntry() }
+        }
 }
 
 private fun ResultRow.toEntry() =

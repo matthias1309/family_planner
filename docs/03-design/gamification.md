@@ -2,8 +2,8 @@
 
 ## Abgedeckte Anforderungen
 
-REQ-GAME-010, -011, -012, -013, -014 (Phase 1a, Backend/API) und – Server-Anteil in `meals` – REQ-MEAL-034 — siehe
-[gamification.prd.md](../01-requirements/gamification.prd.md). Die App-Seite folgt in Phase 1b. Konventionen für Feature-Module:
+REQ-GAME-010, -011, -012, -013, -014 (Phase 1a, Backend/API), REQ-GAME-020, -021 (Phase 2a, Backend/API, Abschnitt „Badges“) und – Server-Anteil in `meals` – REQ-MEAL-034 — siehe
+[gamification.prd.md](../01-requirements/gamification.prd.md). Die App-Seite folgt in Phase 1b bzw. 2b. Konventionen für Feature-Module:
 [ADR-0010](../02-architecture/adr/0010-backend-feature-modules.md); Ereignisse: [ADR-0016](../02-architecture/adr/0016-domain-events-outbox.md).
 
 Die PRD-Notiz „Gutschrift in derselben Transaktion“ ist durch ADR-0016 ersetzt: Das Ereignis entsteht atomar mit dem Statuswechsel
@@ -56,6 +56,37 @@ Betrag ±1–1000, Begründung 1–200, Kochpunkte 1–20, Verlauf-`limit` 1–1
 `GameSettingsServiceTest`. Integration: `ExposedLedgerRepositoryTest` (Idempotenz, Summen, Reihenfolge, Migrations-`CHECK`),
 `PointsSubscriptionTest` (Dispatcher + Handler + echte DB, Nachholen, verlorener Cursor), API: `GamificationApiTest`
 (Vertragsprüfung gegen `openapi.yaml`).
+
+## Badges (Phase 2a)
+
+**Katalog** (`badges/Badge.kt`, Enum, Reihenfolge = Anzeige): `id` ist der DB-Schlüssel und darf **nie** geändert werden (Test mit fester ID-Liste).
+Jede Regel lautet „Messwert ≥ Ziel“, Fortschritt = `min(Messwert, Ziel)`.
+
+| `id` | Titel | Bedingung | Geheim |
+|---|---|---|---|
+| `first-task` / `tasks-10` / `tasks-50` | Erste Aufgabe / Fleißig / Haushaltsprofi | 1 / 10 / 50 Aufgaben | – |
+| `first-cooking` / `cooking-10` / `cooking-25` | Erstes Gericht / Küchenchef / Sterneköchin/-koch | 1 / 10 / 25 Gerichte | – |
+| `points-100` / `points-500` | Hunderter / Punktesammler | 100 / 500 Punkte gesammelt | – |
+| `streak-7` | Dranbleiber | 7 Tage in Folge eine Aufgabe | – |
+| `streak-30` | Unaufhaltsam | 30 Tage in Folge eine Aufgabe | ja |
+| `all-rounder` | Allrounder | an einem Tag Aufgabe und Kochen | ja |
+| `points-1000` | Legende | 1000 Punkte gesammelt | ja |
+
+**Statistik:** `badgeStatsFrom(entries)` rechnet je Kind aus dem ganzen Journal: Anzahl `TASK`-/`COOKING`-Buchungen (Betrag > 0), Gesammelt,
+längste Tagesserie mit Aufgabe, Tage mit Aufgabe und Kochen. Kalendertage in `Europe/Berlin` (`BADGE_ZONE`); bei Aufgaben zählt der Abnahmetag.
+
+**Vergabe:** Tabelle `game_badges (member_id, badge_id, awarded_at)`, PK `(member_id, badge_id)`, `INSERT OR IGNORE` → höchstens einmal, nie
+entzogen (auch nicht nach negativer Korrektur). `BadgeService.evaluate` läuft nach jeder Gutschrift (auch bei erneuter Zustellung), nach
+manueller Buchung und beim Start für alle Kinder (`evaluateAll`, holt Bestandsdaten und neue Katalogeinträge nach). `awardedAt` = Zeitpunkt
+der Auswertung. Schlägt `evaluate` im manuellen Pfad fehl, ist die Buchung gespeichert und der Request antwortet 500; die nächste Buchung bzw.
+der Neustart holt das Badge nach.
+
+**Sichtbarkeit:** `GET /api/v1/gamification/members/{memberId}/badges` → `BadgeOverview`. Eigene Ansicht und Eltern: alle Badges mit
+Fortschritt; geheime, nicht erhaltene Badges sind maskiert (`title`/`description`/`emoji`/`progress` = `null`, `hint` gesetzt). Geschwisterkind:
+nur erhaltene Badges, kein Fortschritt; `totalCount` ist immer der ganze Katalog. Eltern-Mitglied → `400`, unbekannt → `404`.
+
+**Tests:** `BadgeStatsTest`, `BadgeServiceTest`, `PointsEventHandlerTest`/`AccountServiceTest` (`REQ-GAME-020 …`), `ExposedBadgeRepositoryTest`,
+`ExposedLedgerRepositoryTest` (`allEntriesOf`), `PointsSubscriptionTest` (Dispatcher + echte DB), `GamificationApiTest` (`REQ-GAME-020/021 …`).
 
 ## App-Seite (Phase 1b)
 

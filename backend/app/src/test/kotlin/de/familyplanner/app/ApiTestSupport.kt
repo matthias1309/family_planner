@@ -84,26 +84,35 @@ suspend fun ApplicationTestBuilder.setupFamilyWithChild(): Family {
     assertEquals(HttpStatusCode.Created, setupResponse.status)
     val parent = json.decodeFromString<PairingResultResponse>(setupResponse.bodyAsText())
     val parentToken = checkNotNull(parent.data).token
+    val (childId, childToken, childDeviceId) = client.addPairedChild(parentToken, "Lea", "Handy Lea")
+    return Family(parentToken, childId, childToken, childDeviceId)
+}
+
+/** Creates a child, pairs a device and returns (childId, token, deviceId). */
+suspend fun HttpClient.addPairedChild(
+    parentToken: String,
+    name: String,
+    deviceName: String = "Handy $name",
+): Triple<String, String, String> {
     val child =
         json.decodeFromString<MemberResponse>(
-            client.call(HttpMethod.Post, "/api/v1/members", parentToken, """{"name":"Lea","role":"CHILD"}""").bodyAsText(),
+            call(HttpMethod.Post, "/api/v1/members", parentToken, """{"name":"$name","role":"CHILD"}""").bodyAsText(),
         )
     val childId = checkNotNull(child.data).id
     val code =
         json.decodeFromString<PairingCodeResponse>(
-            client.call(HttpMethod.Post, "/api/v1/members/$childId/pairing-codes", parentToken).bodyAsText(),
+            call(HttpMethod.Post, "/api/v1/members/$childId/pairing-codes", parentToken).bodyAsText(),
         )
     val paired =
         json.decodeFromString<PairingResultResponse>(
-            client
-                .call(
-                    HttpMethod.Post,
-                    "/api/v1/devices/pair",
-                    body = """{"code":"${checkNotNull(code.data).code}","deviceName":"Handy Lea"}""",
-                ).bodyAsText(),
+            call(
+                HttpMethod.Post,
+                "/api/v1/devices/pair",
+                body = """{"code":"${checkNotNull(code.data).code}","deviceName":"$deviceName"}""",
+            ).bodyAsText(),
         )
     val pairedData = checkNotNull(paired.data)
-    return Family(parentToken, childId, pairedData.token, pairedData.device.id)
+    return Triple(childId, pairedData.token, pairedData.device.id)
 }
 
 const val CHILD_ALWAYS_COOKS = """{"cooks":true,"pattern":{"type":"ALWAYS","weekA":[],"weekB":[]}}"""
