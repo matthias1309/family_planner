@@ -6,12 +6,15 @@ import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.core.testing.MainDispatcherRule
 import de.familyplanner.android.feature.gamification.domain.BookPointsUseCase
 import de.familyplanner.android.feature.gamification.domain.CookingPointsUseCase
+import de.familyplanner.android.feature.gamification.domain.LoadBadgesUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadChildAccountUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadPointsUseCase
 import de.familyplanner.android.feature.gamification.fakes.FakePointsRepository
 import de.familyplanner.android.feature.gamification.fakes.InMemoryPointsCache
+import de.familyplanner.android.feature.gamification.fakes.badge
 import de.familyplanner.android.feature.gamification.fakes.childSession
 import de.familyplanner.android.feature.gamification.fakes.networkDown
+import de.familyplanner.android.feature.gamification.fakes.overview
 import de.familyplanner.android.feature.gamification.fakes.parentSession
 import de.familyplanner.android.feature.gamification.fakes.serverDown
 import de.familyplanner.android.feature.gamification.fakes.snapshot
@@ -19,6 +22,9 @@ import de.familyplanner.android.feature.gamification.ui.account.BookingDraft
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountArgs
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountEvent
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountViewModel
+import de.familyplanner.android.feature.gamification.ui.badges.MemberBadgesArgs
+import de.familyplanner.android.feature.gamification.ui.badges.MemberBadgesEvent
+import de.familyplanner.android.feature.gamification.ui.badges.MemberBadgesViewModel
 import de.familyplanner.android.feature.gamification.ui.family.FamilyPointsEvent
 import de.familyplanner.android.feature.gamification.ui.family.FamilyPointsViewModel
 import de.familyplanner.android.feature.gamification.ui.me.MeEvent
@@ -51,7 +57,12 @@ class ViewModelsTest {
         )
 
     private fun account() =
-        ChildAccountViewModel(ChildAccountArgs("c-1", "Lea"), LoadChildAccountUseCase(repository), BookPointsUseCase(repository))
+        ChildAccountViewModel(
+            ChildAccountArgs("c-1", "Lea"),
+            LoadChildAccountUseCase(repository),
+            LoadBadgesUseCase(repository),
+            BookPointsUseCase(repository),
+        )
 
     @Test
     fun `REQ-GAME-012 me view model shows totals, rank and history`() {
@@ -277,5 +288,89 @@ class ViewModelsTest {
                 ?.amountTooHigh == true,
         )
         assertEquals(emptyList(), repository.bookCalls)
+    }
+
+    @Test
+    fun `REQ-GAME-020 me view model shows new badges until dismissed`() {
+        cache.owner = "c-1"
+        cache.stored = snapshot(badges = overview(badge("first-task", earned = true), badge("tasks-10")))
+        repository.badgesResult = ApiResult.Success(overview(badge("first-task", earned = true), badge("tasks-10", earned = true)))
+        val vm = me()
+
+        vm.onEvent(MeEvent.Refresh)
+        assertEquals(
+            listOf("tasks-10"),
+            vm.state.value.newBadges
+                .map { it.id },
+        )
+
+        cache.stored = snapshot(badges = overview(badge("first-task", earned = true), badge("tasks-10")))
+        vm.onEvent(MeEvent.Refresh)
+        assertEquals(
+            listOf("tasks-10"),
+            vm.state.value.newBadges
+                .map { it.id },
+        )
+
+        vm.onEvent(MeEvent.DismissNewBadges)
+        assertTrue(
+            vm.state.value.newBadges
+                .isEmpty(),
+        )
+    }
+
+    @Test
+    fun `REQ-GAME-021 member badges view model loads the member`() {
+        val vm = MemberBadgesViewModel(MemberBadgesArgs("c-2", "Ben"), LoadBadgesUseCase(repository))
+
+        vm.onEvent(MemberBadgesEvent.Refresh)
+
+        assertEquals(listOf("c-2"), repository.badgesCalls)
+        assertEquals(
+            2,
+            vm.state.value.overview
+                ?.items
+                ?.size,
+        )
+        assertFalse(vm.state.value.isLoading)
+    }
+
+    @Test
+    fun `REQ-GAME-021 member badges view model shows load errors`() {
+        repository.badgesResult = networkDown
+        val vm = MemberBadgesViewModel(MemberBadgesArgs("c-2", "Ben"), LoadBadgesUseCase(repository))
+
+        vm.onEvent(MemberBadgesEvent.Refresh)
+
+        assertEquals(AppError.Network, vm.state.value.error)
+        assertNull(vm.state.value.overview)
+    }
+
+    @Test
+    fun `REQ-GAME-021 child account view model shows badges with progress`() {
+        val vm = account()
+
+        vm.onEvent(ChildAccountEvent.Refresh)
+
+        assertEquals(
+            7,
+            vm.state.value.badges
+                ?.items
+                ?.last()
+                ?.progress
+                ?.current,
+        )
+    }
+
+    @Test
+    fun `REQ-GAME-021 child account keeps the account when badges fail`() {
+        repository.badgesResult = serverDown
+        val vm = account()
+
+        vm.onEvent(ChildAccountEvent.Refresh)
+
+        assertNotNull(vm.state.value.account)
+        assertNull(vm.state.value.badges)
+        assertEquals(AppError.Server, vm.state.value.error)
     }
 }

@@ -4,6 +4,9 @@ import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.data.session.Role
 import de.familyplanner.android.core.data.session.Session
+import de.familyplanner.android.feature.gamification.domain.Badge
+import de.familyplanner.android.feature.gamification.domain.BadgeOverview
+import de.familyplanner.android.feature.gamification.domain.BadgeProgress
 import de.familyplanner.android.feature.gamification.domain.EntryKind
 import de.familyplanner.android.feature.gamification.domain.LedgerEntry
 import de.familyplanner.android.feature.gamification.domain.PointsAccount
@@ -43,20 +46,40 @@ val leaderboard =
         RankedChild("c-3", "Mia", 3, 12),
     )
 
+@Suppress("LongParameterList")
+fun badge(
+    id: String,
+    earned: Boolean = false,
+    title: String? = "Fleißig",
+    progress: BadgeProgress? = BadgeProgress(7, 10),
+    awardedAt: Instant? = if (earned) noon else null,
+    secret: Boolean = false,
+    hint: String? = null,
+    emoji: String? = if (title == null) null else "✅",
+) = Badge(id, emoji, title, if (title == null) null else "10 Aufgaben erledigen", hint, secret, earned, awardedAt, progress)
+
+fun overview(
+    vararg items: Badge,
+    memberId: String = "c-1",
+) = BadgeOverview(memberId, items.count { it.earned }, 12, items.toList())
+
 fun snapshot(
     account: PointsAccount? = account(entries = arrayOf(entry("e-1"))),
     leaderboard: List<RankedChild> = de.familyplanner.android.feature.gamification.fakes.leaderboard,
     syncedAt: Instant = noon,
-) = PointsSnapshot(account, leaderboard, syncedAt)
+    badges: BadgeOverview? = null,
+) = PointsSnapshot(account, leaderboard, syncedAt, badges)
 
 class FakePointsRepository : PointsRepository {
     var leaderboardResult: ApiResult<List<RankedChild>> = ApiResult.Success(leaderboard)
     var accountResult: ApiResult<PointsAccount> = ApiResult.Success(account(entries = arrayOf(entry("e-1"))))
+    var badgesResult: ApiResult<BadgeOverview> = ApiResult.Success(overview(badge("first-task", earned = true), badge("tasks-10")))
     var bookResult: ApiResult<LedgerEntry> = ApiResult.Success(entry("e-new"))
     var cookingResult: ApiResult<Int> = ApiResult.Success(3)
     var updateResult: ApiResult<Int>? = null
 
     val accountCalls = mutableListOf<Pair<String, Int>>()
+    val badgesCalls = mutableListOf<String>()
     val bookCalls = mutableListOf<Triple<String, Int, String>>()
     val updateCalls = mutableListOf<Int>()
     var leaderboardCalls = 0
@@ -72,6 +95,11 @@ class FakePointsRepository : PointsRepository {
     ): ApiResult<PointsAccount> {
         accountCalls += memberId to limit
         return accountResult
+    }
+
+    override suspend fun badges(memberId: String): ApiResult<BadgeOverview> {
+        badgesCalls += memberId
+        return badgesResult
     }
 
     override suspend fun book(

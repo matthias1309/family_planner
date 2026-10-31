@@ -23,9 +23,11 @@ class LoadPointsUseCase(
         val fetched = fetch(session.memberId, session.role == Role.CHILD)
         return when (fetched) {
             is ApiResult.Success -> {
-                val snapshot = PointsSnapshot(fetched.data.first, fetched.data.second, clock.instant())
+                val data = fetched.data
+                val previous = cache.read(session.memberId)?.badges
+                val snapshot = PointsSnapshot(data.account, data.leaderboard, clock.instant(), data.badges)
                 cache.write(session.memberId, snapshot)
-                PointsLoad.Fresh(snapshot)
+                PointsLoad.Fresh(snapshot, data.badges?.newlyEarned(previous).orEmpty())
             }
             is ApiResult.Failure -> failed(session.memberId, fetched.error)
         }
@@ -40,25 +42,34 @@ class LoadPointsUseCase(
         return if (cached != null) PointsLoad.Cached(cached, error) else PointsLoad.Failed(error)
     }
 
-    /** Konto (nur Kinder) und Rangliste parallel; bei einem Fehler zählt der erste (Konto vor Rangliste). */
+    /** Konto und Badges (nur Kinder) sowie Rangliste parallel; bei einem Fehler zählt der erste (Konto, Rangliste, Badges). */
     private suspend fun fetch(
         memberId: String,
-        withAccount: Boolean,
-    ): ApiResult<Pair<PointsAccount?, List<RankedChild>>> =
+        isChild: Boolean,
+    ): ApiResult<Fetched> =
         coroutineScope {
-            val account = if (withAccount) async { repository.account(memberId, PointsLimits.HISTORY_LIMIT) } else null
+            val account = if (isChild) async { repository.account(memberId, PointsLimits.HISTORY_LIMIT) } else null
             val leaderboard = async { repository.leaderboard() }
+            val badges = if (isChild) async { repository.badges(memberId) } else null
             val accountResult = account?.await()
             val leaderboardResult = leaderboard.await()
-            when {
-                accountResult is ApiResult.Failure -> accountResult
-                leaderboardResult is ApiResult.Failure -> leaderboardResult
-                else -> {
-                    val ranked = (leaderboardResult as ApiResult.Success).data
-                    ApiResult.Success((accountResult as ApiResult.Success?)?.data to ranked)
-                }
-            }
+            val badgesResult = badges?.await()
+            val failure = listOfNotNull(accountResult, leaderboardResult, badgesResult).filterIsInstance<ApiResult.Failure>().firstOrNull()
+            if (failure != null) return@coroutineScope failure
+            ApiResult.Success(
+                Fetched(
+                    account = (accountResult as ApiResult.Success?)?.data,
+                    leaderboard = (leaderboardResult as ApiResult.Success).data,
+                    badges = (badgesResult as ApiResult.Success?)?.data,
+                ),
+            )
         }
+
+    private data class Fetched(
+        val account: PointsAccount?,
+        val leaderboard: List<RankedChild>,
+        val badges: BadgeOverview?,
+    )
 }
 
 /** Konto eines Kindes für Eltern, ohne lokalen Stand. */
@@ -66,6 +77,13 @@ class LoadChildAccountUseCase(
     private val repository: PointsRepository,
 ) {
     suspend operator fun invoke(memberId: String): ApiResult<PointsAccount> = repository.account(memberId, PointsLimits.HISTORY_LIMIT)
+}
+
+/** Badges eines Mitglieds (Geschwister, Eltern-Sicht auf ein Kind), ohne lokalen Stand. */
+class LoadBadgesUseCase(
+    private val repository: PointsRepository,
+) {
+    suspend operator fun invoke(memberId: String): ApiResult<BadgeOverview> = repository.badges(memberId)
 }
 
 class BookPointsUseCase(

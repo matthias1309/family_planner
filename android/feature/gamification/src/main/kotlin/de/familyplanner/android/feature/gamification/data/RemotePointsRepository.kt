@@ -2,6 +2,7 @@ package de.familyplanner.android.feature.gamification.data
 
 import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.apiCall
+import de.familyplanner.android.feature.gamification.domain.BadgeOverview
 import de.familyplanner.android.feature.gamification.domain.LedgerEntry
 import de.familyplanner.android.feature.gamification.domain.PointsAccount
 import de.familyplanner.android.feature.gamification.domain.PointsRepository
@@ -22,6 +23,9 @@ class RemotePointsRepository(
         memberId: String,
         limit: Int,
     ): ApiResult<PointsAccount> = apiCall(json, { api.getPointsAccount(memberId, limit) }) { it.data?.toDomain() }
+
+    override suspend fun badges(memberId: String): ApiResult<BadgeOverview> =
+        apiCall(json, { api.getBadges(memberId) }) { it.data?.toDomain() }
 
     override suspend fun book(
         memberId: String,

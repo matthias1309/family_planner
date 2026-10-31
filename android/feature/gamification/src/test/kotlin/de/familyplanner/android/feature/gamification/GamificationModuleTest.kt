@@ -11,6 +11,8 @@ import de.familyplanner.android.feature.gamification.fakes.InMemoryPointsCache
 import de.familyplanner.android.feature.gamification.fakes.parentSession
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountArgs
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountViewModel
+import de.familyplanner.android.feature.gamification.ui.badges.MemberBadgesArgs
+import de.familyplanner.android.feature.gamification.ui.badges.MemberBadgesViewModel
 import de.familyplanner.android.feature.gamification.ui.family.FamilyPointsViewModel
 import de.familyplanner.android.feature.gamification.ui.me.MeViewModel
 import okhttp3.OkHttpClient
@@ -42,6 +44,7 @@ class GamificationModuleTest {
 
         assertNotNull(koin.get<MeViewModel>())
         assertNotNull(koin.get<FamilyPointsViewModel>())
+        assertNotNull(koin.get<MemberBadgesViewModel> { parametersOf(MemberBadgesArgs("c-2", "Ben")) })
         assertNotNull(koin.get<ChildAccountViewModel> { parametersOf(ChildAccountArgs("c-1", "Lea")) })
     }
 }

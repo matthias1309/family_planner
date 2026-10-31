@@ -6,6 +6,7 @@ import de.familyplanner.android.feature.auth.domain.FamilyDevice
 import de.familyplanner.android.feature.auth.domain.FamilyMember
 import de.familyplanner.android.feature.auth.domain.FamilyRepository
 import de.familyplanner.android.feature.auth.domain.IssuedPairingCode
+import de.familyplanner.android.feature.gamification.domain.BadgeOverview
 import de.familyplanner.android.feature.gamification.domain.EntryKind
 import de.familyplanner.android.feature.gamification.domain.LedgerEntry
 import de.familyplanner.android.feature.gamification.domain.PointsAccount
@@ -28,6 +29,8 @@ class StaticPointsRepository : PointsRepository {
         limit: Int,
     ): ApiResult<PointsAccount> =
         ApiResult.Success(PointsAccount(memberId, 42, 40, listOf(LedgerEntry("e-1", EntryKind.TASK, 3, "Bad putzen", null, bookedAt))))
+
+    override suspend fun badges(memberId: String): ApiResult<BadgeOverview> = ApiResult.Success(BadgeOverview(memberId, 0, 12, emptyList()))
 
     override suspend fun book(
         memberId: String,

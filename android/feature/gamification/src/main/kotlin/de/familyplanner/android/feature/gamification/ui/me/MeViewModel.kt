@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.data.session.SessionStore
+import de.familyplanner.android.feature.gamification.domain.Badge
 import de.familyplanner.android.feature.gamification.domain.LoadPointsUseCase
 import de.familyplanner.android.feature.gamification.domain.PointsLoad
 import de.familyplanner.android.feature.gamification.domain.PointsSnapshot
@@ -22,12 +23,15 @@ data class MeUiState(
     val isLoading: Boolean = true,
     val isOffline: Boolean = false,
     val error: AppError? = null,
+    val newBadges: List<Badge> = emptyList(),
 ) {
     val myRank: RankedChild? get() = memberId?.let { snapshot?.leaderboard?.rankOf(it) }
 }
 
 sealed interface MeEvent {
     data object Refresh : MeEvent
+
+    data object DismissNewBadges : MeEvent
 }
 
 /** Geladen wird nur über [MeEvent.Refresh] (erstes `ON_RESUME`), nicht im `init`. */
@@ -42,6 +46,7 @@ class MeViewModel(
     fun onEvent(event: MeEvent) {
         when (event) {
             MeEvent.Refresh -> refresh()
+            MeEvent.DismissNewBadges -> _state.update { it.copy(newBadges = emptyList()) }
         }
     }
 
@@ -53,7 +58,13 @@ class MeViewModel(
                 val result = loadPoints()
                 _state.update {
                     when (result) {
-                        is PointsLoad.Fresh -> it.copy(isLoading = false, snapshot = result.snapshot, isOffline = false)
+                        is PointsLoad.Fresh ->
+                            it.copy(
+                                isLoading = false,
+                                snapshot = result.snapshot,
+                                isOffline = false,
+                                newBadges = (it.newBadges + result.newBadges).distinctBy(Badge::id),
+                            )
                         is PointsLoad.Cached -> it.copy(isLoading = false, snapshot = result.snapshot, isOffline = true)
                         is PointsLoad.Failed -> it.copy(isLoading = false, error = result.error)
                     }

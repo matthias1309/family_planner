@@ -27,6 +27,7 @@ import de.familyplanner.android.feature.auth.ui.family.FamilyViewModel
 import de.familyplanner.android.feature.auth.ui.home.HomeViewModel
 import de.familyplanner.android.feature.gamification.domain.BookPointsUseCase
 import de.familyplanner.android.feature.gamification.domain.CookingPointsUseCase
+import de.familyplanner.android.feature.gamification.domain.LoadBadgesUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadChildAccountUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadPointsUseCase
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountViewModel
@@ -226,7 +227,12 @@ class AppNavHostTest {
                 )
             }
             viewModel { params ->
-                ChildAccountViewModel(params.get(), LoadChildAccountUseCase(pointsRepository), BookPointsUseCase(pointsRepository))
+                ChildAccountViewModel(
+                    params.get(),
+                    LoadChildAccountUseCase(pointsRepository),
+                    LoadBadgesUseCase(pointsRepository),
+                    BookPointsUseCase(pointsRepository),
+                )
             }
             viewModel {
                 FamilyViewModel(

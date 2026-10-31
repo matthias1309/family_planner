@@ -5,6 +5,7 @@ import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.data.network.ServerConfig
 import de.familyplanner.android.core.data.network.createJson
 import de.familyplanner.android.core.data.network.createRetrofit
+import de.familyplanner.android.feature.gamification.domain.BadgeOverview
 import de.familyplanner.android.feature.gamification.domain.EntryKind
 import de.familyplanner.api.client.GamificationApi
 import kotlinx.coroutines.test.runTest
@@ -127,5 +128,42 @@ class RemotePointsRepositoryTest {
             server.takeRequest()
             val put = server.takeRequest()
             assertEquals("""{"cookingPoints":4}""", put.body?.utf8())
+        }
+
+    private fun badgesJson(vararg items: String) =
+        """{"memberId":"c-1","earnedCount":1,"totalCount":12,"items":[${items.joinToString(",")}]}"""
+
+    private val earnedJson =
+        """{"id":"first-task","secret":false,"earned":true,"emoji":"🧹","title":"Erste Aufgabe","description":"d","hint":null,""" +
+            """"awardedAt":"2026-10-25T10:00:00Z","progress":null}"""
+    private val openJson =
+        """{"id":"tasks-10","secret":false,"earned":false,"emoji":"✅","title":"Fleißig","description":"d","hint":null,""" +
+            """"awardedAt":null,"progress":{"current":7,"target":10}}"""
+    private val maskedJson =
+        """{"id":"secret-1","secret":true,"earned":false,"emoji":null,"title":null,"description":null,"hint":"Bleib dran",""" +
+            """"awardedAt":null,"progress":null}"""
+
+    @Test
+    fun `REQ-GAME-021 badges map earned, open and masked badges`() =
+        runTest {
+            enqueue(200, ok(badgesJson(earnedJson, openJson, maskedJson)))
+
+            val overview = assertIs<ApiResult.Success<BadgeOverview>>(repository.badges("c-1")).data
+
+            assertEquals(3, overview.items.size)
+            assertEquals(12, overview.totalCount)
+            assertEquals(true, overview.items[0].earned)
+            assertEquals(7, overview.items[1].progress?.current)
+            assertEquals(true, overview.items[2].masked)
+            assertEquals("Bleib dran", overview.items[2].hint)
+            assertEquals("/api/v1/gamification/members/c-1/badges", server.takeRequest().url.encodedPath)
+        }
+
+    @Test
+    fun `REQ-GAME-021 earned badge without date is a server error`() =
+        runTest {
+            enqueue(200, ok(badgesJson(earnedJson.replace(""""awardedAt":"2026-10-25T10:00:00Z"""", """"awardedAt":null"""))))
+
+            assertEquals(AppError.Server, assertIs<ApiResult.Failure>(repository.badges("c-1")).error)
         }
 }

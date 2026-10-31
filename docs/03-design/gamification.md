@@ -3,7 +3,7 @@
 ## Abgedeckte Anforderungen
 
 REQ-GAME-010, -011, -012, -013, -014 (Phase 1a, Backend/API), REQ-GAME-020, -021 (Phase 2a, Backend/API, Abschnitt „Badges“) und – Server-Anteil in `meals` – REQ-MEAL-034 — siehe
-[gamification.prd.md](../01-requirements/gamification.prd.md). Die App-Seite folgt in Phase 1b bzw. 2b. Konventionen für Feature-Module:
+[gamification.prd.md](../01-requirements/gamification.prd.md). Die App-Seite ist in Phase 1b (Punkte) und 2b (Badges) umgesetzt. Konventionen für Feature-Module:
 [ADR-0010](../02-architecture/adr/0010-backend-feature-modules.md); Ereignisse: [ADR-0016](../02-architecture/adr/0016-domain-events-outbox.md).
 
 Die PRD-Notiz „Gutschrift in derselben Transaktion“ ist durch ADR-0016 ersetzt: Das Ereignis entsteht atomar mit dem Statuswechsel
@@ -102,10 +102,31 @@ bleiben unverändert (Vertrag 0.7.0).
 Der Abschnitt „Punkte“ wird über den Slot `familyContent` von `mainGraph`/`FamilyScreen` eingehängt (`feature:auth` kennt das Modul nicht).
 
 - **Sichtbarkeit:** Kind lädt nur das eigene Konto (`LoadPointsUseCase`: Konto + Rangliste parallel); Eltern nur die Rangliste, das Konto eines Kindes über `LoadChildAccountUseCase` (ohne lokalen Stand).
-- **Lokaler Stand** (ADR-0011): Datei `game_points.json`, je Mitglied (`memberId`), Version 1, Zeitpunkte als Epoch-Millis. Nur bei `Network`/`Certificate`/`Server` als Rückfall; `Unauthorized` leert den Stand; ein halber Ladeerfolg wird nicht gespeichert. Schreibaktionen (Buchen, Kochpunkte ändern) nur online.
+- **Lokaler Stand** (ADR-0011): Datei `game_points.json`, je Mitglied (`memberId`), Version 2 (seit 2b mit Badges; eine Datei alter Version gilt als leer), Zeitpunkte als Epoch-Millis. Nur bei `Network`/`Certificate`/`Server` als Rückfall; `Unauthorized` leert den Stand; ein halber Ladeerfolg wird nicht gespeichert. Schreibaktionen (Buchen, Kochpunkte ändern) nur online.
 - **Laden:** nur über `ON_RESUME`/Pull-to-Refresh (kein Laden im `init`, sonst doppelt); ein neuer Ladevorgang bricht den alten ab.
 - **Rangliste:** Reihenfolge und Rang wie vom Server (Gleichstand 1, 1, 3); Avatar-Platzhalter = Anfangsbuchstabe (Avatar folgt in Phase 4).
 - **Grenzen** (`PointsLimits`): Betrag ≠ 0, |Betrag| ≤ 1000; Begründung 1–200 nach `trim`; Kochpunkte 1–20.
 
 Unit-Tests: `ValidationTest`, `UseCasesTest`, `ViewModelsTest` (Me/Familie/Punktekonto), `ScreensTest` (Robolectric),
 `RemotePointsRepositoryTest` (MockWebServer), `DataStorePointsCacheTest`, `GamificationModuleTest`; Navigation: `AppNavHostTest` (`app`).
+
+## App-Seite Badges (Phase 2b)
+
+Gleiches Modul, kein Backend-/Vertragswechsel (OpenAPI 0.8.0, `GET /gamification/members/{memberId}/badges`). App 0.11.0.
+
+| Bildschirm | Inhalt |
+|---|---|
+| „Ich“ (Kind) | Abschnitt „Badges n/m“ zwischen Rangliste und Verlauf: Zeile je Badge (Emoji, Titel, Bedingung), erhalten → „erhalten TT.MM.“, offen → Fortschrittsbalken + „7/10“ (abgeblendet), geheim → „???“ + Hinweis. Rangliste ist online antippbar |
+| „Badges von <Name>“ (`MemberBadgesRoute`, ohne Leiste) | „Badges n/m“ + Liste; für Geschwister nur erhaltene (Server-Sicht) |
+| Punktekonto (Eltern) | Abschnitt „Badges n/m“ mit Fortschritt vor dem Verlauf |
+
+- **Neu-Hinweis (REQ-GAME-020):** Dialog „Neues Badge!“ auf „Ich“. „Neu“ = in der frischen Übersicht erhalten, im zuletzt gespeicherten
+  lokalen Stand nicht (`BadgeOverview.newlyEarned`). Ohne gespeicherte Badges (Erststart, Update, Neuinstallation) gilt die Basislinie: kein Dialog.
+  Keine Systembenachrichtigung.
+- **Laden:** Kind lädt Konto, Rangliste und eigene Badges parallel (`LoadPointsUseCase`); schlägt eine Anfrage fehl, wird nichts gespeichert.
+  Geschwister und Eltern: `LoadBadgesUseCase` ohne lokalen Stand. Das Punktekonto der Eltern zeigt das Konto auch, wenn nur die Badges fehlschlagen.
+- **Lokaler Stand:** Badges im Snapshot, Cache-Version 2. Folge: Nach dem Update gibt es offline keinen Rückfall, bis einmal online geladen wurde.
+  Geschwister- und Eltern-Ansicht nur online.
+- **Mapping:** erhaltenes Badge ohne lesbares Datum → ganze Übersicht ist ein Serverfehler (kein halbes Ergebnis).
+
+Tests: `BadgesTest`, `UseCasesTest`, `RemotePointsRepositoryTest`, `DataStorePointsCacheTest`, `ViewModelsTest`, `ScreensTest`, `GamificationModuleTest` (`REQ-GAME-020/021 …`).

@@ -5,9 +5,11 @@ import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.feature.gamification.fakes.FakePointsRepository
 import de.familyplanner.android.feature.gamification.fakes.InMemoryPointsCache
+import de.familyplanner.android.feature.gamification.fakes.badge
 import de.familyplanner.android.feature.gamification.fakes.childSession
 import de.familyplanner.android.feature.gamification.fakes.networkDown
 import de.familyplanner.android.feature.gamification.fakes.noon
+import de.familyplanner.android.feature.gamification.fakes.overview
 import de.familyplanner.android.feature.gamification.fakes.parentSession
 import de.familyplanner.android.feature.gamification.fakes.serverDown
 import de.familyplanner.android.feature.gamification.fakes.snapshot
@@ -127,5 +129,68 @@ class UseCasesTest {
             LoadChildAccountUseCase(repository)("c-9")
 
             assertEquals(listOf("c-9" to PointsLimits.HISTORY_LIMIT), repository.accountCalls)
+        }
+
+    @Test
+    fun `REQ-GAME-021 child loads own badges and stores them`() =
+        runTest {
+            val fresh = assertIs<PointsLoad.Fresh>(load()())
+
+            assertEquals(listOf("c-1"), repository.badgesCalls)
+            assertEquals(
+                2,
+                fresh.snapshot.badges
+                    ?.items
+                    ?.size,
+            )
+            assertEquals(fresh.snapshot, cache.stored)
+        }
+
+    @Test
+    fun `REQ-GAME-020 fresh load reports badges earned since the stored snapshot`() =
+        runTest {
+            cache.write("c-1", snapshot(badges = overview(badge("first-task", earned = true), badge("tasks-10"))))
+            repository.badgesResult = ApiResult.Success(overview(badge("first-task", earned = true), badge("tasks-10", earned = true)))
+
+            val fresh = assertIs<PointsLoad.Fresh>(load()())
+
+            assertEquals(listOf("tasks-10"), fresh.newBadges.map { it.id })
+        }
+
+    @Test
+    fun `REQ-GAME-020 first load without stored badges reports nothing`() =
+        runTest {
+            cache.write("c-1", snapshot(badges = null))
+            repository.badgesResult = ApiResult.Success(overview(badge("first-task", earned = true)))
+
+            assertEquals(emptyList(), assertIs<PointsLoad.Fresh>(load()()).newBadges)
+        }
+
+    @Test
+    fun `REQ-GAME-021 parent does not load badges`() =
+        runTest {
+            val fresh = assertIs<PointsLoad.Fresh>(load(parentSession)())
+
+            assertEquals(emptyList(), repository.badgesCalls)
+            assertNull(fresh.snapshot.badges)
+        }
+
+    @Test
+    fun `REQ-GAME-021 failed badges do not store half a snapshot`() =
+        runTest {
+            repository.badgesResult = serverDown
+
+            assertIs<PointsLoad.Failed>(load()())
+            assertEquals(0, cache.writes)
+        }
+
+    @Test
+    fun `REQ-GAME-021 badges of another member load without cache`() =
+        runTest {
+            val result = LoadBadgesUseCase(repository)("c-2")
+
+            assertIs<ApiResult.Success<*>>(result)
+            assertEquals(listOf("c-2"), repository.badgesCalls)
+            assertEquals(0, cache.writes)
         }
 }
