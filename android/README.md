@@ -223,17 +223,17 @@ Der Schalter kann auch als `fp.testInstance=true` in `local.properties` stehen. 
 - [x] Offline (WLAN aus): Board mit „Offline – Stand vom …“, keine Aktionen; „Heute“ zeigt Aufgaben aus dem Stand
 - [x] Erfolgssignal Phase 3: eine Woche Küchenboard auf den Testhandys vollständig nachgespielt
 
-## Abnahme-Checkliste GAME Phase 1 (manuell, Testhandys gegen die Testinstanz)
+## Abnahme-Checkliste GAME Phase 1 (manuell, Testhandys gegen die Testinstanz; abgenommen 2026-10-31)
 
-- [ ] Testinstanz läuft mit Backend aus Phase 1a (Migrationen V9/V10); Test-Build 0.10.0-test auf Eltern- und Kind-Testhandy (Update über 0.9.0-test)
-- [ ] Kind: „Ich“ zeigt Gesammelt/Guthaben (ggf. nachgebuchte alte Abnahmen), Platz, Rangliste, Verlauf
-- [ ] Eltern: „Familie“ → Abschnitt „Punkte“ mit Rangliste; Testkind antippen → Punktekonto
-- [ ] Eltern: „Punkte buchen“ → Gutschreiben 12 „Übernahme Küchenboard“ → Stand +12; Kind sieht nach Öffnen von „Ich“ +12 im Verlauf (Art „Korrektur“)
-- [ ] Eltern: Abziehen 2 mit Begründung → Gesammelt und Guthaben −2
-- [ ] Eltern nimmt eine Karte mit 2 Punkten ab → Kind: „Ich“ zeigt +2 („Aufgabe“) — kein Doppel nach erneutem Öffnen
-- [ ] Eltern: „Kochpunkte: 3 · Ändern“ → 4 speichern
-- [ ] Eltern: freigegebenes Kindergericht von heute/gestern im Editor → „Als gekocht bestätigen“ → Wochenplan „Gekocht ✓“; Kind: +4 („Kochen“); erneutes Bestätigen nicht mehr angeboten
-- [ ] Kindergericht von morgen: kein Bestätigen-Button; Wochenplan zeigt „Kochen bestätigen?“ nur für vergangene/heutige
-- [ ] Rangliste: Reihenfolge nach Gesammelt; Gleichstand gleicher Rang
-- [ ] Offline (WLAN aus): „Ich“ mit „Offline – Stand vom …“; Eltern-Rangliste aus Stand, Antippen/„Ändern“ deaktiviert
-- [ ] Erfolgssignal Phase 1: Abnahme einer Karte und Bestätigung eines Kochens ergeben genau die erwarteten Punkte; Startbuchung übernimmt den Küchenboard-Stand
+- [x] Testinstanz läuft mit Backend aus Phase 1a (Migrationen V9/V10); Test-Build 0.10.0-test auf Eltern- und Kind-Testhandy (Update über 0.9.0-test)
+- [x] Kind: „Ich“ zeigt Gesammelt/Guthaben (ggf. nachgebuchte alte Abnahmen), Platz, Rangliste, Verlauf
+- [x] Eltern: „Familie“ → Abschnitt „Punkte“ mit Rangliste; Testkind antippen → Punktekonto
+- [x] Eltern: „Punkte buchen“ → Gutschreiben 12 „Übernahme Küchenboard“ → Stand +12; Kind sieht nach Öffnen von „Ich“ +12 im Verlauf (Art „Korrektur“)
+- [x] Eltern: Abziehen 2 mit Begründung → Gesammelt und Guthaben −2
+- [x] Eltern nimmt eine Karte mit 2 Punkten ab → Kind: „Ich“ zeigt +2 („Aufgabe“) — kein Doppel nach erneutem Öffnen
+- [x] Eltern: „Kochpunkte: 3 · Ändern“ → 4 speichern
+- [x] Eltern: freigegebenes Kindergericht von heute/gestern im Editor → „Als gekocht bestätigen“ → Wochenplan „Gekocht ✓“; Kind: +4 („Kochen“); erneutes Bestätigen nicht mehr angeboten
+- [x] Kindergericht von morgen: kein Bestätigen-Button; Wochenplan zeigt „Kochen bestätigen?“ nur für vergangene/heutige
+- [x] Rangliste: Reihenfolge nach Gesammelt; Gleichstand gleicher Rang
+- [x] Offline (WLAN aus): „Ich“ mit „Offline – Stand vom …“; Eltern-Rangliste aus Stand, Antippen/„Ändern“ deaktiviert
+- [x] Erfolgssignal Phase 1: Abnahme einer Karte und Bestätigung eines Kochens ergeben genau die erwarteten Punkte; Startbuchung übernimmt den Küchenboard-Stand

@@ -688,8 +688,7 @@ EXPECT: V1–V11 erfolgreich, Tabelle `game_badges` vorhanden. Auf einer **Kopie
 | Emoji-Darstellung auf älteren Android-Geräten | L | L | Phase 2b prüft auf dem Testhandy; notfalls App-seitiges Mapping per `id` |
 
 ## Notes
-- Phase 1 ist laut PRD noch `in-progress` (Geräte-Abnahme). Phase 2 hängt fachlich nur vom fertigen Backend/App-Stand aus
-  Phase 1 ab, der gemergt ist; die Geräte-Abnahme von Phase 1 kann parallel abgeschlossen werden.
+- Phase 1 ist abgeschlossen (auf den Testhandys abgenommen 2026-10-31).
 - Phase 3 (Belohnungen) und 4 (Avatar) ändern ebenfalls `api/openapi.yaml` und `GamificationModule.kt`/`Application.kt` →
   nicht parallel in getrennten Sessions ohne abgestimmte Merge-Reihenfolge (PRD „Parallelism Notes“).
 - Spätere Badges (z. B. „erstes Item gekauft“) erweitern `BadgeStats` und das Enum; `evaluateAll` beim Start vergibt sie
