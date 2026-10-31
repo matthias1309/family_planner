@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Family Planner API
-  version: 0.8.0
+  version: 0.9.0
   description: Vertrag zwischen Android-App und Backend (ADR-0004). Alle Antworten nutzen den Envelope {success, data, error}.
 servers:
   - url: https://planner.home.arpa:8095
@@ -1039,6 +1039,222 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '429': { $ref: '#/components/responses/RateLimited' }
+  /api/v1/gamification/rewards:
+    get:
+      operationId: listRewards
+      tags: [gamification]
+      summary: Belohnungen lesen (alle Rollen), nach Preis sortiert
+      parameters:
+        - $ref: '#/components/parameters/IncludeArchived'
+      responses:
+        '200':
+          description: Belohnungen; deaktivierte nur mit includeArchived=true
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RewardListResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    post:
+      operationId: createReward
+      tags: [gamification]
+      summary: Belohnung anlegen (nur Eltern)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RewardInput' }
+      responses:
+        '201':
+          description: Angelegte Belohnung
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RewardResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/gamification/rewards/{rewardId}:
+    put:
+      operationId: updateReward
+      tags: [gamification]
+      summary: Belohnung ändern (nur Eltern); deaktivierte Belohnungen sind nicht änderbar
+      parameters:
+        - $ref: '#/components/parameters/RewardId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RewardInput' }
+      responses:
+        '200':
+          description: Geänderte Belohnung
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RewardResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    delete:
+      operationId: archiveReward
+      tags: [gamification]
+      summary: Belohnung deaktivieren (nur Eltern)
+      description: Laufende Einlösungen bleiben; Sparziele bleiben, sind aber nicht mehr einlösbar.
+      parameters:
+        - $ref: '#/components/parameters/RewardId'
+      responses:
+        '204':
+          description: Deaktiviert
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/gamification/rewards/{rewardId}/redemptions:
+    post:
+      operationId: redeemReward
+      tags: [gamification]
+      summary: Belohnung einlösen (nur Kinder, mit dem eigenen Guthaben)
+      description: Bucht den Preis sofort ab; 409 bei zu wenig Guthaben oder deaktivierter Belohnung.
+      parameters:
+        - $ref: '#/components/parameters/RewardId'
+      responses:
+        '201':
+          description: Einlösung, wartet auf die Eltern
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RedemptionResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/gamification/redemptions:
+    get:
+      operationId: listRedemptions
+      tags: [gamification]
+      summary: Einlösungen auflisten
+      description: 'Kind: eigene; Eltern: alle. Neueste zuerst.'
+      parameters:
+        - $ref: '#/components/parameters/RedemptionStatusFilter'
+        - $ref: '#/components/parameters/HistoryLimit'
+      responses:
+        '200':
+          description: Einlösungen
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RedemptionListResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/gamification/redemptions/{redemptionId}/fulfillment:
+    post:
+      operationId: fulfillRedemption
+      tags: [gamification]
+      summary: Einlösung als erfüllt markieren (nur Eltern, nur aus PENDING)
+      parameters:
+        - $ref: '#/components/parameters/RedemptionId'
+      responses:
+        '200':
+          description: Erfüllte Einlösung
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RedemptionResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/gamification/redemptions/{redemptionId}/rejection:
+    post:
+      operationId: rejectRedemption
+      tags: [gamification]
+      summary: Einlösung ablehnen (nur Eltern, nur aus PENDING); der Preis wird zurückgebucht
+      parameters:
+        - $ref: '#/components/parameters/RedemptionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RejectRedemptionRequest' }
+      responses:
+        '200':
+          description: Abgelehnte Einlösung
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RedemptionResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/gamification/members/{memberId}/savings-goal:
+    get:
+      operationId: getSavingsGoal
+      tags: [gamification]
+      summary: Sparziel mit Fortschritt (Kind nur das eigene, Eltern alle)
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      responses:
+        '200':
+          description: Sparziel; ohne Ziel ist reward null
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SavingsGoalResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    put:
+      operationId: setSavingsGoal
+      tags: [gamification]
+      summary: Sparziel wählen (nur das Kind selbst, nur aktive Belohnung)
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SavingsGoalInput' }
+      responses:
+        '200':
+          description: Gewähltes Sparziel
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SavingsGoalResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    delete:
+      operationId: clearSavingsGoal
+      tags: [gamification]
+      summary: Sparziel entfernen (nur das Kind selbst, idempotent)
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      responses:
+        '204':
+          description: Entfernt
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
 
 components:
   securitySchemes:
@@ -1103,6 +1319,21 @@ components:
       in: query
       required: false
       schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+    RewardId:
+      name: rewardId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    RedemptionId:
+      name: redemptionId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    RedemptionStatusFilter:
+      name: status
+      in: query
+      required: false
+      schema: { $ref: '#/components/schemas/RedemptionStatus' }
 
   responses:
     ValidationFailed:
@@ -2136,6 +2367,142 @@ components:
         data:
           allOf:
             - $ref: '#/components/schemas/GameSettings'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    Reward:
+      type: object
+      required: [id, title, price, archived]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string, minLength: 1, maxLength: 40 }
+        emoji: { type: string, minLength: 1, maxLength: 16, nullable: true }
+        price: { type: integer, minimum: 1, maximum: 10000, description: 'Preis in Punkten' }
+        archived: { type: boolean, description: 'Deaktiviert: nicht mehr einlösbar' }
+
+    RewardInput:
+      type: object
+      required: [title, price]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 40 }
+        emoji: { type: string, maxLength: 16, nullable: true }
+        price: { type: integer, minimum: 1, maximum: 10000 }
+
+    RedemptionStatus:
+      type: string
+      enum: [PENDING, FULFILLED, REJECTED]
+
+    Redemption:
+      type: object
+      required: [id, memberId, rewardId, title, price, status, requestedAt]
+      properties:
+        id: { type: string, format: uuid }
+        memberId: { type: string, format: uuid }
+        rewardId: { type: string, format: uuid }
+        title: { type: string, description: 'Titel der Belohnung zum Zeitpunkt der Einlösung' }
+        emoji: { type: string, nullable: true }
+        price: { type: integer, description: 'Preis zum Zeitpunkt der Einlösung' }
+        status: { $ref: '#/components/schemas/RedemptionStatus' }
+        rejectionReason: { type: string, maxLength: 200, nullable: true }
+        requestedAt: { type: string, format: date-time }
+        decidedAt: { type: string, format: date-time, nullable: true }
+
+    RejectRedemptionRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 200 }
+
+    SavingsGoalInput:
+      type: object
+      required: [rewardId]
+      properties:
+        rewardId: { type: string, format: uuid }
+
+    SavingsGoal:
+      type: object
+      required: [memberId, balance, redeemable]
+      properties:
+        memberId: { type: string, format: uuid }
+        reward:
+          allOf:
+            - $ref: '#/components/schemas/Reward'
+          nullable: true
+        balance: { type: integer, description: 'Aktuelles Guthaben des Kindes' }
+        progress:
+          allOf:
+            - $ref: '#/components/schemas/BadgeProgress'
+          nullable: true
+          description: 'current = Guthaben, auf 0..target begrenzt; null ohne Ziel'
+        redeemable: { type: boolean, description: 'Belohnung aktiv und Guthaben reicht' }
+
+    RewardResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Reward'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    RewardListResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          type: array
+          nullable: true
+          items: { $ref: '#/components/schemas/Reward' }
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    RedemptionResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Redemption'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    RedemptionListResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          type: array
+          nullable: true
+          items: { $ref: '#/components/schemas/Redemption' }
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    SavingsGoalResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/SavingsGoal'
           nullable: true
         error:
           allOf:

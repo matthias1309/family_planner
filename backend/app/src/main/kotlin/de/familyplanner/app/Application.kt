@@ -19,8 +19,11 @@ import de.familyplanner.gamification.account.AccountService
 import de.familyplanner.gamification.badges.BadgeService
 import de.familyplanner.gamification.gamificationModule
 import de.familyplanner.gamification.ledger.PointsEventHandler
+import de.familyplanner.gamification.rewards.RedemptionService
+import de.familyplanner.gamification.rewards.RewardService
 import de.familyplanner.gamification.settings.GameSettingsService
 import de.familyplanner.gamification.web.gamificationRoutes
+import de.familyplanner.gamification.web.rewardRoutes
 import de.familyplanner.meals.attendance.AttendanceService
 import de.familyplanner.meals.attendance.DeadlineSettingsService
 import de.familyplanner.meals.mealsModule
@@ -118,6 +121,7 @@ fun Application.module(
         shoppingRoutes(get<ShoppingListService>())
         taskRoutes(get<CatalogService>(), get<BoardService>())
         gamificationRoutes(get<AccountService>(), get<GameSettingsService>(), get<BadgeService>())
+        rewardRoutes(get<RewardService>(), get<RedemptionService>())
     }
 
     // Catch-up delivery for events logged before the last shutdown (ADR-0016), then badges for existing data.

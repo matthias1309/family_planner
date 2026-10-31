@@ -8,6 +8,7 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.plugins.BadRequestException
+import io.ktor.server.plugins.ContentTransformationException
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
@@ -17,6 +18,8 @@ fun Application.configureStatusPages() {
     install(StatusPages) {
         exception<AppException> { call, e -> call.respondError(e.code, e.message) }
         exception<BadRequestException> { call, _ -> call.respondError(ErrorCode.VALIDATION_FAILED, "Ungültige Anfrage") }
+        // A missing or unreadable request body is the client's fault, not a server error.
+        exception<ContentTransformationException> { call, _ -> call.respondError(ErrorCode.VALIDATION_FAILED, "Ungültige Anfrage") }
         exception<SerializationException> { call, _ -> call.respondError(ErrorCode.VALIDATION_FAILED, "Ungültige Anfrage") }
         exception<Throwable> { call, e ->
             call.application.log.error("Unhandled error on {} {}", call.request.httpMethod.value, call.request.path(), e)

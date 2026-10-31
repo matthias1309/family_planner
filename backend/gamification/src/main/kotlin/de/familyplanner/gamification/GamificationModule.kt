@@ -8,6 +8,12 @@ import de.familyplanner.gamification.ledger.PointsEventHandler
 import de.familyplanner.gamification.persistence.ExposedBadgeRepository
 import de.familyplanner.gamification.persistence.ExposedGameSettingsRepository
 import de.familyplanner.gamification.persistence.ExposedLedgerRepository
+import de.familyplanner.gamification.persistence.ExposedRedemptionRepository
+import de.familyplanner.gamification.persistence.ExposedRewardRepository
+import de.familyplanner.gamification.rewards.RedemptionRepository
+import de.familyplanner.gamification.rewards.RedemptionService
+import de.familyplanner.gamification.rewards.RewardRepository
+import de.familyplanner.gamification.rewards.RewardService
 import de.familyplanner.gamification.settings.GameSettingsRepository
 import de.familyplanner.gamification.settings.GameSettingsService
 import org.koin.dsl.module
@@ -25,5 +31,9 @@ fun gamificationModule(clock: Clock) =
         single<BadgeRepository> { ExposedBadgeRepository(get()) }
         single { BadgeService(get(), get(), get(), clock) }
         single { AccountService(get(), get(), get(), clock) }
+        single<RewardRepository> { ExposedRewardRepository(get()) }
+        single<RedemptionRepository> { ExposedRedemptionRepository(get()) }
+        single { RewardService(get(), get(), get(), clock) }
+        single { RedemptionService(get(), get(), clock) }
         single { PointsEventHandler(get(), get(), get(), get()) }
     }

@@ -52,6 +52,10 @@ fun taskSourceKey(cardId: String) = "task:$cardId"
 
 fun cookingSourceKey(dishId: String) = "cooking:$dishId"
 
+fun rewardSourceKey(redemptionId: String) = "reward:$redemptionId"
+
+fun rewardRefundSourceKey(redemptionId: String) = "reward-refund:$redemptionId"
+
 /** Sums (kind, amount) rows into [Totals]. */
 fun totalsFrom(rows: Iterable<Pair<EntryKind, Int>>): Totals =
     Totals(
