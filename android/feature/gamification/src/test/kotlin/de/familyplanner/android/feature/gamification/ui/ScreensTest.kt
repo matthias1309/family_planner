@@ -12,17 +12,24 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import de.familyplanner.android.core.ui.theme.FamilyPlannerTheme
+import de.familyplanner.android.feature.gamification.domain.BadgeProgress
 import de.familyplanner.android.feature.gamification.domain.EntryKind
 import de.familyplanner.android.feature.gamification.domain.RankedChild
 import de.familyplanner.android.feature.gamification.fakes.account
+import de.familyplanner.android.feature.gamification.fakes.badge
 import de.familyplanner.android.feature.gamification.fakes.entry
 import de.familyplanner.android.feature.gamification.fakes.leaderboard
+import de.familyplanner.android.feature.gamification.fakes.overview
 import de.familyplanner.android.feature.gamification.fakes.snapshot
 import de.familyplanner.android.feature.gamification.ui.account.BookingDraft
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountArgs
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountEvent
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountScreen
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountUiState
+import de.familyplanner.android.feature.gamification.ui.badges.MemberBadgesArgs
+import de.familyplanner.android.feature.gamification.ui.badges.MemberBadgesScreen
+import de.familyplanner.android.feature.gamification.ui.badges.MemberBadgesUiState
+import de.familyplanner.android.feature.gamification.ui.components.BadgeList
 import de.familyplanner.android.feature.gamification.ui.components.LeaderboardList
 import de.familyplanner.android.feature.gamification.ui.components.LedgerList
 import de.familyplanner.android.feature.gamification.ui.family.FamilyPointsEvent
@@ -85,7 +92,7 @@ class ScreensTest {
     @Test
     fun `REQ-GAME-012 me screen shows tiles, rank, leaderboard and history`() {
         compose.setContent {
-            FamilyPlannerTheme { MeScreen(MeUiState(memberId = "c-1", snapshot = snapshot(), isLoading = false), {}) }
+            FamilyPlannerTheme { MeScreen(MeUiState(memberId = "c-1", snapshot = snapshot(), isLoading = false), {}, { _, _ -> }) }
         }
 
         compose.onNodeWithText("Gesammelt").assertIsDisplayed()
@@ -99,7 +106,11 @@ class ScreensTest {
     fun `REQ-GAME-012 me screen shows the offline notice`() {
         compose.setContent {
             FamilyPlannerTheme {
-                MeScreen(MeUiState(memberId = "c-1", snapshot = snapshot(), isLoading = false, isOffline = true), { _: MeEvent -> })
+                MeScreen(
+                    MeUiState(memberId = "c-1", snapshot = snapshot(), isLoading = false, isOffline = true),
+                    { _: MeEvent -> },
+                    { _, _ -> },
+                )
             }
         }
 
@@ -228,5 +239,95 @@ class ScreensTest {
         compose.onNodeWithText("Buchen").assertIsEnabled().performClick()
 
         assertEquals(ChildAccountEvent.SubmitBooking, events.last())
+    }
+
+    private val badges =
+        overview(
+            badge("first-task", earned = true, title = "Erste Aufgabe"),
+            badge("tasks-10"),
+            badge("secret-1", secret = true, title = null, progress = null, hint = "Bleib richtig lange dran"),
+        )
+
+    @Test
+    fun `REQ-GAME-021 badge list shows earned date, progress and masked secret badge`() {
+        compose.setContent { FamilyPlannerTheme { BadgeList(badges.items) } }
+
+        compose.onNodeWithText("Erste Aufgabe").assertIsDisplayed()
+        compose.onNodeWithText("erhalten 25.10.").assertIsDisplayed()
+        compose.onNodeWithText("7/10").assertIsDisplayed()
+        compose.onNodeWithText("???").assertIsDisplayed()
+        compose.onNodeWithText("Bleib richtig lange dran").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-GAME-021 empty badge list shows a hint`() {
+        compose.setContent { FamilyPlannerTheme { BadgeList(emptyList()) } }
+
+        compose.onNodeWithText("Noch keine Badges").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-GAME-021 open badge with reached target does not crash`() {
+        compose.setContent { FamilyPlannerTheme { BadgeList(listOf(badge("tasks-10", progress = BadgeProgress(10, 10)))) } }
+
+        compose.onNodeWithText("10/10").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-GAME-020 me screen shows the new badge dialog`() {
+        var dismissed = false
+        val state =
+            MeUiState(
+                memberId = "c-1",
+                snapshot = snapshot(badges = badges),
+                isLoading = false,
+                newBadges = listOf(badges.items[0]),
+            )
+        compose.setContent { FamilyPlannerTheme { MeScreen(state, { dismissed = it == MeEvent.DismissNewBadges }, { _, _ -> }) } }
+
+        compose.onNodeWithText("Neues Badge!").assertIsDisplayed()
+        compose.onNodeWithText("Super!").performClick()
+
+        assertEquals(true, dismissed)
+    }
+
+    @Test
+    fun `REQ-GAME-021 me screen opens badges of a sibling`() {
+        var opened: Pair<String, String>? = null
+        val state = MeUiState(memberId = "c-1", snapshot = snapshot(badges = badges), isLoading = false)
+        compose.setContent { FamilyPlannerTheme { MeScreen(state, {}, { id, name -> opened = id to name }) } }
+
+        compose.onNodeWithText("Ben").performClick()
+
+        assertEquals("c-2" to "Ben", opened)
+        compose.onNodeWithText("Badges 1/12").assertExists()
+    }
+
+    @Test
+    fun `REQ-GAME-021 offline leaderboard is not clickable`() {
+        var opened = false
+        val state = MeUiState(memberId = "c-1", snapshot = snapshot(badges = badges), isLoading = false, isOffline = true)
+        compose.setContent { FamilyPlannerTheme { MeScreen(state, {}, { _, _ -> opened = true }) } }
+
+        compose.onNodeWithText("Ben").performClick()
+
+        assertEquals(false, opened)
+    }
+
+    @Test
+    fun `REQ-GAME-021 member badges screen shows name and count`() {
+        val state = MemberBadgesUiState(MemberBadgesArgs("c-2", "Ben"), overview = badges, isLoading = false)
+        compose.setContent { FamilyPlannerTheme { MemberBadgesScreen(state, {}, {}) } }
+
+        compose.onNodeWithText("Badges von Ben").assertIsDisplayed()
+        compose.onNodeWithText("Badges 1/12").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-GAME-021 child account screen shows badges`() {
+        val state = ChildAccountUiState(ChildAccountArgs("c-1", "Lea"), account = account(), badges = badges, isLoading = false)
+        compose.setContent { FamilyPlannerTheme { ChildAccountScreen(state, {}, {}) } }
+
+        compose.onNodeWithText("Badges 1/12").assertExists()
     }
 }

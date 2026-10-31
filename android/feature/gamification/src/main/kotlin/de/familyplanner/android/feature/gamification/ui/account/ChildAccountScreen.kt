@@ -21,6 +21,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.familyplanner.android.core.ui.components.ErrorText
 import de.familyplanner.android.core.ui.components.SubmitButton
 import de.familyplanner.android.feature.gamification.R
+import de.familyplanner.android.feature.gamification.ui.components.BadgeHeader
+import de.familyplanner.android.feature.gamification.ui.components.BadgeList
 import de.familyplanner.android.feature.gamification.ui.components.LedgerList
 import de.familyplanner.android.feature.gamification.ui.components.StatTiles
 import org.koin.androidx.compose.koinViewModel
@@ -65,6 +67,10 @@ fun ChildAccountScreen(
                     onClick = { onEvent(ChildAccountEvent.StartBooking) },
                     modifier = Modifier.fillMaxWidth(),
                 )
+            }
+            state.badges?.let { badges ->
+                item { BadgeHeader(badges) }
+                item { BadgeList(badges.items) }
             }
             item { Text(stringResource(R.string.game_history), style = MaterialTheme.typography.titleMedium) }
             item { LedgerList(state.account?.entries.orEmpty()) }

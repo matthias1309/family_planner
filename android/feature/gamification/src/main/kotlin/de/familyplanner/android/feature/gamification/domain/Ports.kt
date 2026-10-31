@@ -10,6 +10,8 @@ interface PointsRepository {
         limit: Int,
     ): ApiResult<PointsAccount>
 
+    suspend fun badges(memberId: String): ApiResult<BadgeOverview>
+
     suspend fun book(
         memberId: String,
         amount: Int,

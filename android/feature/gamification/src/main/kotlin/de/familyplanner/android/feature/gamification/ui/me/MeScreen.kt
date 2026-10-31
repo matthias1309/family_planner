@@ -19,16 +19,23 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.familyplanner.android.core.ui.components.ErrorText
 import de.familyplanner.android.core.ui.formatDateTime
 import de.familyplanner.android.feature.gamification.R
+import de.familyplanner.android.feature.gamification.domain.RankedChild
+import de.familyplanner.android.feature.gamification.ui.components.BadgeHeader
+import de.familyplanner.android.feature.gamification.ui.components.BadgeList
 import de.familyplanner.android.feature.gamification.ui.components.LeaderboardList
 import de.familyplanner.android.feature.gamification.ui.components.LedgerList
+import de.familyplanner.android.feature.gamification.ui.components.NewBadgesDialog
 import de.familyplanner.android.feature.gamification.ui.components.StatTiles
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun MeRoute(viewModel: MeViewModel = koinViewModel()) {
+fun MeRoute(
+    onOpenBadges: (memberId: String, name: String) -> Unit,
+    viewModel: MeViewModel = koinViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(MeEvent.Refresh) }
-    MeScreen(state, viewModel::onEvent)
+    MeScreen(state, viewModel::onEvent, onOpenBadges)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,6 +43,7 @@ fun MeRoute(viewModel: MeViewModel = koinViewModel()) {
 fun MeScreen(
     state: MeUiState,
     onEvent: (MeEvent) -> Unit,
+    onOpenBadges: (memberId: String, name: String) -> Unit,
 ) {
     PullToRefreshBox(isRefreshing = state.isLoading, onRefresh = { onEvent(MeEvent.Refresh) }, modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -52,10 +60,19 @@ fun MeScreen(
                 snapshot.account?.let { account -> item { StatTiles(account.collected, account.balance) } }
                 state.myRank?.let { item { Text(stringResource(R.string.game_rank_of, it.rank, snapshot.leaderboard.size)) } }
                 item { Text(stringResource(R.string.game_leaderboard), style = MaterialTheme.typography.titleMedium) }
-                item { LeaderboardList(snapshot.leaderboard, highlightId = state.memberId, onClick = null) }
+                item {
+                    val onChildClick: ((RankedChild) -> Unit)? =
+                        if (state.isOffline) null else { child -> onOpenBadges(child.memberId, child.name) }
+                    LeaderboardList(snapshot.leaderboard, highlightId = state.memberId, onClick = onChildClick)
+                }
+                snapshot.badges?.let { badges ->
+                    item { BadgeHeader(badges) }
+                    item { BadgeList(badges.items) }
+                }
                 item { Text(stringResource(R.string.game_history), style = MaterialTheme.typography.titleMedium) }
                 item { LedgerList(snapshot.account?.entries.orEmpty()) }
             }
         }
     }
+    if (state.newBadges.isNotEmpty()) NewBadgesDialog(state.newBadges) { onEvent(MeEvent.DismissNewBadges) }
 }

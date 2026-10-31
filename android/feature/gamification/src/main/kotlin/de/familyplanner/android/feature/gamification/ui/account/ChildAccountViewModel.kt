@@ -4,12 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
+import de.familyplanner.android.feature.gamification.domain.BadgeOverview
 import de.familyplanner.android.feature.gamification.domain.BookPointsUseCase
+import de.familyplanner.android.feature.gamification.domain.LoadBadgesUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadChildAccountUseCase
 import de.familyplanner.android.feature.gamification.domain.PointsAccount
 import de.familyplanner.android.feature.gamification.domain.PointsLimits
 import de.familyplanner.android.feature.gamification.domain.validateManualEntry
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +40,7 @@ data class BookingDraft(
 data class ChildAccountUiState(
     val args: ChildAccountArgs,
     val account: PointsAccount? = null,
+    val badges: BadgeOverview? = null,
     val isLoading: Boolean = true,
     val error: AppError? = null,
     val booking: BookingDraft? = null,
@@ -68,6 +73,7 @@ sealed interface ChildAccountEvent {
 class ChildAccountViewModel(
     private val args: ChildAccountArgs,
     private val loadAccount: LoadChildAccountUseCase,
+    private val loadBadges: LoadBadgesUseCase,
     private val bookPoints: BookPointsUseCase,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ChildAccountUiState(args))
@@ -98,12 +104,19 @@ class ChildAccountViewModel(
         _state.update { it.copy(isLoading = true, error = null) }
         loadJob =
             viewModelScope.launch {
-                val result = loadAccount(args.memberId)
-                _state.update {
-                    when (result) {
-                        is ApiResult.Success -> it.copy(isLoading = false, account = result.data)
-                        is ApiResult.Failure -> it.copy(isLoading = false, error = result.error)
+                val (accountResult, badgesResult) =
+                    coroutineScope {
+                        val account = async { loadAccount(args.memberId) }
+                        val badges = async { loadBadges(args.memberId) }
+                        account.await() to badges.await()
                     }
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        account = (accountResult as? ApiResult.Success)?.data ?: it.account,
+                        badges = (badgesResult as? ApiResult.Success)?.data ?: it.badges,
+                        error = listOf(accountResult, badgesResult).filterIsInstance<ApiResult.Failure>().firstOrNull()?.error,
+                    )
                 }
             }
     }

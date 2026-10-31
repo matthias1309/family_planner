@@ -36,4 +36,15 @@
     <string name="game_book_reason">Begründung</string>
     <string name="game_book_reason_placeholder">z. B. Übernahme Küchenboard</string>
     <string name="game_book_submit">Buchen</string>
+
+    <string name="game_badges_count">Badges %1$d/%2$d</string>
+    <string name="game_badges_empty">Noch keine Badges</string>
+    <string name="game_badge_secret">\?\?\?</string>
+    <string name="game_badge_awarded">erhalten %1$s</string>
+    <plurals name="game_new_badges_title">
+        <item quantity="one">Neues Badge!</item>
+        <item quantity="other">Neue Badges!</item>
+    </plurals>
+    <string name="game_new_badge_ok">Super!</string>
+    <string name="game_member_badges_title">Badges von %1$s</string>
 </resources>
