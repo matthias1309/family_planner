@@ -10,6 +10,8 @@ import de.familyplanner.gamification.account.AccountService
 import de.familyplanner.gamification.account.Actor
 import de.familyplanner.gamification.badges.BadgeService
 import de.familyplanner.gamification.ledger.PointsEventHandler
+import de.familyplanner.gamification.rewards.RedemptionService
+import de.familyplanner.gamification.rewards.RewardService
 import de.familyplanner.gamification.settings.GameSettingsService
 import java.time.Instant
 
@@ -25,6 +27,10 @@ class GamificationFixture(
     val badgeRepository = InMemoryBadgeRepository()
     val badges = BadgeService(members, ledger, badgeRepository, clock)
     val accounts = AccountService(members, ledger, badges, clock) { "entry-${++nextId}" }
+    val rewardRepository = InMemoryRewardRepository()
+    val redemptionRepository = InMemoryRedemptionRepository(ledger, rewardRepository)
+    val rewards = RewardService(members, rewardRepository, ledger, clock) { "reward-${++nextId}" }
+    val redemptions = RedemptionService(members, redemptionRepository, clock) { "redemption-${++nextId}" }
     val handler = PointsEventHandler(members, ledger, settings, badges) { "credit-${++nextId}" }
 
     suspend fun parent(): Actor = Actor(members.create(aMember(role = Role.PARENT)).id, Role.PARENT)
