@@ -310,7 +310,7 @@ werden sollen, blockieren aber Avatar und Belohnungen nicht.
 | # | Phase | Description | Status | Parallel | Depends | PRP Plan |
 |---|-------|-------------|--------|----------|---------|----------|
 | 1 | Punktekonto | Journal, Punkte aus Aufgaben und Kochen (inkl. REQ-MEAL-034), manuelle Buchung, Stand, Verlauf, Rangliste, Bereich „Ich“ — aufgeteilt in 1a Backend/API und 1b App (REQ-GAME-010–014) | in-progress | - | TASK 2 (1b: TASK 1) | 1a: `.claude/PRPs/reports/punktekonto-backend-report.md` (Backend umgesetzt); 1b: `.claude/PRPs/plans/punktekonto-app.plan.md` → Bericht `.claude/PRPs/reports/punktekonto-app-report.md` (App umgesetzt, Geräte-Abnahme offen) |
-| 2 | Badges | Badge-Katalog, Regeln, Vergabe, Übersicht inkl. geheimer Badges (REQ-GAME-020/021) | pending | with 3, 4 | 1 | - |
+| 2 | Badges | Badge-Katalog, Regeln, Vergabe, Übersicht inkl. geheimer Badges (REQ-GAME-020/021) — aufgeteilt in 2a Backend/API und 2b App | in-progress | with 3, 4 | 1 | 2a: `.claude/PRPs/plans/badges-backend.plan.md`; 2b: Plan folgt |
 | 3 | Echte Belohnungen | Ausloben, Sparziel, Einlösen, Bestätigen (REQ-GAME-040–043) | pending | with 2, 4 | 1 | - |
 | 4 | Avatar & Shop | Spike + ADR zu Bausteinen/Lizenz, Avatar gestalten, Shop, Avatar in Rangliste/Board (REQ-GAME-030/031) | pending | with 2, 3 | 1 | - |
 | 5 | Testbetrieb | 4 Wochen auf zwei Testhandys gegen die Testinstanz; Küchenboard parallel abbauen; Messung | pending | - | 2, 3, 4, TASK 3 | - |
