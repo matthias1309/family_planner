@@ -5,6 +5,7 @@ import de.familyplanner.core.error.validatedName
 import de.familyplanner.core.member.MemberId
 import de.familyplanner.core.member.MemberRepository
 import de.familyplanner.core.member.Role
+import de.familyplanner.gamification.badges.BadgeService
 import de.familyplanner.gamification.ledger.ENTRIES_LIMIT_MAX
 import de.familyplanner.gamification.ledger.EntryKind
 import de.familyplanner.gamification.ledger.LedgerEntry
@@ -12,6 +13,7 @@ import de.familyplanner.gamification.ledger.LedgerEntryId
 import de.familyplanner.gamification.ledger.LedgerRepository
 import de.familyplanner.gamification.ledger.MANUAL_AMOUNT_MAX
 import de.familyplanner.gamification.ledger.REASON_MAX
+import de.familyplanner.gamification.requireChild
 import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.util.UUID
@@ -20,6 +22,7 @@ import kotlin.math.abs
 class AccountService(
     private val members: MemberRepository,
     private val ledger: LedgerRepository,
+    private val badges: BadgeService,
     private val clock: Clock,
     private val newId: () -> String = { UUID.randomUUID().toString() },
 ) {
@@ -34,7 +37,7 @@ class AccountService(
         limit: Int,
     ): Account {
         if (limit !in 1..ENTRIES_LIMIT_MAX) throw AppException.Validation("Ungültiger Wert für 'limit'")
-        requireChild(memberId)
+        members.requireChild(memberId)
         if (!actor.isParent && actor.id != memberId) throw AppException.Forbidden("Nur eigenes Punktekonto")
         return Account(memberId, ledger.totalsOf(memberId), ledger.entriesOf(memberId, limit))
     }
@@ -48,10 +51,11 @@ class AccountService(
         if (!actor.isParent) throw AppException.Forbidden()
         requireValidAmount(amount)
         val title = validatedName(reason, "Begründung", REASON_MAX)
-        requireChild(memberId)
+        members.requireChild(memberId)
         val entry = LedgerEntry(LedgerEntryId(newId()), memberId, EntryKind.MANUAL, amount, title, null, null, actor.id, clock.instant())
         ledger.append(entry)
         log.info("Manual points booked: {} to {}", amount, memberId.value)
+        badges.evaluate(memberId)
         return entry
     }
 
@@ -60,10 +64,5 @@ class AccountService(
         if (abs(amount) > MANUAL_AMOUNT_MAX) {
             throw AppException.Validation("Der Betrag muss zwischen -$MANUAL_AMOUNT_MAX und $MANUAL_AMOUNT_MAX liegen")
         }
-    }
-
-    private suspend fun requireChild(id: MemberId) {
-        val member = members.findById(id) ?: throw AppException.NotFound("Mitglied nicht gefunden")
-        if (member.role != Role.CHILD) throw AppException.Validation("Eltern sammeln keine Punkte")
     }
 }

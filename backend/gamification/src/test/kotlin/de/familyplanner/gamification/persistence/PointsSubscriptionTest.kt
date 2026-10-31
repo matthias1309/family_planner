@@ -12,11 +12,13 @@ import de.familyplanner.core.persistence.DatabaseFactory
 import de.familyplanner.core.persistence.EventCursorsTable
 import de.familyplanner.core.persistence.dbQuery
 import de.familyplanner.gamification.POINTS_SUBSCRIBER
+import de.familyplanner.gamification.badges.BadgeService
 import de.familyplanner.gamification.ledger.PointsEventHandler
 import de.familyplanner.gamification.settings.GameSettingsService
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.deleteAll
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
 import java.time.Instant
@@ -32,6 +34,7 @@ class PointsSubscriptionTest {
     private lateinit var db: Database
     private lateinit var dispatcher: DomainEventDispatcher
     private lateinit var ledger: ExposedLedgerRepository
+    private lateinit var badgeRepository: ExposedBadgeRepository
     private var childId = MemberId("unset")
 
     @BeforeTest
@@ -42,7 +45,9 @@ class PointsSubscriptionTest {
             val members = ExposedMemberRepository(db)
             childId = members.create(aMember(role = Role.CHILD)).id
             ledger = ExposedLedgerRepository(db)
-            val handler = PointsEventHandler(members, ledger, GameSettingsService(ExposedGameSettingsRepository(db), clock))
+            badgeRepository = ExposedBadgeRepository(db)
+            val badges = BadgeService(members, ledger, badgeRepository, clock)
+            val handler = PointsEventHandler(members, ledger, GameSettingsService(ExposedGameSettingsRepository(db), clock), badges)
             dispatcher = DomainEventDispatcher(db)
             dispatcher.subscribe(POINTS_SUBSCRIBER, handler::handle)
         }
@@ -74,5 +79,18 @@ class PointsSubscriptionTest {
             dispatcher.dispatchPending()
 
             assertEquals(2, ledger.entriesOf(childId, 10).size)
+        }
+
+    @Test
+    fun `REQ-GAME-020 dispatched task acceptance awards first-task once`() =
+        runTest {
+            recordAccepted("c1")
+
+            dispatcher.dispatchPending()
+            dbQuery(db) { EventCursorsTable.deleteAll() }
+            dispatcher.dispatchPending()
+
+            assertEquals(setOf("first-task"), badgeRepository.awardedOf(childId).keys)
+            assertEquals(1, dbQuery(db) { BadgeTable.selectAll().count() }.toInt())
         }
 }

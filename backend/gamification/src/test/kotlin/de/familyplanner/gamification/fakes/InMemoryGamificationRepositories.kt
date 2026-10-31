@@ -1,6 +1,7 @@
 package de.familyplanner.gamification.fakes
 
 import de.familyplanner.core.member.MemberId
+import de.familyplanner.gamification.badges.BadgeRepository
 import de.familyplanner.gamification.ledger.LedgerEntry
 import de.familyplanner.gamification.ledger.LedgerRepository
 import de.familyplanner.gamification.ledger.Totals
@@ -33,6 +34,8 @@ class InMemoryLedgerRepository : LedgerRepository {
             .take(limit)
             .map { it.value }
 
+    override suspend fun allEntriesOf(memberId: MemberId): List<LedgerEntry> = entries.filter { it.memberId == memberId }
+
     private fun totals(rows: List<LedgerEntry>) = totalsFrom(rows.map { it.kind to it.amount })
 }
 
@@ -47,4 +50,17 @@ class InMemoryGameSettingsRepository : GameSettingsRepository {
     ) {
         stored = settings
     }
+}
+
+class InMemoryBadgeRepository : BadgeRepository {
+    val awards = mutableMapOf<Pair<MemberId, String>, Instant>()
+
+    override suspend fun award(
+        memberId: MemberId,
+        badgeId: String,
+        at: Instant,
+    ): Boolean = awards.putIfAbsent(memberId to badgeId, at) == null
+
+    override suspend fun awardedOf(memberId: MemberId): Map<String, Instant> =
+        awards.filterKeys { it.first == memberId }.mapKeys { it.key.second }
 }

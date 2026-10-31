@@ -1,5 +1,6 @@
 package de.familyplanner.gamification.web
 
+import de.familyplanner.api.model.BadgeOverviewResponse
 import de.familyplanner.api.model.GameSettingsResponse
 import de.familyplanner.api.model.Leaderboard
 import de.familyplanner.api.model.LeaderboardResponse
@@ -13,6 +14,7 @@ import de.familyplanner.core.auth.uuidParameter
 import de.familyplanner.core.error.AppException
 import de.familyplanner.core.member.MemberId
 import de.familyplanner.gamification.account.AccountService
+import de.familyplanner.gamification.badges.BadgeService
 import de.familyplanner.gamification.ledger.ENTRIES_LIMIT_DEFAULT
 import de.familyplanner.gamification.settings.GameSettingsService
 import io.ktor.http.HttpStatusCode
@@ -29,6 +31,7 @@ import de.familyplanner.api.model.GameSettings as ApiGameSettings
 fun Route.gamificationRoutes(
     accounts: AccountService,
     settings: GameSettingsService,
+    badges: BadgeService,
 ) {
     authenticate(AUTH_DEVICE) {
         get("/api/v1/gamification/leaderboard") {
@@ -40,6 +43,10 @@ fun Route.gamificationRoutes(
             val actor = call.principalOrThrow().toActor()
             val account = accounts.account(actor, call.targetMemberId(), call.entriesLimit())
             call.respond(PointsAccountResponse(success = true, data = account.toApi()))
+        }
+        get("/api/v1/gamification/members/{memberId}/badges") {
+            val actor = call.principalOrThrow().toActor()
+            call.respond(BadgeOverviewResponse(success = true, data = badges.overview(actor, call.targetMemberId()).toApi()))
         }
         post("/api/v1/gamification/members/{memberId}/entries") {
             val parent = call.requireParent().toActor()

@@ -16,6 +16,7 @@ import de.familyplanner.core.web.deviceRoutes
 import de.familyplanner.core.web.memberRoutes
 import de.familyplanner.gamification.POINTS_SUBSCRIBER
 import de.familyplanner.gamification.account.AccountService
+import de.familyplanner.gamification.badges.BadgeService
 import de.familyplanner.gamification.gamificationModule
 import de.familyplanner.gamification.ledger.PointsEventHandler
 import de.familyplanner.gamification.settings.GameSettingsService
@@ -116,9 +117,18 @@ fun Application.module(
         recipeRoutes(get<RecipeService>())
         shoppingRoutes(get<ShoppingListService>())
         taskRoutes(get<CatalogService>(), get<BoardService>())
-        gamificationRoutes(get<AccountService>(), get<GameSettingsService>())
+        gamificationRoutes(get<AccountService>(), get<GameSettingsService>(), get<BadgeService>())
     }
 
-    // Catch-up delivery for events logged before the last shutdown (ADR-0016).
-    monitor.subscribe(ApplicationStarted) { launch { get<DomainEventDispatcher>().dispatchPending() } }
+    // Catch-up delivery for events logged before the last shutdown (ADR-0016), then badges for existing data.
+    // A failing delivery must not skip the badge catch-up.
+    monitor.subscribe(ApplicationStarted) {
+        launch {
+            try {
+                get<DomainEventDispatcher>().dispatchPending()
+            } finally {
+                get<BadgeService>().evaluateAll()
+            }
+        }
+    }
 }

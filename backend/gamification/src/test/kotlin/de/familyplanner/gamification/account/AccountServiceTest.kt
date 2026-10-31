@@ -12,6 +12,7 @@ import java.time.Duration
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class AccountServiceTest {
     private val fixture = GamificationFixture()
@@ -141,5 +142,15 @@ class AccountServiceTest {
             val board = fixture.accounts.leaderboard()
 
             assertEquals(listOf("Anna", "Ben"), board.map { it.name })
+        }
+
+    @Test
+    fun `REQ-GAME-020 manual booking evaluates badges`() =
+        runTest {
+            val child = fixture.child()
+
+            fixture.accounts.book(fixture.parent(), child.id, 100, "Übernahme")
+
+            assertTrue((child.id to "points-100") in fixture.badgeRepository.awards)
         }
 }

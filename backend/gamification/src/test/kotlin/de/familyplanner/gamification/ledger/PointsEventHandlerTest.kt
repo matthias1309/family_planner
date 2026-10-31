@@ -91,4 +91,38 @@ class PointsEventHandlerTest {
 
             assertTrue(fixture.ledger.entries.isEmpty())
         }
+
+    @Test
+    fun `REQ-GAME-020 accepted task awards first-task`() =
+        runTest {
+            val child = fixture.child()
+
+            fixture.handler.handle(fixture.stored(accepted(child.id.value)))
+
+            assertTrue((child.id to "first-task") in fixture.badgeRepository.awards)
+        }
+
+    @Test
+    fun `REQ-GAME-020 redelivered event still evaluates badges`() =
+        runTest {
+            val child = fixture.child()
+            val event = fixture.stored(accepted(child.id.value))
+            fixture.handler.handle(event)
+            fixture.badgeRepository.awards.clear()
+
+            fixture.handler.handle(event)
+
+            assertEquals(1, fixture.ledger.entries.size)
+            assertTrue((child.id to "first-task") in fixture.badgeRepository.awards)
+        }
+
+    @Test
+    fun `REQ-GAME-020 skipped event awards nothing`() =
+        runTest {
+            val parent = fixture.parent()
+
+            fixture.handler.handle(fixture.stored(accepted(parent.id.value)))
+
+            assertTrue(fixture.badgeRepository.awards.isEmpty())
+        }
 }
