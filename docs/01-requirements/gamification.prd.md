@@ -309,7 +309,7 @@ werden sollen, blockieren aber Avatar und Belohnungen nicht.
 
 | # | Phase | Description | Status | Parallel | Depends | PRP Plan |
 |---|-------|-------------|--------|----------|---------|----------|
-| 1 | Punktekonto | Journal, Punkte aus Aufgaben und Kochen (inkl. REQ-MEAL-034), manuelle Buchung, Stand, Verlauf, Rangliste, Bereich „Ich“ — aufgeteilt in 1a Backend/API und 1b App (REQ-GAME-010–014) | in-progress | - | TASK 2 (1b: TASK 1) | 1a: `.claude/PRPs/reports/punktekonto-backend-report.md` (Backend umgesetzt); 1b: `.claude/PRPs/plans/punktekonto-app.plan.md` → Bericht `.claude/PRPs/reports/punktekonto-app-report.md` (App umgesetzt, Geräte-Abnahme offen) |
+| 1 | Punktekonto | Journal, Punkte aus Aufgaben und Kochen (inkl. REQ-MEAL-034), manuelle Buchung, Stand, Verlauf, Rangliste, Bereich „Ich“ — aufgeteilt in 1a Backend/API und 1b App (REQ-GAME-010–014) | complete | - | TASK 2 (1b: TASK 1) | 1a: `.claude/PRPs/reports/punktekonto-backend-report.md` (Backend umgesetzt); 1b: `.claude/PRPs/plans/punktekonto-app.plan.md` → Bericht `.claude/PRPs/reports/punktekonto-app-report.md` (App umgesetzt, auf Testhandys abgenommen 2026-10-31) |
 | 2 | Badges | Badge-Katalog, Regeln, Vergabe, Übersicht inkl. geheimer Badges (REQ-GAME-020/021) | pending | with 3, 4 | 1 | - |
 | 3 | Echte Belohnungen | Ausloben, Sparziel, Einlösen, Bestätigen (REQ-GAME-040–043) | pending | with 2, 4 | 1 | - |
 | 4 | Avatar & Shop | Spike + ADR zu Bausteinen/Lizenz, Avatar gestalten, Shop, Avatar in Rangliste/Board (REQ-GAME-030/031) | pending | with 2, 3 | 1 | - |
