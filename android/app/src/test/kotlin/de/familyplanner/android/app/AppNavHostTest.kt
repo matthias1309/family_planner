@@ -83,6 +83,7 @@ import de.familyplanner.android.feature.tasks.TaskOpenRequests
 import de.familyplanner.android.feature.tasks.domain.board.LoadBoardUseCase
 import de.familyplanner.android.feature.tasks.domain.board.MoveCardUseCase
 import de.familyplanner.android.feature.tasks.domain.board.RemoveCardUseCase
+import de.familyplanner.android.feature.tasks.domain.board.SetDueDateUseCase
 import de.familyplanner.android.feature.tasks.domain.board.TaskLane
 import de.familyplanner.android.feature.tasks.domain.board.TaskStatus
 import de.familyplanner.android.feature.tasks.ui.ReviewBadge
@@ -311,6 +312,7 @@ class AppNavHostTest {
                             LoadBoardUseCase(taskRepository, boardCache, sessions),
                             MoveCardUseCase(taskRepository, boardCache, sessions),
                             RemoveCardUseCase(taskRepository, boardCache, sessions),
+                            SetDueDateUseCase(taskRepository, boardCache, sessions),
                         )
                     }
                     viewModel { TodayTasksViewModel(sessions, LoadBoardUseCase(taskRepository, boardCache, sessions)) }

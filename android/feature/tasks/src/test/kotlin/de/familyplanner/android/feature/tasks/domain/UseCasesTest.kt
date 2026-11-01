@@ -9,12 +9,14 @@ import de.familyplanner.android.feature.tasks.domain.board.CardAction
 import de.familyplanner.android.feature.tasks.domain.board.LoadBoardUseCase
 import de.familyplanner.android.feature.tasks.domain.board.MoveCardUseCase
 import de.familyplanner.android.feature.tasks.domain.board.RemoveCardUseCase
+import de.familyplanner.android.feature.tasks.domain.board.SetDueDateUseCase
 import de.familyplanner.android.feature.tasks.domain.board.TaskStatus
 import de.familyplanner.android.feature.tasks.domain.catalog.ArchiveCatalogTaskUseCase
 import de.familyplanner.android.feature.tasks.domain.catalog.CatalogInput
 import de.familyplanner.android.feature.tasks.domain.catalog.CatalogTask
 import de.familyplanner.android.feature.tasks.domain.catalog.LoadCatalogUseCase
 import de.familyplanner.android.feature.tasks.domain.catalog.SaveCatalogTaskUseCase
+import de.familyplanner.android.feature.tasks.domain.pool.TakePoolTaskUseCase
 import de.familyplanner.android.feature.tasks.fakes.FakeCatalogRepository
 import de.familyplanner.android.feature.tasks.fakes.FakeTaskRepository
 import de.familyplanner.android.feature.tasks.fakes.InMemoryBoardCache
@@ -225,5 +227,98 @@ class UseCasesTest {
             ArchiveCatalogTaskUseCase(catalog)("k-1")
 
             assertEquals(listOf("k-1"), catalog.archived)
+        }
+
+    @Test
+    fun `REQ-TASK-026 assigning with a past due date fails without a call`() =
+        runTest {
+            val result = AssignTasksUseCase(repository, clock)("c-1", listOf("k-1"), noon)
+
+            assertIs<ApiResult.Failure>(result)
+            assertEquals(emptyList(), repository.assigned)
+        }
+
+    @Test
+    fun `REQ-TASK-026 assigning passes a future due date on`() =
+        runTest {
+            AssignTasksUseCase(repository, clock)("c-1", listOf("k-1"), noon.plusSeconds(3600))
+
+            assertEquals(listOf<java.time.Instant?>(noon.plusSeconds(3600)), repository.assignedDueDates)
+        }
+
+    @Test
+    fun `REQ-TASK-026 set due date replaces the card in the cache and null removes it`() =
+        runTest {
+            cache.seed("c-1", lane("c-1", "Ben", card("a", dueAt = noon.plusSeconds(60))))
+            val setDue = SetDueDateUseCase(repository, cache, sessions, clock)
+
+            setDue("a", noon.plusSeconds(7200))
+            assertEquals(
+                noon.plusSeconds(7200),
+                cache
+                    .read("c-1")
+                    ?.lanes
+                    ?.single()
+                    ?.cards
+                    ?.single()
+                    ?.dueAt,
+            )
+
+            setDue("a", null)
+            assertEquals(
+                null,
+                cache
+                    .read("c-1")
+                    ?.lanes
+                    ?.single()
+                    ?.cards
+                    ?.single()
+                    ?.dueAt,
+            )
+        }
+
+    @Test
+    fun `REQ-TASK-026 set due date in the past fails without a call`() =
+        runTest {
+            val result = SetDueDateUseCase(repository, cache, sessions, clock)("a", noon.minusSeconds(1))
+
+            assertIs<ApiResult.Failure>(result)
+            assertEquals(emptyList(), repository.dueDates)
+        }
+
+    @Test
+    fun `REQ-TASK-028 taking from the pool adds the card to the cache`() =
+        runTest {
+            cache.seed("c-1", lane("c-1", "Ben"))
+
+            TakePoolTaskUseCase(repository, cache, sessions)("k-1", false)
+
+            assertEquals(
+                listOf("new-k-1"),
+                cache
+                    .read("c-1")
+                    ?.lanes
+                    ?.single()
+                    ?.cards
+                    ?.map { it.id },
+            )
+        }
+
+    @Test
+    fun `REQ-TASK-028 failed take leaves the cache unchanged`() =
+        runTest {
+            cache.seed("c-1", lane("c-1", "Ben"))
+            repository.takeResult = networkDown
+
+            TakePoolTaskUseCase(repository, cache, sessions)("k-1", false)
+
+            assertEquals(
+                emptyList(),
+                cache
+                    .read("c-1")
+                    ?.lanes
+                    ?.single()
+                    ?.cards,
+            )
         }
 }

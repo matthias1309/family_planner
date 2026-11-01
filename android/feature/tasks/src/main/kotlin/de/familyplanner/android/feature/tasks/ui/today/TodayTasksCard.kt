@@ -10,10 +10,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.familyplanner.android.core.ui.formatWeekdayDateTime
 import de.familyplanner.android.feature.tasks.R
 import org.koin.androidx.compose.koinViewModel
 
@@ -55,6 +57,12 @@ private fun ParentSummary(state: TodayTasksUiState) {
     } else {
         Text(pluralStringResource(R.plurals.tasks_today_review, state.reviewCount, state.reviewCount))
     }
+    OverdueLine(state.overdueCount)
+}
+
+@Composable
+private fun OverdueLine(count: Int) {
+    if (count > 0) Text(pluralStringResource(R.plurals.tasks_today_overdue, count, count), color = MaterialTheme.colorScheme.error)
 }
 
 @Composable
@@ -64,7 +72,11 @@ private fun ChildSummary(state: TodayTasksUiState) {
         return
     }
     Text(stringResource(R.string.tasks_today_open, state.openCount), style = MaterialTheme.typography.titleLarge)
-    state.titles.forEach { Text(it) }
+    state.titles.forEach { title ->
+        val text = title.dueAt?.let { stringResource(R.string.tasks_today_due, title.title, formatWeekdayDateTime(it)) } ?: title.title
+        Text(text, color = if (title.overdue) MaterialTheme.colorScheme.error else Color.Unspecified)
+    }
+    OverdueLine(state.overdueCount)
     if (state.rejectedCount > 0) {
         Text(stringResource(R.string.tasks_today_rejected, state.rejectedCount), color = MaterialTheme.colorScheme.error)
     }

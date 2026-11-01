@@ -154,4 +154,39 @@ class DataStoreBoardCacheTest {
 
             assertNull(newCache().read("p-1"))
         }
+
+    @Test
+    fun `REQ-TASK-026 due date and flags survive a round trip`() =
+        runBlocking {
+            val cache = newCache()
+            val extended =
+                BoardSnapshot(
+                    listOf(lane("c-1", "Ben", card("a", dueAt = noon, reportedLate = true, selfAssigned = true))),
+                    noon,
+                )
+
+            cache.write("p-1", extended)
+
+            assertEquals(extended, cache.read("p-1"))
+        }
+
+    @Test
+    fun `REQ-TASK-026 cache file without the new fields stays readable`() =
+        runBlocking {
+            file.writeText(
+                """{"version":1,"memberId":"p-1","syncedAtMillis":0,"lanes":[{"memberId":"c-1","name":"Ben","cards":[""" +
+                    """{"id":"a","memberId":"c-1","title":"Bad","points":1,"status":"TODO","assignedAtMillis":0}]}]}""",
+            )
+
+            val card =
+                newCache()
+                    .read("p-1")
+                    ?.lanes
+                    ?.single()
+                    ?.cards
+                    ?.single()
+
+            assertEquals(false, card?.selfAssigned)
+            assertNull(card?.dueAt)
+        }
 }

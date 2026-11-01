@@ -13,6 +13,8 @@ import de.familyplanner.android.feature.tasks.domain.catalog.CatalogTask
 import de.familyplanner.android.feature.tasks.domain.catalog.CatalogUseCases
 import de.familyplanner.android.feature.tasks.domain.catalog.LoadCatalogUseCase
 import de.familyplanner.android.feature.tasks.domain.catalog.SaveCatalogTaskUseCase
+import de.familyplanner.android.feature.tasks.domain.pool.LoadPoolUseCase
+import de.familyplanner.android.feature.tasks.domain.pool.TakePoolTaskUseCase
 import de.familyplanner.android.feature.tasks.fakes.FakeCatalogRepository
 import de.familyplanner.android.feature.tasks.fakes.FakeTaskRepository
 import de.familyplanner.android.feature.tasks.fakes.InMemoryBoardCache
@@ -29,6 +31,8 @@ import de.familyplanner.android.feature.tasks.ui.catalog.CatalogEditViewModel
 import de.familyplanner.android.feature.tasks.ui.catalog.CatalogViewModel
 import de.familyplanner.android.feature.tasks.ui.history.HistoryArgs
 import de.familyplanner.android.feature.tasks.ui.history.HistoryViewModel
+import de.familyplanner.android.feature.tasks.ui.pool.PoolEvent
+import de.familyplanner.android.feature.tasks.ui.pool.PoolViewModel
 import org.junit.Rule
 import java.time.Instant
 import kotlin.test.Test
@@ -225,5 +229,89 @@ class FlowViewModelsTest {
         assertEquals(AppError.Network, vm.state.value.error)
         assertFalse(vm.state.value.isEmpty)
         assertEquals(benLane.name, "Ben")
+    }
+
+    @Test
+    fun `REQ-TASK-026 assign passes the due date and rejects a past one`() {
+        val clock = java.time.Clock.fixed(Instant.parse("2026-10-24T10:00:00Z"), java.time.ZoneOffset.UTC)
+        catalog.listResult = ApiResult.Success(tasks)
+        val vm =
+            AssignViewModel(
+                AssignArgs("c-1"),
+                LoadBoardUseCase(repository, InMemoryBoardCache(), sessions),
+                LoadCatalogUseCase(catalog),
+                AssignTasksUseCase(repository, clock),
+                clock,
+            )
+        vm.onEvent(AssignEvent.Toggle("k-1"))
+
+        vm.onEvent(AssignEvent.DueDateChanged(Instant.parse("2026-10-24T09:00:00Z")))
+        vm.onEvent(AssignEvent.Submit)
+        assertTrue(vm.state.value.submitError != null)
+        assertEquals(emptyList(), repository.assigned)
+
+        vm.onEvent(AssignEvent.DueDateChanged(Instant.parse("2026-10-25T09:00:00Z")))
+        vm.onEvent(AssignEvent.Submit)
+        assertEquals(listOf<Instant?>(Instant.parse("2026-10-25T09:00:00Z")), repository.assignedDueDates)
+        assertTrue(vm.state.value.isDone)
+    }
+
+    @Test
+    fun `REQ-TASK-011 catalog edit saves child selectable`() {
+        val vm = CatalogEditViewModel(CatalogEditArgs(), catalogUseCases())
+        vm.onEvent(CatalogEditEvent.TitleChanged("Müll"))
+        vm.onEvent(CatalogEditEvent.ChildSelectableChanged(true))
+
+        vm.onEvent(CatalogEditEvent.Save)
+
+        assertTrue(catalog.created.single().childSelectable)
+    }
+
+    @Test
+    fun `REQ-TASK-011 catalog edit loading takes over the child selectable flag`() {
+        catalog.listResult = ApiResult.Success(listOf(CatalogTask("k-1", "Müll", null, 1, childSelectable = true)))
+
+        val vm = CatalogEditViewModel(CatalogEditArgs("k-1"), catalogUseCases())
+
+        assertTrue(vm.state.value.childSelectable)
+    }
+
+    private fun poolVm(): PoolViewModel {
+        val cache = InMemoryBoardCache()
+        return PoolViewModel(LoadPoolUseCase(catalog), TakePoolTaskUseCase(repository, cache, sessions))
+    }
+
+    @Test
+    fun `REQ-TASK-028 pool loads and taking finishes`() {
+        catalog.poolResult = ApiResult.Success(listOf(CatalogTask("k-1", "Müll", null, 1, true)))
+        val vm = poolVm()
+        assertEquals(1, vm.state.value.tasks.size)
+
+        vm.onEvent(PoolEvent.Take("k-1", alreadyDone = true))
+
+        assertEquals(listOf("k-1" to true), repository.taken)
+        assertTrue(vm.state.value.isDone)
+    }
+
+    @Test
+    fun `REQ-TASK-028 empty pool is detected`() {
+        assertTrue(poolVm().state.value.isEmpty)
+    }
+
+    @Test
+    fun `REQ-TASK-028 take failure shows the error and reloads the pool`() {
+        catalog.poolResult = ApiResult.Success(listOf(CatalogTask("k-1", "Müll", null, 1, true)))
+        val vm = poolVm()
+        repository.takeResult = ApiResult.Failure(AppError.Forbidden)
+        catalog.poolResult = ApiResult.Success(emptyList())
+
+        vm.onEvent(PoolEvent.Take("k-1", alreadyDone = false))
+
+        assertEquals(AppError.Forbidden, vm.state.value.actionError)
+        assertFalse(vm.state.value.isDone)
+        assertTrue(
+            vm.state.value.tasks
+                .isEmpty(),
+        )
     }
 }

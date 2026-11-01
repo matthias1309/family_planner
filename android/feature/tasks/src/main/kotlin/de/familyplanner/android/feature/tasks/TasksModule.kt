@@ -7,7 +7,9 @@ import de.familyplanner.android.feature.tasks.data.BoardCacheSerializer
 import de.familyplanner.android.feature.tasks.data.DataStoreBoardCache
 import de.familyplanner.android.feature.tasks.data.RemoteCatalogRepository
 import de.familyplanner.android.feature.tasks.data.RemoteTaskRepository
+import de.familyplanner.android.feature.tasks.data.TaskDueDateApi
 import de.familyplanner.android.feature.tasks.data.WorkManagerTaskSync
+import de.familyplanner.android.feature.tasks.data.reminder.AlarmTaskReminderScheduler
 import de.familyplanner.android.feature.tasks.domain.board.AssignTasksUseCase
 import de.familyplanner.android.feature.tasks.domain.board.BoardCache
 import de.familyplanner.android.feature.tasks.domain.board.CatalogRepository
@@ -15,7 +17,9 @@ import de.familyplanner.android.feature.tasks.domain.board.LoadBoardUseCase
 import de.familyplanner.android.feature.tasks.domain.board.LoadHistoryUseCase
 import de.familyplanner.android.feature.tasks.domain.board.MoveCardUseCase
 import de.familyplanner.android.feature.tasks.domain.board.RemoveCardUseCase
+import de.familyplanner.android.feature.tasks.domain.board.SetDueDateUseCase
 import de.familyplanner.android.feature.tasks.domain.board.TaskNotifier
+import de.familyplanner.android.feature.tasks.domain.board.TaskReminderScheduler
 import de.familyplanner.android.feature.tasks.domain.board.TaskRepository
 import de.familyplanner.android.feature.tasks.domain.board.TaskSync
 import de.familyplanner.android.feature.tasks.domain.catalog.ArchiveCatalogTaskUseCase
@@ -23,12 +27,17 @@ import de.familyplanner.android.feature.tasks.domain.catalog.CatalogUseCases
 import de.familyplanner.android.feature.tasks.domain.catalog.LoadCatalogUseCase
 import de.familyplanner.android.feature.tasks.domain.catalog.SaveCatalogTaskUseCase
 import de.familyplanner.android.feature.tasks.domain.notice.SyncTaskNoticesUseCase
+import de.familyplanner.android.feature.tasks.domain.pool.LoadPoolUseCase
+import de.familyplanner.android.feature.tasks.domain.pool.TakePoolTaskUseCase
+import de.familyplanner.android.feature.tasks.domain.reminder.RestoreTaskRemindersUseCase
+import de.familyplanner.android.feature.tasks.domain.reminder.ShowTaskReminderUseCase
 import de.familyplanner.android.feature.tasks.ui.ReviewBadge
 import de.familyplanner.android.feature.tasks.ui.assign.AssignViewModel
 import de.familyplanner.android.feature.tasks.ui.board.BoardViewModel
 import de.familyplanner.android.feature.tasks.ui.catalog.CatalogEditViewModel
 import de.familyplanner.android.feature.tasks.ui.catalog.CatalogViewModel
 import de.familyplanner.android.feature.tasks.ui.history.HistoryViewModel
+import de.familyplanner.android.feature.tasks.ui.pool.PoolViewModel
 import de.familyplanner.android.feature.tasks.ui.today.TodayTasksViewModel
 import de.familyplanner.api.client.TasksApi
 import org.koin.android.ext.koin.androidContext
@@ -42,7 +51,8 @@ val tasksModule =
     module {
         // Der einzige TasksApi-Eintrag: Aufgaben und Katalog nutzen dasselbe single.
         single { get<Retrofit>().create(TasksApi::class.java) }
-        single<TaskRepository> { RemoteTaskRepository(get(), get()) }
+        single { get<Retrofit>().create(TaskDueDateApi::class.java) }
+        single<TaskRepository> { RemoteTaskRepository(get(), get(), get()) }
         single<CatalogRepository> { RemoteCatalogRepository(get(), get()) }
         // Genau eine DataStore-Instanz je Datei und Prozess, sonst IllegalStateException.
         single<BoardCache> {
@@ -60,10 +70,16 @@ val tasksModule =
         factory { RemoveCardUseCase(get(), get(), get()) }
         factory { AssignTasksUseCase(get()) }
         factory { LoadHistoryUseCase(get()) }
-        viewModel { BoardViewModel(get(), get(), get(), get()) }
+        factory { SetDueDateUseCase(get(), get(), get()) }
+        viewModel { BoardViewModel(get(), get(), get(), get(), get()) }
         viewModel { params -> AssignViewModel(params.get(), get(), get(), get()) }
         viewModel { params -> HistoryViewModel(params.get(), get()) }
         viewModel { TodayTasksViewModel(get(), get()) }
+
+        // pool
+        factory { LoadPoolUseCase(get()) }
+        factory { TakePoolTaskUseCase(get(), get(), get()) }
+        viewModel { PoolViewModel(get(), get()) }
 
         // catalog
         factory { LoadCatalogUseCase(get()) }
@@ -75,7 +91,10 @@ val tasksModule =
         single<TaskNotifier> { AndroidTaskNotifier(androidContext()) }
         single<TaskSync> { WorkManagerTaskSync(androidContext()) }
         // single wegen des Mutex: periodischer und sofortiger Abgleich dürfen nicht gleichzeitig laufen.
-        single { SyncTaskNoticesUseCase(get(), get(), get(), get()) }
+        single { SyncTaskNoticesUseCase(get(), get(), get(), get(), get()) }
+        single<TaskReminderScheduler> { AlarmTaskReminderScheduler(androidContext()) }
+        factory { ShowTaskReminderUseCase(get(), get(), get()) }
+        factory { RestoreTaskRemindersUseCase(get(), get(), get()) }
         single { TaskOpenRequests() }
         single { ReviewBadge(get(), get()) }
     }

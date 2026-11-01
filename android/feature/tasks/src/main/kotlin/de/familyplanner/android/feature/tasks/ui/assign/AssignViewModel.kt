@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
+import de.familyplanner.android.core.ui.BerlinZone
 import de.familyplanner.android.feature.tasks.domain.board.AssignTasksUseCase
 import de.familyplanner.android.feature.tasks.domain.board.BoardLoad
 import de.familyplanner.android.feature.tasks.domain.board.LoadBoardUseCase
@@ -17,6 +18,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Clock
+import java.time.Instant
 
 /** [memberId]: Vorauswahl des Kindes (aktueller Reiter), `null` = noch keines gewählt. Ein Koin-Parameter. */
 data class AssignArgs(
@@ -39,6 +42,8 @@ data class AssignUiState(
     val isBusy: Boolean = false,
     val submitError: AppError? = null,
     val isDone: Boolean = false,
+    val dueAt: Instant? = null,
+    val now: Instant = Instant.EPOCH,
 ) {
     val tooMany: Boolean get() = selected.size > TaskLimits.ASSIGN_MAX
     val canSubmit: Boolean get() = !isLoading && !isBusy && memberId != null && selected.isNotEmpty() && !tooMany
@@ -56,6 +61,10 @@ sealed interface AssignEvent {
         val catalogTaskId: String,
     ) : AssignEvent
 
+    data class DueDateChanged(
+        val dueAt: Instant?,
+    ) : AssignEvent
+
     data object Submit : AssignEvent
 }
 
@@ -64,6 +73,7 @@ class AssignViewModel(
     private val loadBoard: LoadBoardUseCase,
     private val loadCatalog: LoadCatalogUseCase,
     private val assign: AssignTasksUseCase,
+    private val clock: Clock = Clock.system(BerlinZone),
 ) : ViewModel() {
     private val _state = MutableStateFlow(AssignUiState(preselected = args.memberId))
     val state: StateFlow<AssignUiState> = _state.asStateFlow()
@@ -89,6 +99,7 @@ class AssignViewModel(
                             },
                     )
                 }
+            is AssignEvent.DueDateChanged -> _state.update { it.copy(dueAt = event.dueAt, submitError = null) }
             AssignEvent.Submit -> submit()
         }
     }
@@ -114,6 +125,7 @@ class AssignViewModel(
             _state.update { current ->
                 current.copy(
                     isLoading = false,
+                    now = clock.instant(),
                     children = children,
                     catalog = tasks,
                     memberId = current.memberId ?: preset,
@@ -130,7 +142,7 @@ class AssignViewModel(
         if (!current.canSubmit) return
         _state.update { it.copy(isBusy = true, submitError = null) }
         viewModelScope.launch {
-            when (val result = assign(current.memberId, current.selected.toList())) {
+            when (val result = assign(current.memberId, current.selected.toList(), current.dueAt)) {
                 is ApiResult.Success -> _state.update { it.copy(isBusy = false, isDone = true) }
                 is ApiResult.Failure -> _state.update { it.copy(isBusy = false, submitError = result.error) }
             }

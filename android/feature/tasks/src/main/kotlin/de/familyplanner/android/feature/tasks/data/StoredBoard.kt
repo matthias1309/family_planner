@@ -38,6 +38,9 @@ data class StoredCard(
     val assignedAtMillis: Long,
     val reportedAtMillis: Long? = null,
     val doneAtMillis: Long? = null,
+    val dueAtMillis: Long? = null,
+    val reportedLate: Boolean = false,
+    val selfAssigned: Boolean = false,
 )
 
 internal fun CachedBoard.toStored() =
@@ -59,6 +62,9 @@ private fun TaskCard.toStored() =
         assignedAt.toEpochMilli(),
         reportedAt?.toEpochMilli(),
         doneAt?.toEpochMilli(),
+        dueAt?.toEpochMilli(),
+        reportedLate,
+        selfAssigned,
     )
 
 /** `null` ohne Besitzer oder mit unlesbarem Status — der Stand zählt dann als nicht gespeichert. */
@@ -86,5 +92,8 @@ private fun StoredCard.toDomain(): TaskCard? {
         Instant.ofEpochMilli(assignedAtMillis),
         reportedAtMillis?.let(Instant::ofEpochMilli),
         doneAtMillis?.let(Instant::ofEpochMilli),
+        dueAtMillis?.let(Instant::ofEpochMilli),
+        reportedLate,
+        selfAssigned,
     )
 }

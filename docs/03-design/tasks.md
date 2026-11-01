@@ -134,3 +134,28 @@ gehört; angezeigt an „Aufgaben“ in der Leiste (REQ-TASK-003).
 Basislinie, 401), `BoardViewModelTest`, `FlowViewModelsTest` (Zuweisen, Katalog, Verlauf), `ReviewBadgeTest`, `TodayTasksTest`;
 Integration: `RemoteTaskRepositoryTest`, `RemoteCatalogRepositoryTest` (MockWebServer), `DataStoreBoardCacheTest`, `AndroidTaskNotifierTest`,
 `BoardScreenTest`, `TaskScreensTest`, `TasksModuleTest`; App: `AppNavHostTest`.
+
+## App-Seite (Phase 5): Fristen und Pool
+
+Keine Backend- oder API-Änderung (Phase 4). Die App liest `dueAt`, `reportedLate`, `selfAssigned` und `childSelectable`.
+
+- **Bildschirme**: Pool (`ui/pool`, nur Kinder, FAB „Aufgabe nehmen“ am Board, nicht offline: „Nehmen“ / „Schon erledigt“; danach zurück zum
+  Board), Frist-Dialog (`ui/due`: erst Datum ab heute, dann Uhrzeit, Vorschlag 18:00; „Frist entfernen“ im Datumsschritt), Schalter
+  „Für Kinder frei wählbar“ im Katalog, `DueDateField` beim Zuweisen.
+- **Aktionen (`cardActions`)**: Eltern zusätzlich `SET_DUE_DATE` („Frist ändern“) an `TODO`/`REVIEW`-Karten, nicht an selbst genommenen;
+  Kinder `PUT_BACK` („Zurücklegen“, ohne Bestätigung, entfernt die Karte) an eigenen selbst genommenen `TODO`-Karten.
+- **Überfällig** rechnet nur die App (`TaskCard.isOverdue(now)`: `TODO` und Fristende erreicht) aus Cache und Geräteuhr; überfällige Karten
+  stehen in Todo und in „Heute“ zuerst, rot mit „Überfällig seit …“. „Zu spät gemeldet“ und „Selbst genommen“ kommen vom Server.
+- **Frist entfernen**: `TaskDueDateApi` sendet `{"dueAt":null}` über ein `JsonObject`, weil `explicitNulls = false` den Schlüssel sonst
+  weglassen würde (Server: `{}` → 400).
+- **Cache**: `StoredCard` + `dueAtMillis`, `reportedLate`, `selfAssigned` (Defaults, Version bleibt 1). Karten aus dem Pool werden sofort in den
+  Cache geschrieben (kein „Neue Aufgabe“-Hinweis); `selfAssigned`-Karten lösen nie „Neue Aufgabe“ aus.
+- **Erinnerung (REQ-TASK-031, ADR-0013)**: `SyncTaskNoticesUseCase` plant nach erfolgreichem Abgleich je eigene `TODO`-Karte mit Frist einen
+  inexakten Alarm 2 h vor Fristende (`AlarmTaskReminderScheduler`, ein Alarm je Karte über `data`-URI `familyplanner://task-reminder/<id>`;
+  gleiche URI ersetzt den Alarm). Veraltete Alarme werden nicht gelöscht, sondern im `TaskReminderReceiver`/`ShowTaskReminderUseCase`
+  gegen den lokalen Stand verworfen (gemeldet, entfernt, Frist geändert, Konto gewechselt, Eltern). Nach Neustart/App-Update plant
+  `RestoreTaskRemindersUseCase` aus dem Cache neu. Benachrichtigungs-IDs ab 200 000 (Status-Hinweise 100 000–165 535).
+- **Unit-Testfälle**: `DueDatesTest`, `TaskReminderUseCasesTest` sowie Erweiterungen von `BoardRulesTest`, `UseCasesTest`, `NoticeRulesTest`,
+  `SyncTaskNoticesUseCaseTest`, `BoardViewModelTest`, `FlowViewModelsTest`, `TodayTasksTest`; Integration: `RemoteTaskRepositoryTest`,
+  `RemoteCatalogRepositoryTest`, `DataStoreBoardCacheTest`, `AlarmTaskReminderSchedulerTest`, `AndroidTaskNotifierTest`, `BoardScreenTest`,
+  `TaskScreensTest`.

@@ -81,4 +81,11 @@ class NoticeRulesTest {
         assertEquals(emptyList(), taskNotices(true, "p-1", before, listOf(ben())))
         assertEquals(emptyList(), taskNotices(false, "c-1", before, listOf(ben())))
     }
+
+    @Test
+    fun `REQ-TASK-028 a self-assigned new todo gives the child no notice`() {
+        val after = listOf(ben(card("a", selfAssigned = true)))
+
+        assertEquals(emptyList(), taskNotices(false, "c-1", emptyList(), after))
+    }
 }

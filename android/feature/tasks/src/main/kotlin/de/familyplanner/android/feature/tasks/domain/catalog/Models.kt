@@ -5,10 +5,12 @@ data class CatalogTask(
     val title: String,
     val emoji: String?,
     val points: Int,
+    val childSelectable: Boolean = false,
 )
 
 data class CatalogInput(
     val title: String,
     val emoji: String?,
     val points: Int,
+    val childSelectable: Boolean = false,
 )

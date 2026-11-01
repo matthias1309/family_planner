@@ -24,6 +24,9 @@ import de.familyplanner.android.feature.tasks.ui.catalog.CatalogScreen
 import de.familyplanner.android.feature.tasks.ui.catalog.CatalogUiState
 import de.familyplanner.android.feature.tasks.ui.history.HistoryScreen
 import de.familyplanner.android.feature.tasks.ui.history.HistoryUiState
+import de.familyplanner.android.feature.tasks.ui.pool.PoolEvent
+import de.familyplanner.android.feature.tasks.ui.pool.PoolScreen
+import de.familyplanner.android.feature.tasks.ui.pool.PoolUiState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -186,5 +189,72 @@ class TaskScreensTest {
         show { HistoryScreen(HistoryUiState("Ben", isLoading = false), {}) }
 
         compose.onNodeWithText("Noch nichts erledigt.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-TASK-026 assign screen shows the due date button`() {
+        show {
+            AssignScreen(
+                AssignUiState(children = children, catalog = catalog, memberId = "c-1", isLoading = false),
+                {},
+                {},
+                {},
+            )
+        }
+        compose.onNodeWithText("Frist: keine").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-TASK-026 assign screen shows the chosen due date`() {
+        show {
+            AssignScreen(
+                AssignUiState(children = children, catalog = catalog, memberId = "c-1", isLoading = false, dueAt = noon, now = noon),
+                {},
+                {},
+                {},
+            )
+        }
+        compose.onNodeWithText("Frist: Sa. 24.10. 12:00").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-TASK-011 catalog editor switch sends child selectable`() {
+        val events = mutableListOf<CatalogEditEvent>()
+        show { CatalogEditScreen(CatalogEditUiState(null, title = "Bad"), { events += it }, {}) }
+
+        compose.onNodeWithText("Für Kinder frei wählbar").assertIsDisplayed()
+        compose
+            .onNode(
+                androidx.compose.ui.test
+                    .isToggleable(),
+            ).performClick()
+
+        assertEquals(listOf<CatalogEditEvent>(CatalogEditEvent.ChildSelectableChanged(true)), events)
+    }
+
+    @Test
+    fun `REQ-TASK-011 catalog list marks child selectable tasks`() {
+        show { CatalogScreen(CatalogUiState(listOf(CatalogTask("k-1", "Müll", null, 1, true)), isLoading = false), {}, {}, {}) }
+
+        compose.onNodeWithText("Frei wählbar").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-TASK-028 pool screen sends take and take done`() {
+        val events = mutableListOf<PoolEvent>()
+        show { PoolScreen(PoolUiState(listOf(CatalogTask("k-1", "Müll", "🗑", 1, true)), isLoading = false), { events += it }, {}) }
+
+        compose.onNodeWithText("🗑 Müll").assertIsDisplayed()
+        compose.onNodeWithText("Nehmen").performClick()
+        compose.onNodeWithText("Schon erledigt").performClick()
+
+        assertEquals(listOf<PoolEvent>(PoolEvent.Take("k-1", false), PoolEvent.Take("k-1", true)), events)
+    }
+
+    @Test
+    fun `REQ-TASK-028 empty pool shows a hint`() {
+        show { PoolScreen(PoolUiState(isLoading = false), {}, {}) }
+
+        compose.onNodeWithText("Gerade ist nichts frei wählbar.").assertIsDisplayed()
     }
 }

@@ -9,11 +9,15 @@ import java.util.Locale
 val BerlinZone: ZoneId = ZoneId.of("Europe/Berlin")
 private val TimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.GERMANY)
 private val DateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM. HH:mm", Locale.GERMANY)
+private val WeekdayDateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("EE dd.MM. HH:mm", Locale.GERMANY)
 private val DateFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.", Locale.GERMANY)
 
 fun formatTime(instant: Instant): String = TimeFormat.format(instant.atZone(BerlinZone))
 
 fun formatDateTime(instant: Instant): String = DateTimeFormat.format(instant.atZone(BerlinZone))
+
+/** „Sa. 01.11. 18:00“ */
+fun formatWeekdayDateTime(instant: Instant): String = WeekdayDateTimeFormat.format(instant.atZone(BerlinZone))
 
 fun formatDate(date: LocalDate): String = DateFormat.format(date)
 

@@ -11,4 +11,6 @@ object TaskLimits {
     const val HISTORY_LIMIT = 50
     const val TODAY_TITLES = 3
     const val SYNC_INTERVAL_MINUTES = 30L
+    const val REMINDER_LEAD_HOURS = 2L
+    const val DUE_DEFAULT_HOUR = 18
 }

@@ -31,7 +31,7 @@ private fun childNotice(
     now: TaskCard,
 ): TaskNotice? =
     when {
-        before == null -> TaskNotice.Assigned(now.id, now.title).takeIf { now.status == TaskStatus.TODO }
+        before == null -> TaskNotice.Assigned(now.id, now.title).takeIf { now.status == TaskStatus.TODO && !now.selfAssigned }
         before.status != TaskStatus.DONE && now.status == TaskStatus.DONE -> TaskNotice.Accepted(now.id, now.title, now.points)
         before.status == TaskStatus.REVIEW && now.status == TaskStatus.TODO -> TaskNotice.Rejected(now.id, now.title, now.rejectionReason)
         else -> null

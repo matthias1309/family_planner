@@ -8,6 +8,7 @@ import de.familyplanner.android.feature.tasks.domain.board.CardAction
 import de.familyplanner.android.feature.tasks.domain.board.LoadBoardUseCase
 import de.familyplanner.android.feature.tasks.domain.board.MoveCardUseCase
 import de.familyplanner.android.feature.tasks.domain.board.RemoveCardUseCase
+import de.familyplanner.android.feature.tasks.domain.board.SetDueDateUseCase
 import de.familyplanner.android.feature.tasks.domain.board.TaskStatus
 import de.familyplanner.android.feature.tasks.fakes.FakeTaskRepository
 import de.familyplanner.android.feature.tasks.fakes.InMemoryBoardCache
@@ -15,6 +16,7 @@ import de.familyplanner.android.feature.tasks.fakes.card
 import de.familyplanner.android.feature.tasks.fakes.childSession
 import de.familyplanner.android.feature.tasks.fakes.lane
 import de.familyplanner.android.feature.tasks.fakes.networkDown
+import de.familyplanner.android.feature.tasks.fakes.noon
 import de.familyplanner.android.feature.tasks.fakes.parentSession
 import de.familyplanner.android.feature.tasks.ui.board.BoardEvent
 import de.familyplanner.android.feature.tasks.ui.board.BoardTab
@@ -33,6 +35,7 @@ class BoardViewModelTest {
 
     private val repository = FakeTaskRepository()
     private val cache = InMemoryBoardCache()
+    private val clock = java.time.Clock.fixed(noon, java.time.ZoneOffset.UTC)
     private val todo = card("a", title = "Bad")
     private val review = card("r", status = TaskStatus.REVIEW, reportedAt = java.time.Instant.parse("2026-10-24T11:00:00Z"))
 
@@ -43,6 +46,8 @@ class BoardViewModelTest {
             LoadBoardUseCase(repository, cache, sessions),
             MoveCardUseCase(repository, cache, sessions),
             RemoveCardUseCase(repository, cache, sessions),
+            SetDueDateUseCase(repository, cache, sessions, clock),
+            clock,
         )
     }
 
@@ -179,5 +184,68 @@ class BoardViewModelTest {
 
         assertEquals(1, vm.state.value.selectedIndex)
         assertEquals(1, vm.state.value.selectedTab)
+    }
+
+    @Test
+    fun `REQ-TASK-026 parent opens the due dialog and sets a due date`() {
+        seedBoard()
+        val vm = viewModel(parentSession)
+        val due = noon.plusSeconds(3600)
+
+        vm.onEvent(BoardEvent.Act(todo, CardAction.SET_DUE_DATE))
+        assertEquals(todo, vm.state.value.editingDue)
+        vm.onEvent(BoardEvent.ConfirmDueDate(due))
+
+        assertEquals(listOf("a" to due), repository.dueDates)
+        assertEquals(null, vm.state.value.editingDue)
+        assertEquals(
+            due,
+            vm.state.value.lanes
+                .first()
+                .cards
+                .first { it.id == "a" }
+                .dueAt,
+        )
+    }
+
+    @Test
+    fun `REQ-TASK-026 parent removes a due date with null`() {
+        seedBoard()
+        val vm = viewModel(parentSession)
+
+        vm.onEvent(BoardEvent.Act(todo, CardAction.SET_DUE_DATE))
+        vm.onEvent(BoardEvent.ConfirmDueDate(null))
+
+        assertEquals(listOf<Pair<String, java.time.Instant?>>("a" to null), repository.dueDates)
+    }
+
+    @Test
+    fun `REQ-TASK-028 putting back a self-assigned card removes it without confirmation`() {
+        val own = card("s", selfAssigned = true)
+        repository.boardResult = ApiResult.Success(listOf(lane("c-1", "Ben", own)))
+        val vm = viewModel()
+
+        vm.onEvent(BoardEvent.Act(own, CardAction.PUT_BACK))
+
+        assertEquals(listOf("s"), repository.removed)
+        assertEquals(
+            emptyList(),
+            vm.state.value.lanes
+                .first()
+                .cards,
+        )
+    }
+
+    @Test
+    fun `REQ-TASK-027 overdue todo moves to the top using the clock`() {
+        val late = card("late", dueAt = noon.minusSeconds(60))
+        repository.boardResult = ApiResult.Success(listOf(lane("c-1", "Ben", todo, late)))
+        val vm = viewModel()
+
+        val state = vm.state.value
+        val todos = state.sectionsOf(state.lanes.first()).todo
+
+        assertEquals(listOf("late", "a"), todos.map { it.id })
+        assertTrue(state.isOverdue(late))
     }
 }

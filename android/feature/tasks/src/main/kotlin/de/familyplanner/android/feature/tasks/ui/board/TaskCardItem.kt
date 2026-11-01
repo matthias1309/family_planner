@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.familyplanner.android.core.ui.formatDateTime
+import de.familyplanner.android.core.ui.formatWeekdayDateTime
 import de.familyplanner.android.feature.tasks.R
 import de.familyplanner.android.feature.tasks.domain.board.CardAction
 import de.familyplanner.android.feature.tasks.domain.board.TaskCard
@@ -43,6 +44,7 @@ fun TaskCardItem(
     actions: List<CardAction>,
     enabled: Boolean,
     onAction: (CardAction) -> Unit,
+    overdue: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Card(modifier = modifier.fillMaxWidth()) {
@@ -55,7 +57,7 @@ fun TaskCardItem(
                 )
                 Text(stringResource(R.string.tasks_card_points, card.points), style = MaterialTheme.typography.labelLarge)
             }
-            CardMeta(card, childName)
+            CardMeta(card, childName, overdue)
             CardActions(actions, enabled, onAction)
         }
     }
@@ -63,6 +65,36 @@ fun TaskCardItem(
 
 @Composable
 private fun CardMeta(
+    card: TaskCard,
+    childName: String?,
+    overdue: Boolean,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        StatusLine(card, childName)
+        DueLine(card, overdue)
+        if (card.reportedLate && card.status != TaskStatus.TODO) {
+            Text(stringResource(R.string.tasks_card_reported_late), color = MaterialTheme.colorScheme.tertiary)
+        }
+        if (card.selfAssigned) Text(stringResource(R.string.tasks_card_self_assigned))
+    }
+}
+
+/** Frist bzw. „Überfällig seit …“; nur solange die Karte noch offen ist (REQ-TASK-026/027). */
+@Composable
+private fun DueLine(
+    card: TaskCard,
+    overdue: Boolean,
+) {
+    val dueAt = card.dueAt?.takeIf { card.status != TaskStatus.DONE } ?: return
+    if (overdue) {
+        Text(stringResource(R.string.tasks_card_overdue, formatWeekdayDateTime(dueAt)), color = MaterialTheme.colorScheme.error)
+    } else {
+        Text(stringResource(R.string.tasks_card_due, formatWeekdayDateTime(dueAt)))
+    }
+}
+
+@Composable
+private fun StatusLine(
     card: TaskCard,
     childName: String?,
 ) {

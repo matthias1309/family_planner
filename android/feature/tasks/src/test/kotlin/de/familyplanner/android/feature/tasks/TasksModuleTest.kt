@@ -8,9 +8,13 @@ import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.core.testing.MainDispatcherRule
 import de.familyplanner.android.feature.tasks.domain.board.BoardCache
 import de.familyplanner.android.feature.tasks.domain.board.TaskNotifier
+import de.familyplanner.android.feature.tasks.domain.board.TaskReminderScheduler
 import de.familyplanner.android.feature.tasks.domain.board.TaskSync
 import de.familyplanner.android.feature.tasks.domain.notice.SyncTaskNoticesUseCase
+import de.familyplanner.android.feature.tasks.domain.reminder.RestoreTaskRemindersUseCase
+import de.familyplanner.android.feature.tasks.domain.reminder.ShowTaskReminderUseCase
 import de.familyplanner.android.feature.tasks.fakes.FakeTaskNotifier
+import de.familyplanner.android.feature.tasks.fakes.FakeTaskReminderScheduler
 import de.familyplanner.android.feature.tasks.fakes.FakeTaskSync
 import de.familyplanner.android.feature.tasks.fakes.InMemoryBoardCache
 import de.familyplanner.android.feature.tasks.fakes.parentSession
@@ -23,6 +27,7 @@ import de.familyplanner.android.feature.tasks.ui.catalog.CatalogEditViewModel
 import de.familyplanner.android.feature.tasks.ui.catalog.CatalogViewModel
 import de.familyplanner.android.feature.tasks.ui.history.HistoryArgs
 import de.familyplanner.android.feature.tasks.ui.history.HistoryViewModel
+import de.familyplanner.android.feature.tasks.ui.pool.PoolViewModel
 import de.familyplanner.android.feature.tasks.ui.today.TodayTasksViewModel
 import okhttp3.OkHttpClient
 import org.junit.Rule
@@ -51,6 +56,7 @@ class TasksModuleTest {
             single<BoardCache> { InMemoryBoardCache() }
             single<TaskNotifier> { FakeTaskNotifier() }
             single<TaskSync> { FakeTaskSync() }
+            single<TaskReminderScheduler> { FakeTaskReminderScheduler() }
         }
 
     @Test
@@ -63,6 +69,9 @@ class TasksModuleTest {
         assertNotNull(koin.get<CatalogEditViewModel> { parametersOf(CatalogEditArgs()) })
         assertNotNull(koin.get<HistoryViewModel> { parametersOf(HistoryArgs("c-1", "Ben")) })
         assertNotNull(koin.get<TodayTasksViewModel>())
+        assertNotNull(koin.get<PoolViewModel>())
+        assertNotNull(koin.get<ShowTaskReminderUseCase>())
+        assertNotNull(koin.get<RestoreTaskRemindersUseCase>())
         assertNotNull(koin.get<TaskOpenRequests>())
         assertNotNull(koin.get<ReviewBadge>())
         assertNotNull(koin.get<SyncTaskNoticesUseCase>())

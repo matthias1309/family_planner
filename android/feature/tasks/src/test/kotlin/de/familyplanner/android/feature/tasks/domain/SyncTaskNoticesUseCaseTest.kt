@@ -8,9 +8,11 @@ import de.familyplanner.android.feature.tasks.domain.notice.SyncTaskNoticesUseCa
 import de.familyplanner.android.feature.tasks.domain.notice.TaskNotice
 import de.familyplanner.android.feature.tasks.domain.notice.TaskSyncOutcome
 import de.familyplanner.android.feature.tasks.fakes.FakeTaskNotifier
+import de.familyplanner.android.feature.tasks.fakes.FakeTaskReminderScheduler
 import de.familyplanner.android.feature.tasks.fakes.FakeTaskRepository
 import de.familyplanner.android.feature.tasks.fakes.InMemoryBoardCache
 import de.familyplanner.android.feature.tasks.fakes.card
+import de.familyplanner.android.feature.tasks.fakes.childSession
 import de.familyplanner.android.feature.tasks.fakes.lane
 import de.familyplanner.android.feature.tasks.fakes.networkDown
 import de.familyplanner.android.feature.tasks.fakes.noon
@@ -27,9 +29,10 @@ class SyncTaskNoticesUseCaseTest {
     private val repository = FakeTaskRepository()
     private val cache = InMemoryBoardCache()
     private val notifier = FakeTaskNotifier()
+    private val scheduler = FakeTaskReminderScheduler()
     private val sessions = InMemorySessionStore(parentSession)
 
-    private fun sync() = SyncTaskNoticesUseCase(sessions, repository, cache, notifier, Clock.fixed(noon, ZoneOffset.UTC))
+    private fun sync() = SyncTaskNoticesUseCase(sessions, repository, cache, notifier, scheduler, Clock.fixed(noon, ZoneOffset.UTC))
 
     @Test
     fun `REQ-TASK-030 first sync stores a baseline without notices`() =
@@ -89,5 +92,45 @@ class SyncTaskNoticesUseCaseTest {
 
             assertEquals(TaskSyncOutcome.SIGNED_OUT, sync()())
             assertEquals(1, cache.cleared)
+        }
+
+    @Test
+    fun `REQ-TASK-031 child sync schedules reminder two hours before due`() =
+        runTest {
+            val childSessions = InMemorySessionStore(childSession)
+            val due = noon.plusSeconds(5 * 3600)
+            repository.boardResult = ApiResult.Success(listOf(lane("c-1", "Ben", card("a", dueAt = due))))
+
+            SyncTaskNoticesUseCase(childSessions, repository, cache, notifier, scheduler, Clock.fixed(noon, ZoneOffset.UTC))()
+
+            assertEquals(
+                due.minusSeconds(2 * 3600),
+                scheduler.scheduled
+                    .single()
+                    .single()
+                    .at,
+            )
+        }
+
+    @Test
+    fun `REQ-TASK-031 parent sync schedules nothing`() =
+        runTest {
+            repository.boardResult = ApiResult.Success(listOf(lane("c-1", "Ben", card("a", dueAt = noon.plusSeconds(5 * 3600)))))
+
+            sync()()
+
+            assertEquals(emptyList(), scheduler.scheduled.flatten())
+        }
+
+    @Test
+    fun `REQ-TASK-028 new review card from the pool notifies parents`() =
+        runTest {
+            cache.seed("p-1", lane("c-1", "Ben"))
+            repository.boardResult =
+                ApiResult.Success(listOf(lane("c-1", "Ben", card("n", status = TaskStatus.REVIEW, selfAssigned = true))))
+
+            sync()()
+
+            assertEquals(1, notifier.notices.size)
         }
 }
