@@ -356,7 +356,7 @@ bereits; neu sind das Modul, das erste Domänenereignis und der Umbau der Naviga
 | 2 | Board Backend/API | ADR Domänenereignisse, Modul `tasks`, Katalog, Karten, Statusübergänge, Ereignis (REQ-TASK-010, 020–025) | complete | with 1 | - | `.claude/PRPs/plans/completed/board-backend.plan.md`, Bericht: `.claude/PRPs/reports/board-backend-report.md` |
 | 3 | Board App | Katalog-, Zuweisungs- und Board-Screens, Offline-Lesen, Aufgaben auf „Heute“, Abnahme-Badge, Hinweise (REQ-TASK-002/003, 020–025, 030) | complete | - | 1, 2 | `.claude/PRPs/plans/completed/board-app.plan.md`, Bericht: `.claude/PRPs/reports/board-app-report.md` (Geräte-Abnahme 2026-10-25 bestanden) |
 | 4 | Fristen & Pool Backend/API | Frist auf Karten (setzen/ändern/entfernen), „zu spät gemeldet“, Pool-Freigabe am Katalog, Nehmen/Sofort-Melden/Zurücklegen für Kinder (REQ-TASK-011, 026–028) | complete | - | 2 | `.claude/PRPs/plans/completed/fristen-pool-backend.plan.md`, Bericht: `.claude/PRPs/reports/fristen-pool-backend-report.md` |
-| 5 | Fristen & Pool App | Frist beim Zuweisen und an der Karte, Überfällig-Markierung auf Board und „Heute“, Freigabe-Schalter im Katalog, Pool-Screen für Kinder, Erinnerung (REQ-TASK-011, 026–028, 031) | pending | - | 3, 4 | - |
+| 5 | Fristen & Pool App | Frist beim Zuweisen und an der Karte, Überfällig-Markierung auf Board und „Heute“, Freigabe-Schalter im Katalog, Pool-Screen für Kinder, Erinnerung (REQ-TASK-011, 026–028, 031) | in-progress | - | 3, 4 | `.claude/PRPs/plans/fristen-pool-app.plan.md` |
 
 Fortsetzung in [gamification.prd.md](gamification.prd.md): Punkte, Rangliste, Badges, Belohnungen, Avatar und die
 gemeinsame Testphase auf den beiden Testhandys.
