@@ -13,6 +13,7 @@ style:
     maxLineLength: 140
   UnusedPrivateMember:
     active: true
+    ignoreAnnotated: ['Preview']
 naming:
   FunctionNaming:
     ignoreAnnotated: ['Composable']

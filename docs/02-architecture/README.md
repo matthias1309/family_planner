@@ -19,7 +19,7 @@ Deploy-Meldungen (Update/Rollback) gehen per ntfy an die Eltern; Push an die App
 | `api/openapi.yaml` → `backend/api-contract` | Vertrag; daraus werden die Modelle für Server (und später Client) generiert |
 | `backend/core` | Auth, Familienmitglieder, gemeinsame Typen, Event-Bus zwischen Modulen |
 | `backend/tasks` | Kanban-Board, Aufgaben |
-| `backend/gamification` | Punkte, Belohnungen (reagiert auf Events aus `tasks`) |
+| `backend/gamification` | Punkte, Badges, Belohnungen, Avatar-Shop (reagiert auf Events aus `tasks`) |
 | `backend/meals` | Essensplan, Rezepte, Einkaufsliste |
 | `backend/board` | Infoboard / Pinnwand |
 | `backend/app` | Ktor-Server, verdrahtet die Module |

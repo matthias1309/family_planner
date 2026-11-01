@@ -56,6 +56,11 @@ fun rewardSourceKey(redemptionId: String) = "reward:$redemptionId"
 
 fun rewardRefundSourceKey(redemptionId: String) = "reward-refund:$redemptionId"
 
+fun shopSourceKey(
+    memberId: String,
+    itemId: String,
+) = "shop:$memberId:$itemId"
+
 /** Sums (kind, amount) rows into [Totals]. */
 fun totalsFrom(rows: Iterable<Pair<EntryKind, Int>>): Totals =
     Totals(

@@ -2,7 +2,7 @@
 
 ## Abgedeckte Anforderungen
 
-REQ-GAME-010, -011, -012, -013, -014 (Phase 1a, Backend/API), REQ-GAME-020, -021 (Phase 2a, Backend/API, Abschnitt „Badges“), REQ-GAME-040, -041 (Server-Anteil), -042, -043 (Phase 3a, Backend/API, Abschnitt „Belohnungen“) und – Server-Anteil in `meals` – REQ-MEAL-034 — siehe
+REQ-GAME-010, -011, -012, -013, -014 (Phase 1a, Backend/API), REQ-GAME-020, -021 (Phase 2a, Backend/API, Abschnitt „Badges“), REQ-GAME-040, -041 (Server-Anteil), -042, -043 (Phase 3a, Backend/API, Abschnitt „Belohnungen“), REQ-GAME-030, -031 (Phase 4a, Backend/API + Renderer, Abschnitt „Avatar & Shop“) und – Server-Anteil in `meals` – REQ-MEAL-034 — siehe
 [gamification.prd.md](../01-requirements/gamification.prd.md). Die App-Seite ist in Phase 1b (Punkte) und 2b (Badges) umgesetzt. Konventionen für Feature-Module:
 [ADR-0010](../02-architecture/adr/0010-backend-feature-modules.md); Ereignisse: [ADR-0016](../02-architecture/adr/0016-domain-events-outbox.md).
 
@@ -134,6 +134,54 @@ Andere Übergänge gibt es nicht (`409`). Das Kind kann eine Einlösung nicht zu
 
 **Tests:** `RewardTest`, `RewardServiceTest`, `RedemptionServiceTest` (Fakes), `ExposedRewardRepositoryTest`, `ExposedRedemptionRepositoryTest`
 (Atomarität, Rückbuchung genau einmal, `CHECK`, Cascade), `RewardsApiTest` (Vertragsprüfung gegen `openapi.yaml`).
+
+## Avatar & Shop (Phase 4a)
+
+Paket `avatar`, alles im Modul `gamification`; Technik, Lizenz und Spike-Ergebnis: [ADR-0017](../02-architecture/adr/0017-avatar-bausteine.md).
+Die Bildschirme (Editor, Shop, Avatar in Rangliste/Board/„Heute“, Kauf-Hinweis beim Sparziel) folgen in Phase 4b.
+
+**Begriffe:** *Slot* (`AvatarSlot`, 13 in Editor-Reihenfolge, `clothesGraphic`/`accessories`/`facialHair` optional), *Teil* (`AvatarItem`, Katalogeintrag mit
+Slot, Kategorie, Titel, Preis), *Grundsortiment* (Preis 0: gehört allen, nicht kaufbar), *Avatar* (`AvatarConfig`, Item-ID je Slot).
+
+**Katalog:** fester Katalog im Code (`AvatarCatalog.kt`, Daten in `AvatarCatalogData.kt`; 157 Teile, davon 60 kostenpflichtig zu 10–30 Punkten).
+- Item-ID `<slot>.<variante>`, Farben `<slot>.<hex ohne #>` (z. B. `top.winterHat1`). IDs werden gespeichert und **nie geändert**
+  (`AvatarCatalogTest` hält die ID-Liste fest und prüft jede Variante/Farbe gegen `api/avatar/avataaars.json`).
+- Mützen/Tücher liegen im Slot `top` (Kategorie `HEADWEAR`), Frisuren ebenfalls (`HAIR`); der Hintergrund ist ein eigener Slot mit eigener Palette.
+- Entfernte Teile: Beim Lesen wird ein Pflicht-Slot auf das erste kostenlose Teil gesetzt, ein optionaler weggelassen (`warn`-Log).
+- Preise ändern durch Eltern ist *Could* und nicht umgesetzt.
+
+**Atomarität Kauf:** **eine** `dbQuery`-Transaktion (`ExposedAvatarRepository.purchase`): nicht besessen? → Guthaben ≥ Preis? → `game_avatar_items`
++ Buchung `SHOP` (−Preis, Titel „Shop: <Teil>“, `source_key = shop:<memberId>:<itemId>`). `insert` statt `insertIgnore`: schlägt die Buchung
+fehl, rollt der Besitz zurück. `SHOP` zählt nicht für „Gesammelt“, löst keine Badge-Prüfung aus und ändert die Rangliste nicht (REQ-GAME-014).
+Der Kauf ändert den Avatar nicht; Anlegen/Ablegen = `PUT` (besitzen ≠ tragen).
+
+**Rechte:**
+
+| Aktion | Kind (selbst) | Geschwister | Eltern |
+|---|---|---|---|
+| Katalog, Avatare aller Kinder lesen | ja | ja | ja |
+| Profil (Avatar + gekaufte Teile) lesen | ja | 403 | ja |
+| Avatar speichern | ja | 403 | 403 |
+| Teil kaufen | ja | – | 403 |
+
+**Endpunkte:** `GET /gamification/avatar/catalog`, `GET /gamification/avatars`, `GET|PUT /gamification/members/{memberId}/avatar`,
+`POST /gamification/avatar/items/{itemId}/purchase` (201). Fehlerreihenfolge: Rolle (403), Eingabe (400), Existenz (404), Zustand (409).
+
+**Regeln:**
+- `PUT` ersetzt die ganze Konfiguration: Pflicht-Slots gesetzt, Teil passt zum Slot (sonst 400), kostenlos oder gekauft (sonst 409).
+- Kein gespeicherter Avatar → `avatar = null`; die Standardauswahl (erstes kostenloses Teil je Pflicht-Slot) erzeugt die App.
+- Kauf: kostenloses Teil, bereits besessen oder zu wenig Guthaben → 409 („Nicht genug Guthaben: x von y Punkten“); unbekanntes Teil → 404.
+- Ziel-Mitglied ein Elternteil → 400, unbekannt → 404.
+
+**Tabellen (V13):** `game_avatar_items` (Besitz, `CHECK price > 0`), `game_avatar_slots` (getragene Teile, eine Zeile je Slot). Beide mit Cascade auf `members`.
+
+**Renderer (`android/core/ui`, Paket `avatar`):** `AvatarSvg` (Definition + Auswahl → SVG-String, reine JVM-Funktion), `AvatarLook` (Item-IDs → Auswahl),
+`AvatarDefinition` (Asset einmal laden), `AvatarImage` (AndroidSVG auf dem Compose-Canvas; ohne Avatar der Anfangsbuchstabe).
+
+**Eingabegrenzen:** Titel 1–40, Preis 0–1000, Item-ID ≤ 64 Zeichen (Katalog ≤ 40, damit der `source_key` in 80 Zeichen passt).
+
+**Tests:** `AvatarCatalogTest`, `AvatarServiceTest` (Fakes), `ExposedAvatarRepositoryTest` (Atomarität, Doppelkauf, Rollback, `CHECK`, Cascade),
+`AvatarApiTest` (Vertragsprüfung); Android: `AvatarSvgTest`, `AvatarImageSpikeTest` (Robolectric, schreibt `build/avatar-spike/*.png`).
 
 ## App-Seite (Phase 1b)
 
