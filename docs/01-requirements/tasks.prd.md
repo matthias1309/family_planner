@@ -31,11 +31,16 @@ Wir glauben, dass ein digitales Board mit derselben Logik wie das Küchenboard d
 Wir wissen, dass wir richtig liegen, wenn das Küchenboard **4 Wochen lang nicht mehr benutzt** wird und alle
 Aufgaben in der App zugewiesen und abgenommen werden.
 
+**Erweiterung (2026-11-01):** Eltern können einer zugewiesenen Karte eine **Frist** (Datum + Uhrzeit) geben; das Kind
+wird vorher erinnert, überfällige Karten sind markiert. Außerdem gibt es einen **Aufgaben-Pool**: Katalogaufgaben, die
+die Eltern dafür freigeben, kann sich ein Kind selbst nehmen („der Mülleimer ist voll“) — in sein Todo oder, wenn
+schon erledigt, direkt zur Abnahme.
+
 ## What We're NOT Building
 
-- Aufgaben, die Kinder sich selbst anlegen — heute verteilen nur die Eltern (Aussage Eltern).
+- Aufgaben, die Kinder sich selbst *anlegen* — Kinder nehmen nur freigegebene Katalogaufgaben aus dem Pool.
 - Automatisch wiederkehrende Aufgaben (Zeitpläne) — die Eltern verteilen von Hand aus dem Katalog.
-- Fälligkeitsdaten und Erinnerungen an Aufgaben — das Kind entscheidet, wann es etwas tut.
+- Pflicht-Fristen und Punktabzug bei Verspätung — die Frist ist optional und nur ein Hinweis.
 - Ein Tablet/Wanddisplay in der Küche — jeder sieht das Board auf dem eigenen Handy (Aussage Eltern).
 - Aufgaben für Eltern — Eltern sind Spielleitung.
 - Punktekonten, Rangliste, Badges — gehören zu `GAME`.
@@ -98,6 +103,16 @@ Alle außer den fünf Familienmitgliedern.
   Punktwert, Zeitpunkt). `GAME` bucht daraus die Punkte.
 - **Sichtbarkeit:** Wie am Küchenboard sehen alle alle Lanes; ein Kind verändert nur Karten der eigenen Lane.
 - **Offline:** Das Board ist aus dem Cache lesbar (ADR-0011); Änderungen nur im Heimnetz.
+- **Frist (optional):** Eine Karte kann eine Frist (Zeitpunkt, Europe/Berlin) haben; nur Eltern setzen, ändern oder
+  entfernen sie, solange die Karte in `TODO` oder `REVIEW` steht. Eine neue Frist muss in der Zukunft liegen.
+  - Eingehalten ist die Frist, wenn das Kind **vor Fristende „erledigt“ meldet**; die Abnahme darf später kommen.
+  - **Überfällig** ist eine Karte in `TODO` nach Fristende — auch nach einer Zurückweisung.
+  - Wird nach Fristende gemeldet, trägt die Karte den Hinweis **„zu spät gemeldet“**. Keine Auswirkung auf Punkte.
+- **Pool:** Eltern geben Katalogaufgaben einzeln für Kinder frei (Standard: nicht freigegeben). Ein Kind kann eine
+  freigegebene, nicht archivierte Aufgabe für sich **nehmen** (Karte in eigenem `TODO`) oder **sofort als erledigt
+  melden** (Karte direkt in `REVIEW`). Titel, Symbol und Punktwert werden wie beim Zuweisen kopiert. Solche Karten
+  sind als **„selbst genommen“** gekennzeichnet und haben keine Frist; eine selbst genommene Karte in `TODO` darf das
+  Kind wieder zurücklegen (entfernen). Missbrauch lösen die Eltern durch Zurückweisen oder Entfernen.
 
 ### Anforderungen
 
@@ -142,6 +157,16 @@ Magnetschilder schnell verteilen kann.
 - Given eine Katalogaufgabe, When ich den Punktwert auf 3 ändere, Then haben bereits zugewiesene Karten weiterhin 2.
 - Given eine Katalogaufgabe, When ich sie archiviere, Then ist sie nicht mehr zuweisbar, bestehende Karten bleiben.
 - Given ich bin Kind, When ich den Katalog öffnen will, Then ist das nicht möglich (Server antwortet 403).
+
+##### REQ-TASK-011 Katalogaufgabe für den Pool freigeben
+Als Elternteil möchte ich festlegen, welche Katalogaufgaben sich Kinder selbst nehmen dürfen, damit der Pool nur
+sinnvolle Aufgaben enthält.
+
+**Abnahmekriterien**
+- Given eine neue Katalogaufgabe, Then ist sie nicht für den Pool freigegeben.
+- Given „Mülleimer leeren“, When ich „für Kinder frei wählbar“ einschalte, Then steht sie im Pool der Kinder.
+- Given eine freigegebene Aufgabe, When ich die Freigabe ausschalte oder die Aufgabe archiviere, Then steht sie nicht
+  mehr im Pool; bestehende Karten bleiben.
 
 #### Board
 
@@ -196,6 +221,47 @@ Als Familienmitglied möchte ich in Done nur die letzten Tage sehen, damit die S
 - Given eine Karte wurde vor mehr als 7 Tagen abgenommen, When ich das Board öffne, Then steht sie nicht mehr in Done,
   sondern im Verlauf der Lane.
 
+##### REQ-TASK-026 Frist setzen
+Als Elternteil möchte ich einer zugewiesenen Aufgabe ein Enddatum mit Uhrzeit geben, damit das Kind weiß, bis wann
+sie erledigt sein muss.
+
+**Abnahmekriterien**
+- Given ich weise eine Aufgabe zu, When ich „Frist: Sa 18:00“ wähle, Then hat die Karte diese Frist und das Kind sieht
+  sie auf der Karte und auf „Heute“.
+- Given ich weise zu, When ich keine Frist wähle, Then hat die Karte keine Frist (wie bisher).
+- Given eine Karte in Todo oder Abnahme, When ich die Frist ändere oder entferne, Then gilt die neue Frist bzw. keine.
+- Given ich wähle einen Zeitpunkt in der Vergangenheit, Then wird die Frist abgelehnt (Server antwortet 400).
+- Given ich bin Kind, When ich eine Frist setzen oder ändern will, Then ist das nicht möglich (403).
+- Given eine Karte in Done, When ich die Frist ändern will, Then ist das nicht möglich.
+
+##### REQ-TASK-027 Überfällige Aufgaben erkennen
+Als Familienmitglied möchte ich sehen, welche Aufgaben ihre Frist verpasst haben, damit nichts untergeht.
+
+**Abnahmekriterien**
+- Given eine Karte in Todo mit Frist in der Vergangenheit, When ich das Board oder „Heute“ öffne, Then ist sie als
+  „überfällig“ markiert und steht in Todo oben.
+- Given das Kind meldet vor Fristende, When das Fristende vorbei ist, Then ist die Karte nicht überfällig.
+- Given das Kind meldet nach Fristende, Then trägt die Karte in Abnahme und Done den Hinweis „zu spät gemeldet“ und
+  bringt bei Abnahme die vollen Punkte.
+- Given eine Karte wird nach Fristende zurückgewiesen, Then ist sie in Todo wieder überfällig.
+- Given ich bin ohne Heimnetz, Then wird „überfällig“ aus dem Cache und der Geräteuhr berechnet.
+
+##### REQ-TASK-028 Aufgabe aus dem Pool nehmen
+Als Kind möchte ich mir eine freigegebene Aufgabe selbst nehmen, damit ich etwas erledigen kann, das ich gerade sehe,
+ohne auf die Eltern zu warten.
+
+**Abnahmekriterien**
+- Given ich bin Kind, When ich den Pool öffne, Then sehe ich alle freigegebenen, nicht archivierten Katalogaufgaben
+  mit Punktwert.
+- Given „Mülleimer leeren“ im Pool, When ich „nehmen“ tippe, Then steht eine Karte „selbst genommen“ in meinem Todo.
+- Given „Mülleimer leeren“ im Pool, When ich „schon erledigt“ tippe, Then steht die Karte direkt in meiner „Abnahme“
+  und die Eltern erhalten einen Hinweis (REQ-TASK-030).
+- Given eine selbst genommene Karte in meinem Todo, When ich sie zurücklege, Then ist sie vom Board verschwunden.
+- Given eine von den Eltern zugewiesene Karte, When ich sie zurücklegen will, Then ist das nicht möglich.
+- Given eine nicht freigegebene oder archivierte Aufgabe, When ich sie nehmen will, Then lehnt der Server ab (403/409).
+- Given ich bin Elternteil, Then sehe ich am Kennzeichen „selbst genommen“, welche Karten sich ein Kind genommen hat,
+  und nehme sie wie jede Karte ab oder weise zurück.
+
 #### Benachrichtigungen
 
 ##### REQ-TASK-030 Status-Hinweise
@@ -206,6 +272,16 @@ Als Familienmitglied möchte ich über Änderungen an meinen Karten informiert w
   Hinweis (wie REQ-MEAL-053, ADR-0013).
 - Given ein Elternteil weist zu, nimmt ab oder weist zurück, When das Kindgerät abgleicht, Then erhält das Kind einen
   Hinweis.
+
+##### REQ-TASK-031 Erinnerung vor Fristende
+Als Kind möchte ich vor Ablauf einer Frist erinnert werden, damit ich sie nicht verpasse.
+
+**Abnahmekriterien**
+- Given eine Karte in meinem Todo mit Frist, When das Fristende in 2 Stunden erreicht ist, Then erhalte ich eine
+  Erinnerung — auch ohne Heimnetz (lokaler Alarm, ADR-0013; Android darf bis etwa 1 h verschieben).
+- Given ich habe die Karte gemeldet oder die Frist wurde entfernt, When die Erinnerungszeit kommt, Then erhalte ich
+  keine Erinnerung (sofern das Gerät seither abgeglichen hat).
+- Given die Frist wurde geändert, When mein Gerät abgleicht, Then gilt die Erinnerung für die neue Frist.
 
 ### Core Capabilities (MoSCoW)
 
@@ -218,8 +294,11 @@ Als Familienmitglied möchte ich über Änderungen an meinen Karten informiert w
 | Should | Startseite „Heute“ (REQ-TASK-002), Abnahme-Badge (REQ-TASK-003) | Ersetzt die Button-Spalte; macht Abnahmen sichtbar |
 | Should | Karte entfernen, Done aufräumen (REQ-TASK-024/025) | Board bleibt korrekt und übersichtlich |
 | Should | Status-Hinweise (REQ-TASK-030) | Kurze Wartezeit in „Abnahme“ |
+| Should | Frist setzen, überfällig erkennen (REQ-TASK-026/027) | Eltern brauchen „bis Samstag“ für manche Aufgaben |
+| Should | Pool freigeben und nehmen (REQ-TASK-011/028) | Kinder sollen spontan Gesehenes erledigen und gutschreiben lassen |
+| Should | Erinnerung vor Fristende (REQ-TASK-031) | Frist nützt nur, wenn das Kind daran denkt |
 | Could | Karten per Drag & Drop verschieben | Buttons reichen auf dem Handy |
-| Won't | Wiederkehrende Aufgaben, Fälligkeiten, Eltern-Aufgaben, Küchendisplay | Siehe „What We're NOT Building“ |
+| Won't | Wiederkehrende Aufgaben, Punktabzug bei Verspätung, Eltern-Aufgaben, Küchendisplay | Siehe „What We're NOT Building“ |
 
 ### MVP Scope
 
@@ -276,6 +355,8 @@ bereits; neu sind das Modul, das erste Domänenereignis und der Umbau der Naviga
 | 1 | Navigation & Testinstanz | Untere Leiste, „Essen“-Bereich, Startseite „Heute“ (nur Essen-Inhalte), Testinstanz auf dem Pi + Test-Build (REQ-TASK-001/002) | complete | with 2 | - | `.claude/PRPs/plans/completed/navigation-testinstanz.plan.md`, Bericht: `.claude/PRPs/reports/navigation-testinstanz-report.md` (Geräte-Abnahme 2026-10-24 bestanden) |
 | 2 | Board Backend/API | ADR Domänenereignisse, Modul `tasks`, Katalog, Karten, Statusübergänge, Ereignis (REQ-TASK-010, 020–025) | complete | with 1 | - | `.claude/PRPs/plans/completed/board-backend.plan.md`, Bericht: `.claude/PRPs/reports/board-backend-report.md` |
 | 3 | Board App | Katalog-, Zuweisungs- und Board-Screens, Offline-Lesen, Aufgaben auf „Heute“, Abnahme-Badge, Hinweise (REQ-TASK-002/003, 020–025, 030) | complete | - | 1, 2 | `.claude/PRPs/plans/completed/board-app.plan.md`, Bericht: `.claude/PRPs/reports/board-app-report.md` (Geräte-Abnahme 2026-10-25 bestanden) |
+| 4 | Fristen & Pool Backend/API | Frist auf Karten (setzen/ändern/entfernen), „zu spät gemeldet“, Pool-Freigabe am Katalog, Nehmen/Sofort-Melden/Zurücklegen für Kinder (REQ-TASK-011, 026–028) | pending | - | 2 | - |
+| 5 | Fristen & Pool App | Frist beim Zuweisen und an der Karte, Überfällig-Markierung auf Board und „Heute“, Freigabe-Schalter im Katalog, Pool-Screen für Kinder, Erinnerung (REQ-TASK-011, 026–028, 031) | pending | - | 3, 4 | - |
 
 Fortsetzung in [gamification.prd.md](gamification.prd.md): Punkte, Rangliste, Badges, Belohnungen, Avatar und die
 gemeinsame Testphase auf den beiden Testhandys.
@@ -300,10 +381,24 @@ gemeinsame Testphase auf den beiden Testhandys.
 - **Scope**: Screens, ViewModels, Cache, Hinweise per Hintergrund-Abgleich (ADR-0013).
 - **Success signal**: Eine Woche Küchenboard lässt sich auf den Testhandys vollständig nachspielen.
 
+**Phase 4: Fristen & Pool Backend/API**
+- **Goal**: Karten können eine Frist haben, Kinder können sich freigegebene Aufgaben nehmen — mit korrekten Rechten.
+- **Scope**: OpenAPI (nur additiv: optionale Felder `dueAt`, `reportedLate`, `selfAssigned` an der Karte,
+  `childSelectable` am Katalog, neue Endpunkte für Pool und Frist), Migration, Domäne, Routen, Integrationstests.
+- **Success signal**: Integrationstests decken Frist-Regeln und Pool-Rechte je Rolle ab; die aktuelle Familien-App
+  läuft unverändert gegen das neue Backend.
+
+**Phase 5: Fristen & Pool App**
+- **Goal**: Eltern setzen Fristen, Kinder sehen sie, werden erinnert und können sich Aufgaben aus dem Pool nehmen.
+- **Scope**: Zuweisungs- und Katalog-Screens erweitern, Karte/„Heute“ mit Frist und Überfällig, Pool-Screen,
+  Erinnerung über den Abgleich nach ADR-0013, Cache.
+- **Success signal**: Auf den Testhandys: Frist setzen → Erinnerung kommt → überfällig sichtbar; Kind nimmt Aufgabe
+  aus dem Pool und meldet sie sofort → Eltern nehmen ab.
+
 ### Parallelism Notes
 
 Phase 1 ist reine App-Arbeit (plus Deploy-Konfiguration), Phase 2 reine Backend-Arbeit — sie berühren getrennte
-Dateien und können parallel laufen. Phase 3 braucht beide.
+Dateien und können parallel laufen. Phase 3 braucht beide. Phase 5 braucht die API aus Phase 4.
 
 ---
 
@@ -312,9 +407,13 @@ Dateien und können parallel laufen. Phase 3 braucht beide.
 | Decision | Choice | Alternatives | Rationale |
 |----------|--------|--------------|-----------|
 | Wer legt Aufgaben an (2026-10-24) | Nur Eltern, aus einem Katalog | Kinder legen selbst an | Entspricht dem Küchenboard mit vorgefertigten Schildern |
-| Zuordnung (2026-10-24) | Eltern weisen zu, eine Lane je Kind | Kinder nehmen sich Aufgaben | Entspricht dem Küchenboard |
+| Zuordnung (2026-10-24) | Eltern weisen zu, eine Lane je Kind | Kinder nehmen sich Aufgaben | Entspricht dem Küchenboard — ergänzt am 2026-11-01 um den Pool (s. u.) |
 | Punktwert (2026-10-24) | Je Katalogaufgabe einstellbar, Standard 1, beim Zuweisen kopiert | Fester Punkt je Karte | Heute 1 Punkt je Karte; App soll anpassbar sein |
-| Wann erledigen | Kind entscheidet, keine Fälligkeit | Fälligkeitsdatum | Aussage Eltern |
+| Wann erledigen (2026-10-24) | Kind entscheidet, keine Fälligkeit | Fälligkeitsdatum | Aussage Eltern — abgelöst am 2026-11-01 (s. u.) |
+| Fristen (2026-11-01) | Optionale Frist je Karte, nur Eltern; Markierung + Erinnerung, keine Punktfolgen | Pflichtfrist; Punktabzug bei Verspätung | Aussage Eltern: bei bestimmten Aufgaben soll das Kind wissen, bis wann |
+| Frist eingehalten (2026-11-01) | Wenn vor Fristende gemeldet | Wenn vor Fristende abgenommen | Kind soll nicht für langsame Abnahme der Eltern haften |
+| Erinnerung (2026-11-01) | 2 h vor Fristende, lokaler Alarm (ADR-0013) | 1 h vorher; Push | Inexakte Alarme können bis ~1 h später kommen; kein Fernzugriff |
+| Pool (2026-11-01) | Eltern geben Katalogaufgaben einzeln frei; Kind nimmt in Todo oder meldet sofort | Alle Katalogaufgaben; nur Todo; nur Sofort-Melden | Aussage Eltern: „Mülleimer ist voll“ spontan erledigen, aber Eltern steuern, was frei wählbar ist |
 | Sichtbarkeit | Alle sehen alle Lanes | Nur eigene Lane | Küchenboard ist öffentlich; Leaderboard-Gefühl |
 | Küchendisplay (2026-10-24) | Keins, nur Handys | Tablet in der Küche | Aussage Eltern |
 | Navigation (2026-10-24) | Untere Leiste mit 4 Zielen, rollenabhängig; Unterbereiche innerhalb von „Essen“ | Navigation Drawer; Startseite mit Kacheln | Material-3-Empfehlung für 3–5 gleichrangige Bereiche; mit dem Daumen erreichbar, immer sichtbar; Drawer versteckt Bereiche, Kacheln wachsen wie die heutige Button-Spalte |
