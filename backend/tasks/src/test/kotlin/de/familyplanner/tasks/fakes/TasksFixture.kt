@@ -6,6 +6,7 @@ import de.familyplanner.core.fakes.aMember
 import de.familyplanner.core.member.Role
 import de.familyplanner.tasks.board.Actor
 import de.familyplanner.tasks.board.BoardService
+import de.familyplanner.tasks.board.PoolService
 import de.familyplanner.tasks.catalog.CatalogService
 import de.familyplanner.tasks.catalog.CatalogTask
 import de.familyplanner.tasks.catalog.CatalogTaskInput
@@ -25,6 +26,7 @@ class TasksFixture(
     private var nextChild = 0
     val catalog = CatalogService(catalogRepository, clock) { "catalog-${++nextCatalogId}" }
     val board = BoardService(members, catalogRepository, cardRepository, notifier, clock) { "card-${++nextCardId}" }
+    val pool = PoolService(catalogRepository, cardRepository, clock) { "card-${++nextCardId}" }
 
     suspend fun parent(): Actor = Actor(members.create(aMember(role = Role.PARENT)).id, Role.PARENT)
 
@@ -35,5 +37,6 @@ class TasksFixture(
         points: Int = 2,
         title: String = "Aufgabe ${nextCatalogId + 1}",
         emoji: String? = null,
-    ): CatalogTask = catalog.create(CatalogTaskInput(title, emoji, points))
+        childSelectable: Boolean? = null,
+    ): CatalogTask = catalog.create(CatalogTaskInput(title, emoji, points, childSelectable))
 }

@@ -25,6 +25,9 @@ class InMemoryCatalogRepository : CatalogRepository {
 
     override suspend fun findById(id: CatalogTaskId): CatalogTask? = tasks[id]
 
+    override suspend fun findSelectable(): List<CatalogTask> =
+        tasks.values.filter { !it.archived && it.childSelectable }.sortedBy { it.title.lowercase() }
+
     override suspend fun findActiveByIds(ids: Collection<CatalogTaskId>): List<CatalogTask> =
         ids.mapNotNull { tasks[it] }.filter { !it.archived }
 
@@ -104,6 +107,26 @@ class InMemoryTaskCardRepository : TaskCardRepository {
     override suspend fun remove(id: TaskCardId): TransitionOutcome {
         val card = cards[id] ?: return TransitionOutcome.NOT_FOUND
         if (!card.status.isRemovable()) return TransitionOutcome.WRONG_STATUS
+        cards.remove(id)
+        return TransitionOutcome.CHANGED
+    }
+
+    override suspend fun setDueAt(
+        id: TaskCardId,
+        dueAt: Instant?,
+    ): TransitionOutcome {
+        val card = cards[id] ?: return TransitionOutcome.NOT_FOUND
+        if (card.status == TaskStatus.DONE) return TransitionOutcome.WRONG_STATUS
+        cards[id] = card.copy(dueAt = dueAt)
+        return TransitionOutcome.CHANGED
+    }
+
+    override suspend fun removeOwnSelfAssigned(
+        id: TaskCardId,
+        memberId: MemberId,
+    ): TransitionOutcome {
+        val card = cards[id] ?: return TransitionOutcome.NOT_FOUND
+        if (card.memberId != memberId || !card.selfAssigned || card.status != TaskStatus.TODO) return TransitionOutcome.WRONG_STATUS
         cards.remove(id)
         return TransitionOutcome.CHANGED
     }

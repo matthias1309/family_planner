@@ -8,6 +8,7 @@ object TaskCatalogTable : Table("task_catalog") {
     val emoji = varchar("emoji", EMOJI_LENGTH).nullable()
     val points = integer("points")
     val archivedAt = long("archived_at").nullable()
+    val childSelectable = bool("child_selectable")
     val createdAt = long("created_at")
     val updatedAt = long("updated_at")
 
@@ -27,6 +28,8 @@ object TaskCardsTable : Table("task_cards") {
     val reportedAt = long("reported_at").nullable()
     val doneAt = long("done_at").nullable()
     val doneBy = varchar("done_by", ID_LENGTH).nullable()
+    val dueAt = long("due_at").nullable()
+    val selfAssigned = bool("self_assigned")
 
     override val primaryKey = PrimaryKey(id)
 }

@@ -16,9 +16,11 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
+import java.time.Instant
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
 private const val TASKS = "/api/v1/tasks"
@@ -271,4 +273,130 @@ class TasksBoardApiTest {
         val paired = client.call(HttpMethod.Post, "/api/v1/devices/pair", body = """{"code":"$codeValue","deviceName":"Handy Ben"}""")
         return checkNotNull(json.decodeFromString<de.familyplanner.api.model.PairingResultResponse>(paired.bodyAsText()).data).token
     }
+
+    private suspend fun HttpClient.assignWithDue(
+        family: Family,
+        catalogId: String,
+        dueAt: String,
+    ): HttpResponse {
+        val body = """{"memberId":"${family.childId}","catalogTaskIds":["$catalogId"],"dueAt":$dueAt}"""
+        return call(HttpMethod.Post, "$TASKS/cards", family.parentToken, body)
+    }
+
+    private suspend fun HttpClient.setDue(
+        token: String,
+        card: TaskCard,
+        body: String,
+        invalidRequestExpected: Boolean = false,
+    ) = call(HttpMethod.Put, "$TASKS/cards/${card.id}/due-date", token, body, invalidRequestExpected = invalidRequestExpected)
+
+    @Test
+    fun `REQ-TASK-026 parent assigns with a due date and changes it`() =
+        testApplication {
+            start()
+            val family = setupFamilyWithChild()
+            val response = client.assignWithDue(family, client.catalogTask(family), "\"2026-10-18T18:00:00+02:00\"")
+            assertEquals(HttpStatusCode.Created, response.status)
+            val card = checkNotNull(json.decodeFromString<TaskCardListResponse>(response.bodyAsText()).data).single()
+
+            assertEquals(Instant.parse("2026-10-18T16:00:00Z"), Instant.parse(checkNotNull(card.dueAt)))
+            assertEquals(
+                Instant.parse("2026-10-18T16:00:00Z"),
+                Instant.parse(
+                    checkNotNull(
+                        client
+                            .board(family.childToken)
+                            .lanes
+                            .single()
+                            .cards
+                            .single()
+                            .dueAt,
+                    ),
+                ),
+            )
+
+            val moved = client.setDue(family.parentToken, card, """{"dueAt":"2026-10-20T08:30:00Z"}""")
+            assertEquals(HttpStatusCode.OK, moved.status)
+            assertEquals(Instant.parse("2026-10-20T08:30:00Z"), Instant.parse(checkNotNull(moved.card().dueAt)))
+
+            val cleared = client.setDue(family.parentToken, card, """{"dueAt":null}""")
+            assertEquals(HttpStatusCode.OK, cleared.status)
+            assertNull(cleared.card().dueAt)
+        }
+
+    @Test
+    fun `REQ-TASK-026 assigning without a due date still works`() =
+        testApplication {
+            start()
+            val (_, card) = familyWithCard()
+
+            assertNull(card.dueAt)
+            assertFalse(card.reportedLate == true)
+            assertFalse(card.selfAssigned == true)
+        }
+
+    @Test
+    fun `REQ-TASK-026 due date in the past gets 400, child gets 403, done card gets 409, malformed date gets 400`() =
+        testApplication {
+            start()
+            val (family, card) = familyWithCard()
+
+            val past = client.setDue(family.parentToken, card, """{"dueAt":"2026-10-14T09:00:00Z"}""")
+            assertEquals(HttpStatusCode.BadRequest, past.status)
+            val tooFar = client.setDue(family.parentToken, card, """{"dueAt":"2028-01-01T00:00:00Z"}""")
+            assertEquals(HttpStatusCode.BadRequest, tooFar.status)
+            val child = client.setDue(family.childToken, card, """{"dueAt":"2026-10-20T08:30:00Z"}""")
+            assertEquals(HttpStatusCode.Forbidden, child.status)
+            val malformed = client.setDue(family.parentToken, card, """{"dueAt":"morgen"}""", invalidRequestExpected = true)
+            assertEquals(HttpStatusCode.BadRequest, malformed.status)
+            val missing = client.setDue(family.parentToken, card, "{}", invalidRequestExpected = true)
+            assertEquals(HttpStatusCode.BadRequest, missing.status)
+            val notADate = client.setDue(family.parentToken, card, """{"dueAt":{"a":1}}""", invalidRequestExpected = true)
+            assertEquals(HttpStatusCode.BadRequest, notADate.status)
+            val unknown =
+                client.call(
+                    HttpMethod.Put,
+                    "$TASKS/cards/${UUID.randomUUID()}/due-date",
+                    family.parentToken,
+                    """{"dueAt":null}""",
+                )
+            assertEquals(HttpStatusCode.NotFound, unknown.status)
+
+            client.act(family.parentToken, card, "acceptance")
+            assertEquals(HttpStatusCode.Conflict, client.setDue(family.parentToken, card, """{"dueAt":null}""").status)
+        }
+
+    @Test
+    fun `REQ-TASK-026 assigning with a past due date gets 400 and creates nothing`() =
+        testApplication {
+            start()
+            val family = setupFamilyWithChild()
+            val task = client.catalogTask(family)
+
+            val response = client.assignWithDue(family, task, "\"2026-10-14T09:59:00Z\"")
+
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            assertEquals(
+                emptyList(),
+                client
+                    .board(family.parentToken)
+                    .lanes
+                    .single()
+                    .cards,
+            )
+        }
+
+    @Test
+    fun `REQ-TASK-027 timely report is not flagged late`() =
+        testApplication {
+            start()
+            val family = setupFamilyWithChild()
+            val response = client.assignWithDue(family, client.catalogTask(family), "\"2026-10-18T18:00:00+02:00\"")
+            val card = checkNotNull(json.decodeFromString<TaskCardListResponse>(response.bodyAsText()).data).single()
+
+            val reported = client.act(family.childToken, card, "report").card()
+
+            assertEquals(TaskStatus.REVIEW, reported.status)
+            assertEquals(false, reported.reportedLate)
+        }
 }

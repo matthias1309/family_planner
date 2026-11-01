@@ -245,4 +245,64 @@ class ExposedTaskCardRepositoryTest {
 
             assertNull(repository.findById(TaskCardId("a"))?.catalogTaskId)
         }
+
+    private suspend fun dueAtOf(id: String) = repository.findById(TaskCardId(id))?.dueAt
+
+    @Test
+    fun `REQ-TASK-026 due date and self-assigned flag round-trip`() =
+        runTest {
+            val withDue = card("a").copy(dueAt = now.plusSeconds(3600), selfAssigned = true)
+            repository.createAll(listOf(withDue, card("b")))
+
+            assertEquals(withDue, repository.findById(TaskCardId("a")))
+            assertNull(dueAtOf("b"))
+            assertEquals(false, repository.findById(TaskCardId("b"))?.selfAssigned)
+        }
+
+    @Test
+    fun `REQ-TASK-026 setDueAt sets and clears unless the card is done`() =
+        runTest {
+            repository.createAll(listOf(card("a"), card("done", TaskStatus.DONE, doneAt = now)))
+
+            assertEquals(TransitionOutcome.CHANGED, repository.setDueAt(TaskCardId("a"), now.plusSeconds(60)))
+            assertEquals(now.plusSeconds(60), dueAtOf("a"))
+            assertEquals(TransitionOutcome.CHANGED, repository.setDueAt(TaskCardId("a"), null))
+            assertNull(dueAtOf("a"))
+            assertEquals(TransitionOutcome.WRONG_STATUS, repository.setDueAt(TaskCardId("done"), now.plusSeconds(60)))
+            assertNull(dueAtOf("done"))
+            assertEquals(TransitionOutcome.NOT_FOUND, repository.setDueAt(TaskCardId("missing"), now))
+        }
+
+    @Test
+    fun `REQ-TASK-026 transitions leave the due date alone`() =
+        runTest {
+            repository.createAll(listOf(card("a").copy(dueAt = now.plusSeconds(60))))
+
+            transition("a", TaskTransition.REPORT)
+            transition("a", TaskTransition.ACCEPT)
+
+            assertEquals(now.plusSeconds(60), dueAtOf("a"))
+        }
+
+    @Test
+    fun `REQ-TASK-028 removeOwnSelfAssigned deletes only an own self-assigned todo card`() =
+        runTest {
+            val other = MemberId("someone-else")
+            repository.createAll(
+                listOf(
+                    card("mine").copy(selfAssigned = true),
+                    card("assigned"),
+                    card("reported", TaskStatus.REVIEW).copy(selfAssigned = true),
+                    card("foreign").copy(selfAssigned = true),
+                ),
+            )
+
+            assertEquals(TransitionOutcome.WRONG_STATUS, repository.removeOwnSelfAssigned(TaskCardId("foreign"), other))
+            assertEquals(TransitionOutcome.WRONG_STATUS, repository.removeOwnSelfAssigned(TaskCardId("assigned"), childId))
+            assertEquals(TransitionOutcome.WRONG_STATUS, repository.removeOwnSelfAssigned(TaskCardId("reported"), childId))
+            assertEquals(TransitionOutcome.NOT_FOUND, repository.removeOwnSelfAssigned(TaskCardId("missing"), childId))
+            assertEquals(TransitionOutcome.CHANGED, repository.removeOwnSelfAssigned(TaskCardId("mine"), childId))
+            assertNull(repository.findById(TaskCardId("mine")))
+            assertEquals(3, listOf("foreign", "assigned", "reported").count { repository.findById(TaskCardId(it)) != null })
+        }
 }

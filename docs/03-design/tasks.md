@@ -2,16 +2,19 @@
 
 ## Abgedeckte Anforderungen
 
-REQ-TASK-010, REQ-TASK-020, -021, -022, -023, -024, -025 (Phase 2, Backend/API) — siehe [tasks.prd.md](../01-requirements/tasks.prd.md).
-Die App-Seite folgt in Phase 3. Konventionen für Feature-Module: [ADR-0010](../02-architecture/adr/0010-backend-feature-modules.md);
+REQ-TASK-010, REQ-TASK-020, -021, -022, -023, -024, -025 (Phase 2, Backend/API) sowie REQ-TASK-011, -026, -027, -028 (Phase 4, Backend/API) —
+siehe [tasks.prd.md](../01-requirements/tasks.prd.md). Die App-Seite folgt in Phase 3 (Board) und Phase 5 (Fristen & Pool). Konventionen für Feature-Module: [ADR-0010](../02-architecture/adr/0010-backend-feature-modules.md);
 Ereignisse an andere Module: [ADR-0016](../02-architecture/adr/0016-domain-events-outbox.md).
 
 ## Domänenmodell & Regeln
 
 | Begriff | Definition |
 |---|---|
-| `CatalogTask` | Vorbereitete Aufgabe („Magnetschild“): `title` (1–40), `emoji?` (≤ 16, leer = keins), `points` (1–100), `archived` |
-| `TaskCard` | Karte eines Kindes. Titel, Symbol, Punkte sind beim Zuweisen **kopiert**; `catalogTaskId` nur Herkunft (`SET NULL` beim Löschen) |
+| `CatalogTask` | Vorbereitete Aufgabe („Magnetschild“): `title` (1–40), `emoji?` (≤ 16, leer = keins), `points` (1–100), `archived`, `childSelectable` (Pool-Freigabe, Standard `false`) |
+| `TaskCard` | Karte eines Kindes. Titel, Symbol, Punkte sind beim Zuweisen **kopiert**; `catalogTaskId` nur Herkunft (`SET NULL` beim Löschen). Dazu `dueAt?` (Frist, gespeichert als UTC-Millis), `selfAssigned` (aus dem Pool genommen) und das **abgeleitete** `reportedLate` |
+| Frist (`dueAt`) | optional; beim Setzen (Zuweisen oder `due-date`) nach „jetzt“ und höchstens 365 Tage voraus, sonst `400`; `null` entfernt sie. Änderbar nur für Eltern und nur in `TODO`/`REVIEW` (`DONE` → `409`). Übergänge fassen sie nie an |
+| `reportedLate` | nicht gespeichert: `dueAt` gesetzt und `(reportedAt ?: doneAt) > dueAt`; genau auf die Frist = pünktlich; nach Zurückweisen/Zurückziehen automatisch `false`. „Überfällig“ berechnet die App aus `dueAt` und Geräteuhr |
+| Pool | aktive Katalogaufgaben mit `childSelectable`, nach Titel; lesbar für alle Mitglieder. Freigabe am Katalog: neu = `false`; `PUT` ohne Feld lässt den Wert **unverändert** (alte App) |
 | `TaskStatus` | `TODO` → `REVIEW` → `DONE`; `DONE` ist endgültig |
 | Löschen im Katalog | archiviert (`archived_at`); archivierte Aufgaben sind nicht zuweisbar und nicht änderbar |
 | Zuweisen | nur an Mitglieder mit Rolle `CHILD`; 1–20 Katalog-IDs je Aufruf, Duplikate ergeben je eine Karte |
@@ -27,6 +30,8 @@ Ereignisse an andere Module: [ADR-0016](../02-architecture/adr/0016-domain-event
 | `ACCEPT` | `…/acceptance` | Eltern | `REVIEW`/`TODO` → `DONE` | setzt `doneAt`, `doneBy`; schreibt `task.accepted.v1` in derselben Transaktion |
 | `REJECT` | `…/rejection` | Eltern | `REVIEW` → `TODO` | optionale Begründung (≤ 200) wird gespeichert |
 | Entfernen | `DELETE …/cards/{id}` | Eltern | `TODO`/`REVIEW` → gelöscht | `DONE` → `409` |
+| Pool nehmen | `POST …/pool/{catalogTaskId}/cards` | nur Kind, für sich | neu → `TODO`, mit `alreadyDone` → `REVIEW` (`reportedAt` = jetzt) | `selfAssigned = true`, `dueAt` leer; Eltern → `403`, nicht freigegeben → `403`, archiviert → `409`, unbekannt → `404` |
+| Zurücklegen | `DELETE …/cards/{id}` | Kind, eigene `selfAssigned`-Karte | `TODO` → gelöscht | zugewiesene/fremde Karte → `403`; eigene selbst genommene in `REVIEW`/`DONE` → `409` |
 
 Falsche Rolle oder fremde Karte → `403`; falscher Ausgangsstatus → `409`; das bedingte `UPDATE … WHERE status IN (…)` entscheidet
 atomar (zweite gleichzeitige Abnahme trifft 0 Zeilen, es entsteht kein zweites Ereignis).
@@ -36,7 +41,9 @@ atomar (zweite gleichzeitige Abnahme trifft 0 Zeilen, es entsteht kein zweites E
 Endpunkte siehe `api/openapi.yaml` (Tag `tasks`):
 
 - `GET|POST /api/v1/tasks/catalog` (Eltern; `?includeArchived=true`), `PUT|DELETE /api/v1/tasks/catalog/{catalogTaskId}` (Eltern; DELETE archiviert, 204)
-- `POST /api/v1/tasks/cards` (Eltern, 201), `DELETE /api/v1/tasks/cards/{cardId}` (Eltern, 204)
+- `POST /api/v1/tasks/cards` (Eltern, 201; optional `dueAt` für alle Karten des Aufrufs), `DELETE /api/v1/tasks/cards/{cardId}` (Eltern; Kinder nur eigene selbst genommene `TODO`-Karten, 204)
+- `PUT /api/v1/tasks/cards/{cardId}/due-date` (Eltern; `{dueAt: date-time | null}`, 200 mit der Karte)
+- `GET /api/v1/tasks/pool` (alle Mitglieder), `POST /api/v1/tasks/pool/{catalogTaskId}/cards` (nur Kinder, `{alreadyDone}`, 201)
 - `GET /api/v1/tasks/board`, `GET /api/v1/tasks/members/{memberId}/history` (alle Mitglieder)
 - `POST /api/v1/tasks/cards/{cardId}/report|withdrawal|acceptance|rejection` (200 mit der geänderten Karte)
 
@@ -45,19 +52,22 @@ Nach `acceptance` ruft `BoardService` `EventNotifier.dispatchPending()` auf; Feh
 ## DB-Tabellen
 
 `task_catalog`, `task_cards` — Migration `V8__tasks.sql` (Zeitstempel als Epoch-Millis, IDs als UUID-Text; `CHECK` auf Status und Punkte).
+`V14__tasks_due_dates_pool.sql` ergänzt `task_catalog.child_selectable`, `task_cards.due_at` und `task_cards.self_assigned` (Bool als `INTEGER` mit `CHECK`).
 Ereignisse liegen in `core_domain_events` (Migration `V7`, siehe [core.md](core.md)).
 
 ## Eingabegrenzen
 
-Titel 1–40, Symbol ≤ 16, Punkte 1–100, 1–20 Aufgaben je Zuweisung, Begründung ≤ 200, Verlauf-`limit` 1–100.
+Titel 1–40, Symbol ≤ 16, Punkte 1–100, 1–20 Aufgaben je Zuweisung, Begründung ≤ 200, Verlauf-`limit` 1–100, Frist ≤ 365 Tage voraus (`DUE_DATE_MAX_DAYS`).
 
 ## Unit-Testfälle
 
-`CatalogServiceTest`, `TaskTransitionsTest`, `BoardServiceTest` (Fakes in `tasks/src/test/.../fakes`): Validierung und Grenzen, Kopieren
+`CatalogServiceTest`, `TaskTransitionsTest`, `BoardServiceTest`, `DueDatesTest`, `PoolServiceTest` (Fakes in `tasks/src/test/.../fakes`): Validierung und Grenzen, Kopieren
 beim Zuweisen, nur Kinder, archivierte/unbekannte Aufgaben, Spuren und Sortierung, 7-Tage-Fenster, Rechte je Übergang, Abnahme
 schreibt genau ein Ereignis, Zurückweisen mit/ohne Grund, `DONE` ist endgültig, Entfernen. Integration: `ExposedCatalogRepositoryTest`,
 `ExposedTaskCardRepositoryTest` (echte SQLite, Ereignis atomar, parallele Abnahme, Migrations-Checks), API: `TasksCatalogApiTest`,
-`TasksBoardApiTest` (Vertragsprüfung gegen `openapi.yaml`).
+`TasksBoardApiTest`, `TasksPoolApiTest` (Vertragsprüfung gegen `openapi.yaml`).
+Phase 4 ergänzt: Fristgrenzen, Verspätung (abgeleitet), Pool-Regeln, Zurücklegen, Freigabe bleibt bei `PUT` ohne Feld.
+`PUT …/due-date` verlangt den Schlüssel `dueAt` im Body: `{}` → `400`, nur ein explizites `null` entfernt die Frist (das projektweite JSON würde ein fehlendes Nullable-Feld sonst still als `null` lesen).
 
 ## App-Seite (Phase 3)
 

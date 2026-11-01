@@ -16,8 +16,10 @@ class CatalogService(
 
     suspend fun list(includeArchived: Boolean): List<CatalogTask> = catalog.findAll(includeArchived)
 
+    suspend fun pool(): List<CatalogTask> = catalog.findSelectable()
+
     suspend fun create(input: CatalogTaskInput): CatalogTask {
-        val task = toTask(CatalogTaskId(newId()), validated(input))
+        val task = toTask(CatalogTaskId(newId()), validated(input), input.childSelectable ?: false)
         catalog.create(task, clock.instant())
         log.info("Catalog task created: {}", task.id.value)
         return task
@@ -28,7 +30,7 @@ class CatalogService(
         input: CatalogTaskInput,
     ): CatalogTask {
         val existing = catalog.findById(id) ?: throw AppException.NotFound(TASK_NOT_FOUND)
-        val task = toTask(id, validated(input))
+        val task = toTask(id, validated(input), input.childSelectable ?: existing.childSelectable)
         if (existing.archived || !catalog.update(task, clock.instant())) throw AppException.Conflict(ARCHIVED)
         log.info("Catalog task updated: {}", id.value)
         return task
@@ -42,7 +44,8 @@ class CatalogService(
     private fun toTask(
         id: CatalogTaskId,
         input: CatalogTaskInput,
-    ) = CatalogTask(id, input.title, input.emoji, input.points, archived = false)
+        childSelectable: Boolean,
+    ) = CatalogTask(id, input.title, input.emoji, input.points, archived = false, childSelectable = childSelectable)
 
     private companion object {
         const val ARCHIVED = "Die Aufgabe ist archiviert"

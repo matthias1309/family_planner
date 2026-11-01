@@ -20,6 +20,7 @@ data class CatalogTask(
     val emoji: String?,
     val points: Int,
     val archived: Boolean,
+    val childSelectable: Boolean = false,
 )
 
 /** What a caller wants to store; validated by [validated]. */
@@ -27,6 +28,8 @@ data class CatalogTaskInput(
     val title: String,
     val emoji: String?,
     val points: Int,
+    /** `null` = not stated: `false` on create, unchanged on update. */
+    val childSelectable: Boolean? = null,
 )
 
 /** Trims the title, turns a blank emoji into `null` and checks all limits. */
@@ -37,5 +40,5 @@ fun validated(input: CatalogTaskInput): CatalogTaskInput {
     if (input.points !in TASK_POINTS_MIN..TASK_POINTS_MAX) {
         throw AppException.Validation("Punkte müssen zwischen $TASK_POINTS_MIN und $TASK_POINTS_MAX liegen")
     }
-    return CatalogTaskInput(title, emoji, input.points)
+    return CatalogTaskInput(title, emoji, input.points, input.childSelectable)
 }

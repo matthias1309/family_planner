@@ -1,6 +1,7 @@
 package de.familyplanner.tasks
 
 import de.familyplanner.tasks.board.BoardService
+import de.familyplanner.tasks.board.PoolService
 import de.familyplanner.tasks.board.TaskCardRepository
 import de.familyplanner.tasks.catalog.CatalogRepository
 import de.familyplanner.tasks.catalog.CatalogService
@@ -16,4 +17,5 @@ fun tasksModule(clock: Clock) =
         single<TaskCardRepository> { ExposedTaskCardRepository(get()) }
         single { CatalogService(get(), clock) }
         single { BoardService(get(), get(), get(), get(), clock) }
+        single { PoolService(get(), get(), clock) }
     }
