@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
+import de.familyplanner.android.core.ui.avatar.AvatarLook
 import de.familyplanner.android.feature.gamification.domain.CookingPointsUseCase
 import de.familyplanner.android.feature.gamification.domain.CountPendingRedemptionsUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadPointsUseCase
 import de.familyplanner.android.feature.gamification.domain.PointsLimits
 import de.familyplanner.android.feature.gamification.domain.PointsLoad
 import de.familyplanner.android.feature.gamification.domain.PointsSnapshot
+import de.familyplanner.android.feature.gamification.domain.avatar.AvatarDirectory
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -31,6 +33,7 @@ data class FamilyPointsUiState(
     val editingCookingPoints: Int? = null,
     val isBusy: Boolean = false,
     val actionError: AppError? = null,
+    val looks: Map<String, AvatarLook> = emptyMap(),
 )
 
 sealed interface FamilyPointsEvent {
@@ -51,10 +54,15 @@ class FamilyPointsViewModel(
     private val loadPoints: LoadPointsUseCase,
     private val cookingPointsUseCase: CookingPointsUseCase,
     private val countPending: CountPendingRedemptionsUseCase,
+    private val avatars: AvatarDirectory,
 ) : ViewModel() {
     private val _state = MutableStateFlow(FamilyPointsUiState())
     val state: StateFlow<FamilyPointsUiState> = _state.asStateFlow()
     private var loadJob: Job? = null
+
+    init {
+        viewModelScope.launch { avatars.looks.collect { looks -> _state.update { it.copy(looks = looks) } } }
+    }
 
     fun onEvent(event: FamilyPointsEvent) {
         when (event) {
@@ -74,6 +82,7 @@ class FamilyPointsViewModel(
 
     private fun refresh() {
         loadJob?.cancel()
+        viewModelScope.launch { avatars.refresh() }
         _state.update { it.copy(isLoading = true, error = null) }
         loadJob =
             viewModelScope.launch {

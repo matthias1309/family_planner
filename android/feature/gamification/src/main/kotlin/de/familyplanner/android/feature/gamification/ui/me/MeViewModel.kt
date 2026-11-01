@@ -4,11 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.data.session.SessionStore
+import de.familyplanner.android.core.ui.avatar.AvatarLook
 import de.familyplanner.android.feature.gamification.domain.Badge
 import de.familyplanner.android.feature.gamification.domain.LoadPointsUseCase
 import de.familyplanner.android.feature.gamification.domain.PointsLoad
 import de.familyplanner.android.feature.gamification.domain.PointsSnapshot
 import de.familyplanner.android.feature.gamification.domain.RankedChild
+import de.familyplanner.android.feature.gamification.domain.avatar.AvatarDirectory
 import de.familyplanner.android.feature.gamification.domain.rankOf
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,11 +21,13 @@ import kotlinx.coroutines.launch
 
 data class MeUiState(
     val memberId: String? = null,
+    val name: String = "",
     val snapshot: PointsSnapshot? = null,
     val isLoading: Boolean = true,
     val isOffline: Boolean = false,
     val error: AppError? = null,
     val newBadges: List<Badge> = emptyList(),
+    val looks: Map<String, AvatarLook> = emptyMap(),
 ) {
     val myRank: RankedChild? get() = memberId?.let { snapshot?.leaderboard?.rankOf(it) }
 }
@@ -38,10 +42,15 @@ sealed interface MeEvent {
 class MeViewModel(
     private val loadPoints: LoadPointsUseCase,
     sessions: SessionStore,
+    private val avatars: AvatarDirectory,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(MeUiState(memberId = sessions.current?.memberId))
+    private val _state = MutableStateFlow(MeUiState(memberId = sessions.current?.memberId, name = sessions.current?.memberName.orEmpty()))
     val state: StateFlow<MeUiState> = _state.asStateFlow()
     private var loadJob: Job? = null
+
+    init {
+        viewModelScope.launch { avatars.looks.collect { looks -> _state.update { it.copy(looks = looks) } } }
+    }
 
     fun onEvent(event: MeEvent) {
         when (event) {
@@ -52,6 +61,7 @@ class MeViewModel(
 
     private fun refresh() {
         loadJob?.cancel()
+        viewModelScope.launch { avatars.refresh() }
         _state.update { it.copy(isLoading = true, error = null) }
         loadJob =
             viewModelScope.launch {

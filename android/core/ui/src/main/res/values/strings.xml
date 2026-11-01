@@ -15,4 +15,5 @@
     <string name="action_confirm">Bestätigen</string>
     <string name="action_cancel">Abbrechen</string>
     <string name="core_avatar_description">Avatar von %1$s</string>
+    <string name="core_avatar_credit">Avatare: „Avataaars“ von Pablo Stanley</string>
 </resources>

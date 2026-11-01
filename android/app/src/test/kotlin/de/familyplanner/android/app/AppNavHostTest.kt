@@ -4,10 +4,12 @@ import android.app.Application
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.data.session.DefaultSessionEvents
@@ -15,6 +17,7 @@ import de.familyplanner.android.core.data.session.Role
 import de.familyplanner.android.core.data.session.Session
 import de.familyplanner.android.core.data.session.SessionEvent
 import de.familyplanner.android.core.testing.InMemorySessionStore
+import de.familyplanner.android.core.ui.avatar.AvatarLook
 import de.familyplanner.android.core.ui.theme.FamilyPlannerTheme
 import de.familyplanner.android.feature.auth.domain.AuthRepository
 import de.familyplanner.android.feature.auth.domain.CreateMemberUseCase
@@ -33,9 +36,13 @@ import de.familyplanner.android.feature.gamification.domain.LoadBadgesUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadChildAccountUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadPointsUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadTodaySavingsUseCase
+import de.familyplanner.android.feature.gamification.domain.avatar.AvatarCache
+import de.familyplanner.android.feature.gamification.domain.avatar.AvatarDirectory
+import de.familyplanner.android.feature.gamification.domain.avatar.AvatarRepository
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountViewModel
 import de.familyplanner.android.feature.gamification.ui.family.FamilyPointsViewModel
 import de.familyplanner.android.feature.gamification.ui.me.MeViewModel
+import de.familyplanner.android.feature.gamification.ui.today.TodayAvatarViewModel
 import de.familyplanner.android.feature.gamification.ui.today.TodaySavingsViewModel
 import de.familyplanner.android.feature.meals.PlanOpenRequests
 import de.familyplanner.android.feature.meals.SharedRecipeInbox
@@ -223,14 +230,48 @@ class AppNavHostTest {
             override suspend fun clear() = Unit
         }
 
+    private val avatarDirectory =
+        AvatarDirectory(
+            object : AvatarRepository {
+                override suspend fun catalog() = ApiResult.Failure(AppError.Network)
+
+                override suspend fun avatars() = ApiResult.Failure(AppError.Network)
+
+                override suspend fun profile(memberId: String) = ApiResult.Failure(AppError.Network)
+
+                override suspend fun save(
+                    memberId: String,
+                    look: AvatarLook,
+                ) = ApiResult.Failure(AppError.Network)
+
+                override suspend fun purchase(itemId: String) = ApiResult.Failure(AppError.Network)
+            },
+            object : AvatarCache {
+                override suspend fun read(): Map<String, AvatarLook>? = null
+
+                override suspend fun write(looks: Map<String, AvatarLook>) = Unit
+
+                override suspend fun clear() = Unit
+            },
+        )
+
     private val pointsModule =
         module {
-            viewModel { MeViewModel(LoadPointsUseCase(pointsRepository, rewardRepository, pointsCache, sessions), sessions) }
+            single { avatarDirectory }
+            viewModel { TodayAvatarViewModel(sessions, avatarDirectory) }
+            viewModel {
+                MeViewModel(
+                    LoadPointsUseCase(pointsRepository, rewardRepository, pointsCache, sessions),
+                    sessions,
+                    avatarDirectory,
+                )
+            }
             viewModel {
                 FamilyPointsViewModel(
                     LoadPointsUseCase(pointsRepository, rewardRepository, pointsCache, sessions),
                     CookingPointsUseCase(pointsRepository),
                     CountPendingRedemptionsUseCase(rewardRepository),
+                    avatarDirectory,
                 )
             }
             viewModel { TodaySavingsViewModel(LoadTodaySavingsUseCase(rewardRepository, pointsCache, sessions)) }
@@ -395,6 +436,7 @@ class AppNavHostTest {
 
         compose.onNodeWithText("Gesammelt").assertIsDisplayed()
         compose.onNodeWithText("Guthaben").assertIsDisplayed()
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Platz 2 von 2"))
         compose.onNodeWithText("Platz 2 von 2").assertIsDisplayed()
     }
 

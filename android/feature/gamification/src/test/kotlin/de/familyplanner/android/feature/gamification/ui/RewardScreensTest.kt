@@ -98,6 +98,7 @@ class RewardScreensTest {
         compose.setContent { FamilyPlannerTheme { MeScreen(offline, {}, { _, _ -> }, {}) } }
 
         compose.onNodeWithText("🎢 Freizeitpark").assertIsDisplayed()
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Belohnungen"))
         compose.onNodeWithText("Belohnungen").assertIsNotEnabled()
     }
 

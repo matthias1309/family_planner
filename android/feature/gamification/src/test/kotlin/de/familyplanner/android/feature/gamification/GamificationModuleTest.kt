@@ -10,20 +10,25 @@ import de.familyplanner.android.feature.gamification.domain.PointsCache
 import de.familyplanner.android.feature.gamification.domain.RedemptionNoticeStore
 import de.familyplanner.android.feature.gamification.domain.RewardNotifier
 import de.familyplanner.android.feature.gamification.domain.RewardSync
+import de.familyplanner.android.feature.gamification.domain.avatar.AvatarCache
+import de.familyplanner.android.feature.gamification.domain.avatar.AvatarDirectory
 import de.familyplanner.android.feature.gamification.domain.notice.SyncRewardNoticesUseCase
 import de.familyplanner.android.feature.gamification.fakes.FakeRewardNotifier
 import de.familyplanner.android.feature.gamification.fakes.FakeRewardSync
+import de.familyplanner.android.feature.gamification.fakes.InMemoryAvatarCache
 import de.familyplanner.android.feature.gamification.fakes.InMemoryPointsCache
 import de.familyplanner.android.feature.gamification.fakes.InMemoryRedemptionNoticeStore
 import de.familyplanner.android.feature.gamification.fakes.parentSession
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountArgs
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountViewModel
+import de.familyplanner.android.feature.gamification.ui.avatar.AvatarEditorViewModel
 import de.familyplanner.android.feature.gamification.ui.badges.MemberBadgesArgs
 import de.familyplanner.android.feature.gamification.ui.badges.MemberBadgesViewModel
 import de.familyplanner.android.feature.gamification.ui.family.FamilyPointsViewModel
 import de.familyplanner.android.feature.gamification.ui.manage.ManageRewardsViewModel
 import de.familyplanner.android.feature.gamification.ui.me.MeViewModel
 import de.familyplanner.android.feature.gamification.ui.rewards.RewardsViewModel
+import de.familyplanner.android.feature.gamification.ui.today.TodayAvatarViewModel
 import de.familyplanner.android.feature.gamification.ui.today.TodaySavingsViewModel
 import okhttp3.OkHttpClient
 import org.junit.Rule
@@ -52,6 +57,7 @@ class GamificationModuleTest {
             single<RedemptionNoticeStore> { InMemoryRedemptionNoticeStore() }
             single<RewardNotifier> { FakeRewardNotifier() }
             single<RewardSync> { FakeRewardSync() }
+            single<AvatarCache> { InMemoryAvatarCache() }
         }
 
     @Test
@@ -63,6 +69,9 @@ class GamificationModuleTest {
         assertNotNull(koin.get<RewardsViewModel>())
         assertNotNull(koin.get<ManageRewardsViewModel>())
         assertNotNull(koin.get<TodaySavingsViewModel>())
+        assertNotNull(koin.get<AvatarEditorViewModel>())
+        assertNotNull(koin.get<TodayAvatarViewModel>())
+        assertNotNull(koin.get<AvatarDirectory>())
         assertNotNull(koin.get<SyncRewardNoticesUseCase>())
         assertNotNull(koin.get<RewardOpenRequests>())
         assertNotNull(koin.get<MemberBadgesViewModel> { parametersOf(MemberBadgesArgs("c-2", "Ben")) })

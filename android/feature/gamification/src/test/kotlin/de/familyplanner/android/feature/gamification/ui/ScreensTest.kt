@@ -18,6 +18,7 @@ import de.familyplanner.android.feature.gamification.domain.RankedChild
 import de.familyplanner.android.feature.gamification.fakes.account
 import de.familyplanner.android.feature.gamification.fakes.badge
 import de.familyplanner.android.feature.gamification.fakes.entry
+import de.familyplanner.android.feature.gamification.fakes.freeLook
 import de.familyplanner.android.feature.gamification.fakes.leaderboard
 import de.familyplanner.android.feature.gamification.fakes.overview
 import de.familyplanner.android.feature.gamification.fakes.snapshot
@@ -50,9 +51,16 @@ class ScreensTest {
     val compose = createComposeRule()
 
     @Test
+    fun `REQ-GAME-014 leaderboard shows avatar per child`() {
+        compose.setContent { FamilyPlannerTheme { LeaderboardList(leaderboard, "c-1", onClick = null, looks = mapOf("c-1" to freeLook)) } }
+
+        compose.onNodeWithContentDescription("Avatar von Lea").assertIsDisplayed()
+    }
+
+    @Test
     fun `REQ-GAME-014 leaderboard is clickable and shows ranks`() {
         var clicked: RankedChild? = null
-        compose.setContent { FamilyPlannerTheme { LeaderboardList(leaderboard, "c-1") { clicked = it } } }
+        compose.setContent { FamilyPlannerTheme { LeaderboardList(leaderboard, "c-1", onClick = { clicked = it }) } }
 
         compose.onNodeWithText("Ben").assertIsDisplayed()
         compose.onNodeWithText("Lea").performClick()

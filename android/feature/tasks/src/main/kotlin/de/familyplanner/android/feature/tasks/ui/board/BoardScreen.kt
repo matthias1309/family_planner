@@ -43,6 +43,7 @@ fun BoardRoute(
     onOpenCatalog: () -> Unit,
     onAssign: (String?) -> Unit,
     onOpenHistory: (memberId: String, name: String) -> Unit,
+    laneAvatar: @Composable (memberId: String, name: String) -> Unit = { _, _ -> },
 ) {
     val viewModel = koinViewModel<BoardViewModel>()
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -51,7 +52,7 @@ fun BoardRoute(
         viewModel.onEvent(BoardEvent.Refresh)
         onPauseOrDispose {}
     }
-    BoardScreen(state, viewModel::onEvent, onOpenCatalog, onAssign, onOpenHistory)
+    BoardScreen(state, viewModel::onEvent, onOpenCatalog, onAssign, onOpenHistory, laneAvatar)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,6 +63,7 @@ fun BoardScreen(
     onOpenCatalog: () -> Unit,
     onAssign: (String?) -> Unit,
     onOpenHistory: (memberId: String, name: String) -> Unit,
+    laneAvatar: @Composable (memberId: String, name: String) -> Unit = { _, _ -> },
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         PullToRefreshBox(
@@ -71,7 +73,7 @@ fun BoardScreen(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 BoardHeader(state, onOpenCatalog)
-                BoardTabs(state, onEvent)
+                BoardTabs(state, onEvent, laneAvatar)
                 BoardContent(state, onEvent, onOpenHistory)
             }
         }
@@ -109,17 +111,26 @@ private fun BoardHeader(
 private fun BoardTabs(
     state: BoardUiState,
     onEvent: (BoardEvent) -> Unit,
+    laneAvatar: @Composable (memberId: String, name: String) -> Unit,
 ) {
     val tabs = state.tabs
     if (tabs.isEmpty()) return
     PrimaryScrollableTabRow(selectedTabIndex = state.selectedIndex, edgePadding = 8.dp) {
         tabs.forEachIndexed { index, tab ->
-            val title =
-                when (tab) {
-                    BoardTab.Review -> stringResource(R.string.tasks_tab_review, state.reviewCount)
-                    is BoardTab.Lane -> tab.lane.name
-                }
-            Tab(selected = index == state.selectedIndex, onClick = { onEvent(BoardEvent.SelectTab(index)) }, text = { Text(title) })
+            Tab(
+                selected = index == state.selectedIndex,
+                onClick = { onEvent(BoardEvent.SelectTab(index)) },
+                text = {
+                    when (tab) {
+                        BoardTab.Review -> Text(stringResource(R.string.tasks_tab_review, state.reviewCount))
+                        is BoardTab.Lane ->
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                laneAvatar(tab.lane.memberId, tab.lane.name)
+                                Text(tab.lane.name)
+                            }
+                    }
+                },
+            )
         }
     }
 }
