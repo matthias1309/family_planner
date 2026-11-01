@@ -8,6 +8,7 @@ import de.familyplanner.core.fakes.aMember
 import de.familyplanner.core.member.Role
 import de.familyplanner.gamification.account.AccountService
 import de.familyplanner.gamification.account.Actor
+import de.familyplanner.gamification.avatar.AvatarService
 import de.familyplanner.gamification.badges.BadgeService
 import de.familyplanner.gamification.ledger.PointsEventHandler
 import de.familyplanner.gamification.rewards.RedemptionService
@@ -31,6 +32,8 @@ class GamificationFixture(
     val redemptionRepository = InMemoryRedemptionRepository(ledger, rewardRepository)
     val rewards = RewardService(members, rewardRepository, ledger, clock) { "reward-${++nextId}" }
     val redemptions = RedemptionService(members, redemptionRepository, clock) { "redemption-${++nextId}" }
+    val avatarRepository = InMemoryAvatarRepository(ledger)
+    val avatars = AvatarService(members, avatarRepository, clock) { "shop-${++nextId}" }
     val handler = PointsEventHandler(members, ledger, settings, badges) { "credit-${++nextId}" }
 
     suspend fun parent(): Actor = Actor(members.create(aMember(role = Role.PARENT)).id, Role.PARENT)

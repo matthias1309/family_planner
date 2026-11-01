@@ -1,10 +1,13 @@
 package de.familyplanner.gamification
 
 import de.familyplanner.gamification.account.AccountService
+import de.familyplanner.gamification.avatar.AvatarRepository
+import de.familyplanner.gamification.avatar.AvatarService
 import de.familyplanner.gamification.badges.BadgeRepository
 import de.familyplanner.gamification.badges.BadgeService
 import de.familyplanner.gamification.ledger.LedgerRepository
 import de.familyplanner.gamification.ledger.PointsEventHandler
+import de.familyplanner.gamification.persistence.ExposedAvatarRepository
 import de.familyplanner.gamification.persistence.ExposedBadgeRepository
 import de.familyplanner.gamification.persistence.ExposedGameSettingsRepository
 import de.familyplanner.gamification.persistence.ExposedLedgerRepository
@@ -35,5 +38,7 @@ fun gamificationModule(clock: Clock) =
         single<RedemptionRepository> { ExposedRedemptionRepository(get()) }
         single { RewardService(get(), get(), get(), clock) }
         single { RedemptionService(get(), get(), clock) }
+        single<AvatarRepository> { ExposedAvatarRepository(get()) }
+        single { AvatarService(get(), get(), clock) }
         single { PointsEventHandler(get(), get(), get(), get()) }
     }

@@ -1,6 +1,10 @@
 package de.familyplanner.gamification.fakes
 
 import de.familyplanner.core.member.MemberId
+import de.familyplanner.gamification.avatar.AvatarItem
+import de.familyplanner.gamification.avatar.AvatarRepository
+import de.familyplanner.gamification.avatar.PurchaseOutcome
+import de.familyplanner.gamification.avatar.StoredAvatar
 import de.familyplanner.gamification.badges.BadgeRepository
 import de.familyplanner.gamification.ledger.EntryKind
 import de.familyplanner.gamification.ledger.LedgerEntry
@@ -9,6 +13,7 @@ import de.familyplanner.gamification.ledger.LedgerRepository
 import de.familyplanner.gamification.ledger.Totals
 import de.familyplanner.gamification.ledger.rewardRefundSourceKey
 import de.familyplanner.gamification.ledger.rewardSourceKey
+import de.familyplanner.gamification.ledger.shopSourceKey
 import de.familyplanner.gamification.ledger.totalsFrom
 import de.familyplanner.gamification.rewards.DecisionOutcome
 import de.familyplanner.gamification.rewards.RedeemOutcome
@@ -207,5 +212,52 @@ class InMemoryRedemptionRepository(
         if (stored[index].status != RedemptionStatus.PENDING) return DecisionOutcome.NOT_PENDING
         stored[index] = stored[index].copy(status = status, rejectionReason = reason, decidedAt = at)
         return DecisionOutcome.CHANGED
+    }
+}
+
+class InMemoryAvatarRepository(
+    private val ledger: InMemoryLedgerRepository,
+) : AvatarRepository {
+    private val avatars = mutableMapOf<MemberId, StoredAvatar>()
+    private val owned = mutableMapOf<MemberId, MutableSet<String>>()
+
+    /** Lets a test plant rows the catalog no longer knows. */
+    fun plant(
+        memberId: MemberId,
+        items: Map<String, String>,
+        at: Instant,
+    ) {
+        avatars[memberId] = StoredAvatar(items, at)
+    }
+
+    override suspend fun findAll(): Map<MemberId, StoredAvatar> = avatars.toMap()
+
+    override suspend fun find(memberId: MemberId): StoredAvatar? = avatars[memberId]
+
+    override suspend fun save(
+        memberId: MemberId,
+        items: Map<String, String>,
+        at: Instant,
+    ) {
+        avatars[memberId] = StoredAvatar(items, at)
+    }
+
+    override suspend fun ownedOf(memberId: MemberId): Set<String> = owned[memberId].orEmpty().toSet()
+
+    override suspend fun purchase(
+        memberId: MemberId,
+        item: AvatarItem,
+        debitEntryId: String,
+        at: Instant,
+    ): PurchaseOutcome {
+        if (item.id in owned[memberId].orEmpty()) return PurchaseOutcome.AlreadyOwned
+        val balance = ledger.totalsOf(memberId).balance
+        if (balance < item.price) return PurchaseOutcome.InsufficientBalance(balance, item.price)
+        owned.getOrPut(memberId) { mutableSetOf() } += item.id
+        val key = shopSourceKey(memberId.value, item.id)
+        ledger.append(
+            LedgerEntry(LedgerEntryId(debitEntryId), memberId, EntryKind.SHOP, -item.price, "Shop: ${item.title}", null, key, memberId, at),
+        )
+        return PurchaseOutcome.Purchased(balance - item.price)
     }
 }

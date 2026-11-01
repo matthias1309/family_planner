@@ -135,10 +135,6 @@ class ExposedRedemptionRepository(
     private fun JdbcTransaction.rowOf(id: RedemptionId): ResultRow? =
         RedemptionTable.selectAll().where { RedemptionTable.id eq id.value }.firstOrNull()
 
-    /** Balance = sum of all ledger rows of the member (see `totalsFrom`). */
-    private fun JdbcTransaction.balanceOf(memberId: MemberId): Int =
-        LedgerTable.selectAll().where { LedgerTable.memberId eq memberId.value }.sumOf { it[LedgerTable.amount] }
-
     private fun JdbcTransaction.insertRedemption(
         id: RedemptionId,
         memberId: MemberId,
@@ -155,20 +151,6 @@ class ExposedRedemptionRepository(
             it[price] = reward[RewardTable.price]
             it[status] = RedemptionStatus.PENDING.name
             it[requestedAt] = at.toEpochMilli()
-        }
-    }
-
-    private fun JdbcTransaction.insertEntry(entry: LedgerEntry) {
-        LedgerTable.insert {
-            it[id] = entry.id.value
-            it[memberId] = entry.memberId.value
-            it[kind] = entry.kind.name
-            it[amount] = entry.amount
-            it[title] = entry.title
-            it[note] = entry.note
-            it[sourceKey] = entry.sourceKey
-            it[createdBy] = entry.createdBy?.value
-            it[bookedAt] = entry.bookedAt.toEpochMilli()
         }
     }
 }

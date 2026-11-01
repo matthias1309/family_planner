@@ -56,10 +56,11 @@ ein Item gekauft hat** und das Küchenboard **4 Wochen** nicht mehr benötigt wi
 
 ## Open Questions
 
-- [ ] **Avatar-Technik:** Bausteine als Vektorgrafiken in der App zusammensetzen oder SVG vom Backend? Spike am Anfang
+- [x] **Avatar-Technik:** Bausteine als Vektorgrafiken in der App zusammensetzen oder SVG vom Backend? Spike am Anfang
   von Phase 5; Lizenz der Bausteine prüfen (Kandidaten: DiceBear-Stile mit CC0, „Avataaars“).
-- [ ] **Item-Preise:** fest im Katalog oder von den Eltern einstellbar? Vorschlag: Standardpreise, Eltern dürfen
-  später anpassen (Could).
+  *Entschieden 2026-11-01: Avataaars-Definition (DiceBear), Rendering in der App per AndroidSVG, Spike „Go“ — siehe ADR-0017.*
+- [x] **Item-Preise:** fest im Katalog oder von den Eltern einstellbar? Vorschlag: Standardpreise, Eltern dürfen
+  später anpassen (Could). *Entschieden 2026-11-01: Standardpreise im Katalog (10–30 Punkte); Eltern-Anpassung bleibt Could.*
 - [x] **Rangliste:** nur „Gesammelt gesamt“ oder zusätzlich Woche/Monat? Vorschlag: gesamt im MVP; Zeitraum als Could,
   falls der Altersunterschied (10 vs. 18) die Rangliste unfair wirken lässt. *Entschieden 2026-10-25: gesamt.*
 - [x] **Punkte fürs Kochen:** Standardwert? Vorschlag: einstellbar durch Eltern, Startwert 3 (Kochen ist mehr Arbeit
@@ -312,7 +313,7 @@ werden sollen, blockieren aber Avatar und Belohnungen nicht.
 | 1 | Punktekonto | Journal, Punkte aus Aufgaben und Kochen (inkl. REQ-MEAL-034), manuelle Buchung, Stand, Verlauf, Rangliste, Bereich „Ich“ — aufgeteilt in 1a Backend/API und 1b App (REQ-GAME-010–014) | complete | - | TASK 2 (1b: TASK 1) | 1a: `.claude/PRPs/reports/punktekonto-backend-report.md` (Backend umgesetzt); 1b: `.claude/PRPs/plans/punktekonto-app.plan.md` → Bericht `.claude/PRPs/reports/punktekonto-app-report.md` (App umgesetzt, auf Testhandys abgenommen 2026-10-31) |
 | 2 | Badges | Badge-Katalog, Regeln, Vergabe, Übersicht inkl. geheimer Badges (REQ-GAME-020/021) — aufgeteilt in 2a Backend/API und 2b App | complete | with 3, 4 | 1 | 2a: umgesetzt, Bericht `.claude/PRPs/reports/badges-backend-report.md`; 2b: umgesetzt, auf Testhandys abgenommen, Plan `.claude/PRPs/plans/completed/badges-app.plan.md`, Bericht `.claude/PRPs/reports/badges-app-report.md` |
 | 3 | Echte Belohnungen | Ausloben, Sparziel, Einlösen, Bestätigen (REQ-GAME-040–043) — aufgeteilt in 3a Backend/API und 3b App | in-progress | with 2, 4 | 1 | 3a: umgesetzt, Bericht `.claude/PRPs/reports/belohnungen-backend-report.md`; 3b: umgesetzt, Plan `.claude/PRPs/plans/completed/belohnungen-app.plan.md`, Bericht `.claude/PRPs/reports/belohnungen-app-report.md` (Abnahme Testhandy offen) |
-| 4 | Avatar & Shop | Spike + ADR zu Bausteinen/Lizenz, Avatar gestalten, Shop, Avatar in Rangliste/Board (REQ-GAME-030/031) — aufgeteilt in 4a Spike + Backend/API und 4b App | in-progress | with 2, 3 | 1 | 4a: Plan `.claude/PRPs/plans/avatar-spike-backend.plan.md` (Stil Avataaars, entschieden 2026-11-01); 4b: offen |
+| 4 | Avatar & Shop | Spike + ADR zu Bausteinen/Lizenz, Avatar gestalten, Shop, Avatar in Rangliste/Board (REQ-GAME-030/031) — aufgeteilt in 4a Spike + Backend/API und 4b App | in-progress | with 2, 3 | 1 | 4a: Plan `.claude/PRPs/plans/completed/avatar-spike-backend.plan.md`, Bericht `.claude/PRPs/reports/avatar-spike-backend-report.md` (umgesetzt, Stil Avataaars); 4b: offen |
 | 5 | Testbetrieb | 4 Wochen auf zwei Testhandys gegen die Testinstanz; Küchenboard parallel abbauen; Messung | pending | - | 2, 3, 4, TASK 3 | - |
 
 ### Phase Details

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Family Planner API
-  version: 0.9.0
+  version: 0.10.0
   description: Vertrag zwischen Android-App und Backend (ADR-0004). Alle Antworten nutzen den Envelope {success, data, error}.
 servers:
   - url: https://planner.home.arpa:8095
@@ -1256,6 +1256,100 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
+  /api/v1/gamification/avatar/catalog:
+    get:
+      operationId: getAvatarCatalog
+      tags: [gamification]
+      summary: Avatar-Katalog lesen (alle Rollen), Slots in Editor-Reihenfolge
+      responses:
+        '200':
+          description: Alle Slots mit ihren Teilen und Preisen (0 = Grundsortiment)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AvatarCatalogResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/gamification/avatars:
+    get:
+      operationId: listAvatars
+      tags: [gamification]
+      summary: Avatare aller Kinder lesen (alle Rollen), nur Kinder mit gespeichertem Avatar
+      responses:
+        '200':
+          description: Gespeicherte Avatare, nach Name sortiert
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MemberAvatarListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/gamification/members/{memberId}/avatar:
+    get:
+      operationId: getAvatarProfile
+      tags: [gamification]
+      summary: Avatar und gekaufte Teile eines Kindes (Kind nur das eigene, Eltern alle)
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      responses:
+        '200':
+          description: Avatar (null, solange keiner gespeichert ist) und gekaufte Teile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AvatarProfileResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    put:
+      operationId: saveAvatar
+      tags: [gamification]
+      summary: Avatar speichern (nur das Kind selbst; ersetzt die ganze Konfiguration)
+      description: Teile müssen zum Slot passen und kostenlos oder gekauft sein (409 sonst).
+      parameters:
+        - $ref: '#/components/parameters/MemberId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AvatarConfig' }
+      responses:
+        '200':
+          description: Gespeicherter Avatar mit Besitzliste
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AvatarProfileResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/gamification/avatar/items/{itemId}/purchase:
+    post:
+      operationId: purchaseAvatarItem
+      tags: [gamification]
+      summary: Avatar-Teil kaufen (nur Kinder, mit dem eigenen Guthaben)
+      description: |
+        Bucht den Preis sofort als SHOP-Eintrag ab (zählt nicht für „Gesammelt“). 409 bei zu wenig Guthaben,
+        bereits gekauftem oder kostenlosem Teil. Der Kauf ändert den Avatar nicht.
+      parameters:
+        - $ref: '#/components/parameters/AvatarItemId'
+      responses:
+        '201':
+          description: Gekauftes Teil mit neuem Guthaben
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AvatarPurchaseResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
 components:
   securitySchemes:
     deviceToken:
@@ -1324,6 +1418,11 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    AvatarItemId:
+      name: itemId
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[a-zA-Z]+\.[a-zA-Z0-9]+$', maxLength: 64 }
     RedemptionId:
       name: redemptionId
       in: path
@@ -2503,6 +2602,148 @@ components:
         data:
           allOf:
             - $ref: '#/components/schemas/SavingsGoal'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    AvatarSlot:
+      type: string
+      enum: [skin, top, hairColor, hatColor, eyes, eyebrows, mouth, clothes, clothesColor, clothesGraphic, accessories, facialHair, background]
+
+    ShopCategory:
+      type: string
+      enum: [HAIR, HEADWEAR, FACE, CLOTHES, ACCESSORIES, COLORS]
+
+    AvatarItem:
+      type: object
+      required: [id, slot, category, title, price]
+      properties:
+        id: { type: string, pattern: '^[a-zA-Z]+\.[a-zA-Z0-9]+$', maxLength: 64, description: '<slot>.<variante>, nie geändert' }
+        slot: { $ref: '#/components/schemas/AvatarSlot' }
+        category: { $ref: '#/components/schemas/ShopCategory' }
+        title: { type: string, minLength: 1, maxLength: 40 }
+        price: { type: integer, minimum: 0, maximum: 1000, description: 'Punkte; 0 = Grundsortiment (kostenlos, nicht kaufbar)' }
+
+    AvatarSlotInfo:
+      type: object
+      required: [slot, optional, items]
+      properties:
+        slot: { $ref: '#/components/schemas/AvatarSlot' }
+        optional: { type: boolean, description: 'Kein Teil erlaubt (z. B. Brille)' }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/AvatarItem' }
+
+    AvatarCatalog:
+      type: object
+      required: [slots]
+      properties:
+        slots:
+          type: array
+          description: 'In Editor-Reihenfolge'
+          items: { $ref: '#/components/schemas/AvatarSlotInfo' }
+
+    AvatarConfig:
+      type: object
+      description: 'Item-IDs je Slot; optionale Slots null/weggelassen = nichts getragen'
+      required: [skin, top, hairColor, hatColor, eyes, eyebrows, mouth, clothes, clothesColor, background]
+      properties:
+        skin: { type: string, maxLength: 64 }
+        top: { type: string, maxLength: 64 }
+        hairColor: { type: string, maxLength: 64 }
+        hatColor: { type: string, maxLength: 64 }
+        eyes: { type: string, maxLength: 64 }
+        eyebrows: { type: string, maxLength: 64 }
+        mouth: { type: string, maxLength: 64 }
+        clothes: { type: string, maxLength: 64 }
+        clothesColor: { type: string, maxLength: 64 }
+        background: { type: string, maxLength: 64 }
+        clothesGraphic: { type: string, maxLength: 64, nullable: true }
+        accessories: { type: string, maxLength: 64, nullable: true }
+        facialHair: { type: string, maxLength: 64, nullable: true }
+
+    MemberAvatar:
+      type: object
+      required: [memberId, avatar, updatedAt]
+      properties:
+        memberId: { type: string, format: uuid }
+        avatar: { $ref: '#/components/schemas/AvatarConfig' }
+        updatedAt: { type: string, format: date-time }
+
+    AvatarProfile:
+      type: object
+      required: [memberId, ownedItemIds]
+      properties:
+        memberId: { type: string, format: uuid }
+        avatar:
+          allOf:
+            - $ref: '#/components/schemas/AvatarConfig'
+          nullable: true
+          description: 'null, bis das Kind einmal gespeichert hat'
+        ownedItemIds:
+          type: array
+          description: 'Gekaufte Teile (ohne Grundsortiment)'
+          items: { type: string }
+
+    AvatarPurchase:
+      type: object
+      required: [item, balance]
+      properties:
+        item: { $ref: '#/components/schemas/AvatarItem' }
+        balance: { type: integer, description: 'Guthaben nach dem Kauf' }
+
+    AvatarCatalogResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/AvatarCatalog'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    MemberAvatarListResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          type: array
+          nullable: true
+          items: { $ref: '#/components/schemas/MemberAvatar' }
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    AvatarProfileResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/AvatarProfile'
+          nullable: true
+        error:
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+
+    AvatarPurchaseResponse:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+        data:
+          allOf:
+            - $ref: '#/components/schemas/AvatarPurchase'
           nullable: true
         error:
           allOf:
