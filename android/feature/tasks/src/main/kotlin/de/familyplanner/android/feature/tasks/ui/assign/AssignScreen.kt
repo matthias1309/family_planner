@@ -30,6 +30,7 @@ import de.familyplanner.android.core.ui.components.SubmitButton
 import de.familyplanner.android.feature.tasks.R
 import de.familyplanner.android.feature.tasks.domain.board.TaskLimits
 import de.familyplanner.android.feature.tasks.domain.catalog.CatalogTask
+import de.familyplanner.android.feature.tasks.ui.due.DueDateField
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -58,6 +59,7 @@ fun AssignScreen(
     ) {
         item { Text(stringResource(R.string.tasks_assign_title), style = MaterialTheme.typography.headlineMedium) }
         item { ChildChips(state, onEvent) }
+        item { DueDateField(state.dueAt, state.now, { onEvent(AssignEvent.DueDateChanged(it)) }, enabled = !state.isBusy) }
         item { ErrorText(state.error) }
         if (state.catalogEmpty) {
             item { Text(stringResource(R.string.tasks_assign_empty)) }

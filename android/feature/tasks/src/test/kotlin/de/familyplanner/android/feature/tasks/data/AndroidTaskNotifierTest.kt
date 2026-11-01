@@ -6,10 +6,12 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import de.familyplanner.android.feature.tasks.TaskOpenRequests
 import de.familyplanner.android.feature.tasks.domain.notice.TaskNotice
+import de.familyplanner.android.feature.tasks.domain.reminder.TaskReminder
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -89,5 +91,14 @@ class AndroidTaskNotifierTest {
         notifier.announce(TaskNotice.Assigned("t-1", "Bad"))
 
         assertTrue(manager.allNotifications.isEmpty())
+    }
+
+    @Test
+    fun `REQ-TASK-031 reminder names the task and the due time`() {
+        grant()
+
+        notifier.remind(TaskReminder("t-1", "Bad putzen", Instant.parse("2026-11-01T17:00:00Z"), Instant.parse("2026-11-01T15:00:00Z")))
+
+        assertEquals("Frist bald: Bad putzen" to "Bis So. 01.11. 18:00 erledigen.", texts())
     }
 }

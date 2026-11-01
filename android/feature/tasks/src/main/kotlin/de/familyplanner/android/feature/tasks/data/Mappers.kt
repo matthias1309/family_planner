@@ -15,10 +15,34 @@ internal fun ApiTaskCard.toDomain(): TaskCard? {
     val assigned = parseInstant(assignedAt)
     val reported = reportedAt?.let { parseInstant(it) }
     val done = doneAt?.let { parseInstant(it) }
+    val due = dueAt?.let { parseInstant(it) }
     val mapped = TaskStatus.entries.firstOrNull { it.name == status.name }
     // Ein vorhandener, aber unlesbarer Zeitpunkt ergibt null und damit einen Fehler, ein fehlender bleibt null.
-    val unreadable = assigned == null || mapped == null || (reportedAt != null && reported == null) || (doneAt != null && done == null)
-    return if (unreadable) null else TaskCard(id, memberId, title, emoji, points, mapped, rejectionReason, assigned, reported, done)
+    val unreadable =
+        assigned == null ||
+            mapped == null ||
+            (reportedAt != null && reported == null) ||
+            (doneAt != null && done == null) ||
+            (dueAt != null && due == null)
+    return if (unreadable) {
+        null
+    } else {
+        TaskCard(
+            id,
+            memberId,
+            title,
+            emoji,
+            points,
+            mapped,
+            rejectionReason,
+            assigned,
+            reported,
+            done,
+            due,
+            reportedLate == true,
+            selfAssigned == true,
+        )
+    }
 }
 
 internal fun ApiTaskLane.toDomain(): TaskLane? {
@@ -26,6 +50,6 @@ internal fun ApiTaskLane.toDomain(): TaskLane? {
     return TaskLane(memberId, name, mapped)
 }
 
-internal fun ApiCatalogTask.toDomain() = CatalogTask(id, title, emoji, points)
+internal fun ApiCatalogTask.toDomain() = CatalogTask(id, title, emoji, points, childSelectable == true)
 
-internal fun CatalogInput.toApi() = CatalogTaskInput(title = title, points = points, emoji = emoji)
+internal fun CatalogInput.toApi() = CatalogTaskInput(title = title, points = points, emoji = emoji, childSelectable = childSelectable)

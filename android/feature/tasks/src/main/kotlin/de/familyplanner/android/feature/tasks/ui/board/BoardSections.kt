@@ -31,6 +31,7 @@ private fun LazyListScope.cardItems(
             childName = childName(card),
             actions = state.actionsFor(card),
             enabled = !state.isBusy,
+            overdue = state.isOverdue(card),
             onAction = { onEvent(BoardEvent.Act(card, it)) },
         )
     }

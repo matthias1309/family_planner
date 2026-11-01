@@ -199,4 +199,44 @@ class BoardScreenTest {
 
         compose.onAllNodesWithTextFirst("Erledigt").assertIsNotEnabled()
     }
+
+    @Test
+    fun `REQ-TASK-027 overdue card shows overdue line and due line otherwise`() {
+        val late = card("late", title = "Spät", dueAt = noon.minusSeconds(3600))
+        val soon = card("soon", title = "Bald", dueAt = noon.plusSeconds(3600))
+        show(BoardUiState(memberId = "c-1", isParent = false, lanes = listOf(lane("c-1", "Ben", late, soon)), now = noon))
+
+        compose.onNodeWithText("Überfällig seit", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Frist:", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-TASK-028 late report and self assigned are shown`() {
+        val late = card("l", title = "Zimmer", status = TaskStatus.REVIEW, reportedAt = noon, reportedLate = true, selfAssigned = true)
+        show(BoardUiState(memberId = "c-1", isParent = false, lanes = listOf(lane("c-1", "Ben", late)), now = noon))
+
+        compose.scrollTo("Zu spät gemeldet").assertIsDisplayed()
+        compose.onNodeWithText("Selbst genommen").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-TASK-028 pool button only for children`() {
+        show(child())
+        compose.onNodeWithText("Aufgabe nehmen", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun `REQ-TASK-028 parents and offline children have no pool button`() {
+        show(parent())
+        compose.onNodeWithText("Aufgabe nehmen", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `REQ-TASK-026 parent menu offers change due date`() {
+        show(BoardUiState(memberId = "p-1", isParent = true, lanes = lanes, selectedTab = 1))
+
+        compose.onAllNodesWithTextFirst("Weitere Aktionen", byDescription = true).performClick()
+
+        compose.onNodeWithText("Frist ändern").assertIsDisplayed()
+    }
 }

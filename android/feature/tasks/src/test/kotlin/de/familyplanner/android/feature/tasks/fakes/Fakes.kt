@@ -11,12 +11,14 @@ import de.familyplanner.android.feature.tasks.domain.board.CatalogRepository
 import de.familyplanner.android.feature.tasks.domain.board.TaskCard
 import de.familyplanner.android.feature.tasks.domain.board.TaskLane
 import de.familyplanner.android.feature.tasks.domain.board.TaskNotifier
+import de.familyplanner.android.feature.tasks.domain.board.TaskReminderScheduler
 import de.familyplanner.android.feature.tasks.domain.board.TaskRepository
 import de.familyplanner.android.feature.tasks.domain.board.TaskStatus
 import de.familyplanner.android.feature.tasks.domain.board.TaskSync
 import de.familyplanner.android.feature.tasks.domain.catalog.CatalogInput
 import de.familyplanner.android.feature.tasks.domain.catalog.CatalogTask
 import de.familyplanner.android.feature.tasks.domain.notice.TaskNotice
+import de.familyplanner.android.feature.tasks.domain.reminder.TaskReminder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.time.Instant
@@ -38,7 +40,10 @@ fun card(
     reportedAt: Instant? = null,
     doneAt: Instant? = null,
     emoji: String? = null,
-) = TaskCard(id, memberId, title, emoji, points, status, reason, assignedAt, reportedAt, doneAt)
+    dueAt: Instant? = null,
+    reportedLate: Boolean = false,
+    selfAssigned: Boolean = false,
+) = TaskCard(id, memberId, title, emoji, points, status, reason, assignedAt, reportedAt, doneAt, dueAt, reportedLate, selfAssigned)
 
 fun lane(
     memberId: String,
@@ -55,8 +60,13 @@ class FakeTaskRepository : TaskRepository {
     var assignResult: ApiResult<List<TaskCard>> = ApiResult.Success(emptyList())
     var moveResult: ((String) -> ApiResult<TaskCard>)? = null
     var removeResult: ApiResult<Unit> = ApiResult.Success(Unit)
+    var dueDateResult: ((String, Instant?) -> ApiResult<TaskCard>)? = null
+    var takeResult: ApiResult<TaskCard>? = null
 
     var boardCalls = 0
+    val assignedDueDates = mutableListOf<Instant?>()
+    val dueDates = mutableListOf<Pair<String, Instant?>>()
+    val taken = mutableListOf<Pair<String, Boolean>>()
     val assigned = mutableListOf<Pair<String, List<String>>>()
     val moves = mutableListOf<Pair<String, String>>()
     val rejections = mutableListOf<Pair<String, String?>>()
@@ -75,9 +85,33 @@ class FakeTaskRepository : TaskRepository {
     override suspend fun assign(
         memberId: String,
         catalogTaskIds: List<String>,
+        dueAt: Instant?,
     ): ApiResult<List<TaskCard>> {
         assigned += memberId to catalogTaskIds
+        assignedDueDates += dueAt
         return assignResult
+    }
+
+    override suspend fun setDueDate(
+        cardId: String,
+        dueAt: Instant?,
+    ): ApiResult<TaskCard> {
+        dueDates += cardId to dueAt
+        return dueDateResult?.invoke(cardId, dueAt) ?: ApiResult.Success(card(cardId, dueAt = dueAt))
+    }
+
+    override suspend fun takeFromPool(
+        catalogTaskId: String,
+        alreadyDone: Boolean,
+    ): ApiResult<TaskCard> {
+        taken += catalogTaskId to alreadyDone
+        return takeResult ?: ApiResult.Success(
+            card(
+                "new-$catalogTaskId",
+                status = if (alreadyDone) TaskStatus.REVIEW else TaskStatus.TODO,
+                selfAssigned = true,
+            ),
+        )
     }
 
     private fun move(
@@ -113,6 +147,7 @@ class FakeCatalogRepository : CatalogRepository {
     var listResult: ApiResult<List<CatalogTask>> = ApiResult.Success(emptyList())
     var saveResult: ApiResult<CatalogTask>? = null
     var archiveResult: ApiResult<Unit> = ApiResult.Success(Unit)
+    var poolResult: ApiResult<List<CatalogTask>> = ApiResult.Success(emptyList())
 
     val created = mutableListOf<CatalogInput>()
     val updated = mutableListOf<Pair<String, CatalogInput>>()
@@ -120,9 +155,11 @@ class FakeCatalogRepository : CatalogRepository {
 
     override suspend fun list() = listResult
 
+    override suspend fun pool() = poolResult
+
     override suspend fun create(input: CatalogInput): ApiResult<CatalogTask> {
         created += input
-        return saveResult ?: ApiResult.Success(CatalogTask("k-new", input.title, input.emoji, input.points))
+        return saveResult ?: ApiResult.Success(CatalogTask("k-new", input.title, input.emoji, input.points, input.childSelectable))
     }
 
     override suspend fun update(
@@ -130,7 +167,7 @@ class FakeCatalogRepository : CatalogRepository {
         input: CatalogInput,
     ): ApiResult<CatalogTask> {
         updated += id to input
-        return saveResult ?: ApiResult.Success(CatalogTask(id, input.title, input.emoji, input.points))
+        return saveResult ?: ApiResult.Success(CatalogTask(id, input.title, input.emoji, input.points, input.childSelectable))
     }
 
     override suspend fun archive(id: String): ApiResult<Unit> {
@@ -178,9 +215,22 @@ class InMemoryBoardCache : BoardCache {
 
 class FakeTaskNotifier : TaskNotifier {
     val notices = mutableListOf<TaskNotice>()
+    val reminders = mutableListOf<TaskReminder>()
 
     override fun announce(notice: TaskNotice) {
         notices += notice
+    }
+
+    override fun remind(reminder: TaskReminder) {
+        reminders += reminder
+    }
+}
+
+class FakeTaskReminderScheduler : TaskReminderScheduler {
+    val scheduled = mutableListOf<List<TaskReminder>>()
+
+    override fun schedule(reminders: List<TaskReminder>) {
+        scheduled += reminders
     }
 }
 

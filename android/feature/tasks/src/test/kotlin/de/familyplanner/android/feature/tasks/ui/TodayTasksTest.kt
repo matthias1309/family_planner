@@ -16,6 +16,7 @@ import de.familyplanner.android.feature.tasks.fakes.card
 import de.familyplanner.android.feature.tasks.fakes.childSession
 import de.familyplanner.android.feature.tasks.fakes.lane
 import de.familyplanner.android.feature.tasks.fakes.networkDown
+import de.familyplanner.android.feature.tasks.fakes.noon
 import de.familyplanner.android.feature.tasks.fakes.parentSession
 import de.familyplanner.android.feature.tasks.ui.today.TodayTasksCard
 import de.familyplanner.android.feature.tasks.ui.today.TodayTasksUiState
@@ -119,5 +120,47 @@ class TodayTasksTest {
         repository.boardResult = networkDown
 
         assertTrue(viewModel(childSession).state.value.unavailable)
+    }
+
+    @Test
+    fun `REQ-TASK-027 today counts overdue and shows the due date for a child`() {
+        val clock = java.time.Clock.fixed(noon, java.time.ZoneOffset.UTC)
+        repository.boardResult =
+            ApiResult.Success(
+                listOf(
+                    lane(
+                        "c-1",
+                        "Ben",
+                        card("a", title = "Bad", dueAt = noon.minusSeconds(60)),
+                        card("b", title = "Müll", dueAt = noon.plusSeconds(3600)),
+                    ),
+                ),
+            )
+        val sessions = InMemorySessionStore(childSession)
+
+        val state = TodayTasksViewModel(sessions, LoadBoardUseCase(repository, cache, sessions), clock).state.value
+
+        assertEquals(1, state.overdueCount)
+        assertTrue(state.titles.first().overdue)
+        compose.setContent { FamilyPlannerTheme { TodayTasksCard(state, onOpenTasks = {}) } }
+        compose.onNodeWithText("1 überfällig").assertIsDisplayed()
+        compose.onNodeWithText("Müll · bis Sa. 24.10. 13:00").assertIsDisplayed()
+    }
+
+    @Test
+    fun `REQ-TASK-027 today counts overdue over all children for parents`() {
+        val clock = java.time.Clock.fixed(noon, java.time.ZoneOffset.UTC)
+        repository.boardResult =
+            ApiResult.Success(
+                listOf(
+                    lane("c-1", "Ben", card("a", dueAt = noon.minusSeconds(60))),
+                    lane("c-2", "Lea", card("b", "c-2", dueAt = noon.minusSeconds(60))),
+                ),
+            )
+        val sessions = InMemorySessionStore(parentSession)
+
+        val state = TodayTasksViewModel(sessions, LoadBoardUseCase(repository, cache, sessions), clock).state.value
+
+        assertEquals(2, state.overdueCount)
     }
 }

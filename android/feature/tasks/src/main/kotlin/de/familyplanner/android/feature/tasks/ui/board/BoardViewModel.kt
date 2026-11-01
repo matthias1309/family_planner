@@ -7,15 +7,18 @@ import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.data.map
 import de.familyplanner.android.core.data.session.Role
 import de.familyplanner.android.core.data.session.SessionStore
+import de.familyplanner.android.core.ui.BerlinZone
 import de.familyplanner.android.feature.tasks.domain.board.BoardLoad
 import de.familyplanner.android.feature.tasks.domain.board.CardAction
 import de.familyplanner.android.feature.tasks.domain.board.LoadBoardUseCase
 import de.familyplanner.android.feature.tasks.domain.board.MoveCardUseCase
 import de.familyplanner.android.feature.tasks.domain.board.RemoveCardUseCase
+import de.familyplanner.android.feature.tasks.domain.board.SetDueDateUseCase
 import de.familyplanner.android.feature.tasks.domain.board.TaskCard
 import de.familyplanner.android.feature.tasks.domain.board.TaskLane
 import de.familyplanner.android.feature.tasks.domain.board.TaskLimits
 import de.familyplanner.android.feature.tasks.domain.board.cardActions
+import de.familyplanner.android.feature.tasks.domain.board.isOverdue
 import de.familyplanner.android.feature.tasks.domain.board.orderedLanes
 import de.familyplanner.android.feature.tasks.domain.board.removing
 import de.familyplanner.android.feature.tasks.domain.board.replacing
@@ -28,6 +31,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Clock
 import java.time.Instant
 
 /** Reiter des Boards: die Sammelansicht der Eltern oder die Spur eines Kindes. */
@@ -53,6 +57,8 @@ data class BoardUiState(
     val rejecting: TaskCard? = null,
     val rejectReason: String = "",
     val confirming: Pair<TaskCard, CardAction>? = null,
+    val editingDue: TaskCard? = null,
+    val now: Instant = Instant.EPOCH,
 ) {
     private val ordered: List<TaskLane> get() = orderedLanes(lanes, memberId, isParent)
     val tabs: List<BoardTab>
@@ -69,7 +75,9 @@ data class BoardUiState(
 
     fun actionsFor(card: TaskCard): List<CardAction> = cardActions(card, memberId, isParent, isOffline)
 
-    fun sectionsOf(lane: TaskLane) = sections(lane.cards)
+    fun sectionsOf(lane: TaskLane) = sections(lane.cards, now)
+
+    fun isOverdue(card: TaskCard): Boolean = card.isOverdue(now)
 }
 
 sealed interface BoardEvent {
@@ -88,6 +96,10 @@ sealed interface BoardEvent {
         val value: String,
     ) : BoardEvent
 
+    data class ConfirmDueDate(
+        val dueAt: Instant?,
+    ) : BoardEvent
+
     data object ConfirmReject : BoardEvent
 
     data object ConfirmAction : BoardEvent
@@ -100,6 +112,8 @@ class BoardViewModel(
     private val loadBoard: LoadBoardUseCase,
     private val moveCard: MoveCardUseCase,
     private val removeCard: RemoveCardUseCase,
+    private val setDueDate: SetDueDateUseCase,
+    private val clock: Clock = Clock.system(BerlinZone),
 ) : ViewModel() {
     private val _state =
         MutableStateFlow(
@@ -124,9 +138,10 @@ class BoardViewModel(
             is BoardEvent.SelectTab -> _state.update { it.copy(selectedTab = event.index) }
             is BoardEvent.Act -> act(event.card, event.action)
             is BoardEvent.RejectReasonChanged -> _state.update { it.copy(rejectReason = event.value.take(TaskLimits.REASON_MAX)) }
+            is BoardEvent.ConfirmDueDate -> _state.value.editingDue?.let { perform(it, CardAction.SET_DUE_DATE, dueAt = event.dueAt) }
             BoardEvent.ConfirmReject -> _state.value.rejecting?.let { perform(it, CardAction.REJECT, _state.value.rejectReason) }
             BoardEvent.ConfirmAction -> _state.value.confirming?.let { (card, action) -> perform(card, action) }
-            BoardEvent.DismissDialog -> _state.update { it.copy(rejecting = null, rejectReason = "", confirming = null) }
+            BoardEvent.DismissDialog -> _state.update { it.copy(rejecting = null, rejectReason = "", confirming = null, editingDue = null) }
         }
     }
 
@@ -137,6 +152,7 @@ class BoardViewModel(
         if (_state.value.isBusy) return
         when (action) {
             CardAction.REJECT -> _state.update { it.copy(rejecting = card, rejectReason = "", actionError = null) }
+            CardAction.SET_DUE_DATE -> _state.update { it.copy(editingDue = card, actionError = null) }
             CardAction.ACCEPT_DIRECTLY, CardAction.REMOVE -> _state.update { it.copy(confirming = card to action, actionError = null) }
             else -> perform(card, action)
         }
@@ -160,7 +176,16 @@ class BoardViewModel(
         syncedAt: Instant,
         offline: Boolean,
     ) {
-        _state.update { it.copy(isLoading = false, error = null, lanes = lanes, syncedAt = syncedAt, isOffline = offline) }
+        _state.update {
+            it.copy(
+                isLoading = false,
+                error = null,
+                lanes = lanes,
+                syncedAt = syncedAt,
+                isOffline = offline,
+                now = clock.instant(),
+            )
+        }
         // Ein Reiter kann verschwunden sein (Kind entfernt): Auswahl auf einen gültigen Bereich klemmen.
         _state.update { it.copy(selectedTab = it.selectedIndex) }
     }
@@ -169,6 +194,7 @@ class BoardViewModel(
         card: TaskCard,
         action: CardAction,
         reason: String? = null,
+        dueAt: Instant? = null,
     ) {
         if (_state.value.isBusy) return
         // Ein laufendes Neuladen könnte das frischere Ergebnis dieser Aktion sonst überschreiben.
@@ -181,10 +207,11 @@ class BoardViewModel(
                 rejecting = null,
                 rejectReason = "",
                 confirming = null,
+                editingDue = null,
             )
         }
         viewModelScope.launch {
-            when (val result = change(card, action, reason)) {
+            when (val result = change(card, action, reason, dueAt)) {
                 is ApiResult.Success -> _state.update { it.copy(isBusy = false, lanes = result.data(it.lanes)) }
                 is ApiResult.Failure -> {
                     _state.update { it.copy(isBusy = false, actionError = result.error) }
@@ -199,10 +226,11 @@ class BoardViewModel(
         card: TaskCard,
         action: CardAction,
         reason: String?,
+        dueAt: Instant?,
     ): ApiResult<(List<TaskLane>) -> List<TaskLane>> =
-        if (action == CardAction.REMOVE) {
-            removeCard(card.id).map { { lanes: List<TaskLane> -> lanes.removing(card.id) } }
-        } else {
-            moveCard(card.id, action, reason).map { updated -> { lanes: List<TaskLane> -> lanes.replacing(updated) } }
+        when (action) {
+            CardAction.REMOVE, CardAction.PUT_BACK -> removeCard(card.id).map { { lanes: List<TaskLane> -> lanes.removing(card.id) } }
+            CardAction.SET_DUE_DATE -> setDueDate(card.id, dueAt).map { updated -> { lanes: List<TaskLane> -> lanes.replacing(updated) } }
+            else -> moveCard(card.id, action, reason).map { updated -> { lanes: List<TaskLane> -> lanes.replacing(updated) } }
         }
 }

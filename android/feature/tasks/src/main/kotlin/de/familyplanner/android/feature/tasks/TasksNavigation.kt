@@ -13,6 +13,7 @@ import de.familyplanner.android.feature.tasks.ui.catalog.CatalogEditRoute
 import de.familyplanner.android.feature.tasks.ui.catalog.CatalogRoute
 import de.familyplanner.android.feature.tasks.ui.history.HistoryArgs
 import de.familyplanner.android.feature.tasks.ui.history.HistoryRoute
+import de.familyplanner.android.feature.tasks.ui.pool.PoolRoute
 import kotlinx.serialization.Serializable
 
 /** Hauptbereich „Aufgaben“ (ADR-0014): das Board. */
@@ -24,6 +25,9 @@ data object TasksHomeRoute
 data class AssignRoute(
     val memberId: String? = null,
 )
+
+@Serializable
+data object PoolRoute
 
 @Serializable
 data object CatalogRoute
@@ -49,6 +53,7 @@ fun NavGraphBuilder.tasksGraph(
             onOpenCatalog = { navController.navigate(CatalogRoute) },
             onAssign = { navController.navigate(AssignRoute(it)) },
             onOpenHistory = { memberId, name -> navController.navigate(HistoryRoute(memberId, name)) },
+            onOpenPool = { navController.navigate(PoolRoute) },
             laneAvatar = laneAvatar,
         )
     }
@@ -58,6 +63,9 @@ fun NavGraphBuilder.tasksGraph(
             onOpenCatalog = { navController.navigate(CatalogRoute) },
             onDone = { navController.popBackStack() },
         )
+    }
+    composable<PoolRoute> {
+        PoolRoute(onDone = { navController.popBackStack() })
     }
     composable<CatalogRoute> {
         CatalogRoute(

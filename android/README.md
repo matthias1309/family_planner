@@ -223,6 +223,19 @@ Der Schalter kann auch als `fp.testInstance=true` in `local.properties` stehen. 
 - [x] Offline (WLAN aus): Board mit „Offline – Stand vom …“, keine Aktionen; „Heute“ zeigt Aufgaben aus dem Stand
 - [x] Erfolgssignal Phase 3: eine Woche Küchenboard auf den Testhandys vollständig nachgespielt
 
+## Abnahme-Checkliste TASK Phase 5 (manuell, zwei Testhandys gegen die Testinstanz; Abnahme offen)
+
+- [ ] Eltern: Katalogaufgabe „Mülleimer leeren“ → „Für Kinder frei wählbar“ an; Liste zeigt „Frei wählbar“
+- [ ] Eltern: Aufgabe Ben zuweisen mit Frist in ~2,5 h; Kind sieht „Frist: …“ auf Board und „Heute“
+- [ ] Kind-Handy offline schalten (WLAN aus); nach ~30 min (+ bis 1 h Verschiebung) kommt „Frist bald: …“
+- [ ] Nach Fristende: Karte rot „Überfällig seit …“, oben in Todo, „Heute“ zeigt „1 überfällig“ (auch offline)
+- [ ] Kind meldet nach Fristende → Abnahme zeigt „Zu spät gemeldet“; Eltern nehmen ab → volle Punkte
+- [ ] Eltern: Frist an einer Karte ändern und entfernen (Menü „Frist ändern“); entfernt → keine Erinnerung mehr nach Abgleich
+- [ ] Kind: „Aufgabe nehmen“ → „Schon erledigt“ → Karte in Abnahme mit „Selbst genommen“; Elternhandy bekommt Hinweis; abnehmen
+- [ ] Kind: „Nehmen“ → Karte in Todo; über Menü „Zurücklegen“ → verschwunden; zugewiesene Karte hat kein „Zurücklegen“
+- [ ] Eltern: Freigabe ausschalten → Pool beim Kind leer; Nehmen eines veralteten Eintrags zeigt Fehler
+- [ ] Neustart des Kindhandys mit künftiger Frist → Erinnerung kommt trotzdem
+
 ## Abnahme-Checkliste GAME Phase 1 (manuell, Testhandys gegen die Testinstanz; abgenommen 2026-10-31)
 
 - [x] Testinstanz läuft mit Backend aus Phase 1a (Migrationen V9/V10); Test-Build 0.10.0-test auf Eltern- und Kind-Testhandy (Update über 0.9.0-test)

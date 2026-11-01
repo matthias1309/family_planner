@@ -16,6 +16,9 @@ data class TaskCard(
     val assignedAt: Instant,
     val reportedAt: Instant?,
     val doneAt: Instant?,
+    val dueAt: Instant? = null,
+    val reportedLate: Boolean = false,
+    val selfAssigned: Boolean = false,
 )
 
 data class TaskLane(

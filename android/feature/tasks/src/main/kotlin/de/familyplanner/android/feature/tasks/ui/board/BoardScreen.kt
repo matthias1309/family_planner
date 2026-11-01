@@ -33,6 +33,7 @@ import de.familyplanner.android.core.ui.components.ErrorText
 import de.familyplanner.android.core.ui.formatDateTime
 import de.familyplanner.android.feature.tasks.R
 import de.familyplanner.android.feature.tasks.domain.board.CardAction
+import de.familyplanner.android.feature.tasks.ui.due.DueDatePickerDialog
 import org.koin.androidx.compose.koinViewModel
 
 private val ScreenPadding = 24.dp
@@ -43,6 +44,7 @@ fun BoardRoute(
     onOpenCatalog: () -> Unit,
     onAssign: (String?) -> Unit,
     onOpenHistory: (memberId: String, name: String) -> Unit,
+    onOpenPool: () -> Unit = {},
     laneAvatar: @Composable (memberId: String, name: String) -> Unit = { _, _ -> },
 ) {
     val viewModel = koinViewModel<BoardViewModel>()
@@ -52,7 +54,7 @@ fun BoardRoute(
         viewModel.onEvent(BoardEvent.Refresh)
         onPauseOrDispose {}
     }
-    BoardScreen(state, viewModel::onEvent, onOpenCatalog, onAssign, onOpenHistory, laneAvatar)
+    BoardScreen(state, viewModel::onEvent, onOpenCatalog, onAssign, onOpenHistory, onOpenPool, laneAvatar)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,6 +65,7 @@ fun BoardScreen(
     onOpenCatalog: () -> Unit,
     onAssign: (String?) -> Unit,
     onOpenHistory: (memberId: String, name: String) -> Unit,
+    onOpenPool: () -> Unit = {},
     laneAvatar: @Composable (memberId: String, name: String) -> Unit = { _, _ -> },
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -76,6 +79,14 @@ fun BoardScreen(
                 BoardTabs(state, onEvent, laneAvatar)
                 BoardContent(state, onEvent, onOpenHistory)
             }
+        }
+        if (!state.isParent && !state.isOffline) {
+            ExtendedFloatingActionButton(
+                onClick = onOpenPool,
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text(stringResource(R.string.tasks_pool_fab)) },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            )
         }
         if (state.isParent) {
             ExtendedFloatingActionButton(
@@ -177,6 +188,15 @@ private fun BoardDialogs(
             onReasonChange = { onEvent(BoardEvent.RejectReasonChanged(it)) },
             isBusy = state.isBusy,
             onConfirm = { onEvent(BoardEvent.ConfirmReject) },
+            onDismiss = { onEvent(BoardEvent.DismissDialog) },
+        )
+    }
+    state.editingDue?.let { card ->
+        DueDatePickerDialog(
+            initial = card.dueAt,
+            now = state.now,
+            allowRemove = card.dueAt != null,
+            onConfirm = { onEvent(BoardEvent.ConfirmDueDate(it)) },
             onDismiss = { onEvent(BoardEvent.DismissDialog) },
         )
     }

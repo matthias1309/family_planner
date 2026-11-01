@@ -100,4 +100,33 @@ class RemoteCatalogRepositoryTest {
             assertEquals("DELETE", server.takeRequest().method)
             assertEquals(ApiResult.Failure(AppError.Validation("Symbol ist zu lang")), repository.create(CatalogInput("A", "x", 1)))
         }
+
+    @Test
+    fun `REQ-TASK-011 pool maps tasks and child selectable flag`() =
+        runTest {
+            enqueue(200, ok("[" + taskJson.replace("\"archived\":false", "\"archived\":false,\"childSelectable\":true") + "]"))
+
+            val tasks = (repository.pool() as ApiResult.Success).data
+
+            assertEquals("/api/v1/tasks/pool", server.takeRequest().url.encodedPath)
+            assertEquals(true, tasks.single().childSelectable)
+        }
+
+    @Test
+    fun `REQ-TASK-011 child selectable is sent with the input`() =
+        runTest {
+            enqueue(201, ok(taskJson))
+
+            repository.create(CatalogInput("Müll", null, 1, childSelectable = true))
+
+            assertEquals(
+                true,
+                server
+                    .takeRequest()
+                    .body
+                    ?.utf8()
+                    .orEmpty()
+                    .contains(""""childSelectable":true"""),
+            )
+        }
 }

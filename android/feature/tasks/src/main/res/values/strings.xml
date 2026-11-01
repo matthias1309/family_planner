@@ -29,6 +29,24 @@
     <string name="tasks_action_reject">Zurückweisen</string>
     <string name="tasks_action_accept_directly">Direkt abnehmen</string>
     <string name="tasks_action_remove">Entfernen</string>
+    <string name="tasks_action_set_due">Frist ändern</string>
+    <string name="tasks_action_put_back">Zurücklegen</string>
+    <string name="tasks_card_due">Frist: %1$s</string>
+    <string name="tasks_card_overdue">Überfällig seit %1$s</string>
+    <string name="tasks_card_reported_late">Zu spät gemeldet</string>
+    <string name="tasks_card_self_assigned">Selbst genommen</string>
+
+    <string name="tasks_due_none">Frist: keine</string>
+    <string name="tasks_due_value">Frist: %1$s</string>
+    <string name="tasks_due_remove">Frist entfernen</string>
+    <string name="tasks_due_title">Uhrzeit der Frist</string>
+    <string name="tasks_due_next">Weiter</string>
+
+    <string name="tasks_pool_fab">Aufgabe nehmen</string>
+    <string name="tasks_pool_title">Aufgabe nehmen</string>
+    <string name="tasks_pool_take">Nehmen</string>
+    <string name="tasks_pool_take_done">Schon erledigt</string>
+    <string name="tasks_pool_empty">Gerade ist nichts frei wählbar.</string>
 
     <string name="tasks_reject_title">Aufgabe zurückweisen?</string>
     <string name="tasks_reject_text">„%1$s“ geht zurück nach Todo.</string>
@@ -60,6 +78,8 @@
     <string name="tasks_field_emoji">Symbol (optional)</string>
     <string name="tasks_field_emoji_hint">z. B. 🧹</string>
     <string name="tasks_field_points">Punkte</string>
+    <string name="tasks_field_child_selectable">Für Kinder frei wählbar</string>
+    <string name="tasks_catalog_child_selectable">Frei wählbar</string>
     <string name="tasks_points_less">Weniger Punkte</string>
     <string name="tasks_points_more">Mehr Punkte</string>
     <string name="tasks_save">Speichern</string>
@@ -71,6 +91,7 @@
     <string name="tasks_today_title_parent">Aufgaben</string>
     <string name="tasks_today_open">%1$d offen</string>
     <string name="tasks_today_rejected">%1$d zurückgewiesen</string>
+    <string name="tasks_today_due">%1$s · bis %2$s</string>
     <string name="tasks_today_all_done">Alles erledigt 🎉</string>
     <string name="tasks_today_review_none">Nichts zur Abnahme.</string>
     <string name="tasks_today_unavailable">Aufgaben gerade nicht erreichbar.</string>
@@ -78,6 +99,14 @@
         <item quantity="one">%1$d wartet auf Abnahme</item>
         <item quantity="other">%1$d warten auf Abnahme</item>
     </plurals>
+
+    <plurals name="tasks_today_overdue">
+        <item quantity="one">%1$d überfällig</item>
+        <item quantity="other">%1$d überfällig</item>
+    </plurals>
+
+    <string name="tasks_reminder_title">Frist bald: %1$s</string>
+    <string name="tasks_reminder_text">Bis %1$s erledigen.</string>
 
     <string name="tasks_channel">Aufgaben</string>
     <string name="tasks_notice_reported_title">%1$s hat „%2$s“ erledigt</string>

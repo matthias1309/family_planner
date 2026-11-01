@@ -62,6 +62,9 @@ fun CatalogScreen(
                 Card(onClick = { onOpen(task.id) }) {
                     ListItem(
                         headlineContent = { Text(listOfNotNull(task.emoji, task.title).joinToString(" ")) },
+                        supportingContent = {
+                            if (task.childSelectable) Text(stringResource(R.string.tasks_catalog_child_selectable))
+                        },
                         trailingContent = { Text(stringResource(R.string.tasks_card_points, task.points)) },
                     )
                 }

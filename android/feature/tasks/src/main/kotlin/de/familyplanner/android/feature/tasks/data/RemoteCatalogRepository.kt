@@ -16,6 +16,9 @@ class RemoteCatalogRepository(
     override suspend fun list(): ApiResult<List<CatalogTask>> =
         apiCall(json, { tasks.listCatalogTasks() }) { response -> response.data?.filterNot { it.archived }?.map { it.toDomain() } }
 
+    override suspend fun pool(): ApiResult<List<CatalogTask>> =
+        apiCall(json, { tasks.getTaskPool() }) { response -> response.data?.map { it.toDomain() } }
+
     override suspend fun create(input: CatalogInput): ApiResult<CatalogTask> =
         apiCall(json, { tasks.createCatalogTask(input.toApi()) }) { it.data?.toDomain() }
 

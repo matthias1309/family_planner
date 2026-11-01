@@ -23,6 +23,7 @@ data class CatalogEditUiState(
     val title: String = "",
     val emoji: String = "",
     val points: Int = TaskLimits.POINTS_DEFAULT,
+    val childSelectable: Boolean = false,
     val isLoading: Boolean = false,
     val loadError: AppError? = null,
     val isBusy: Boolean = false,
@@ -45,6 +46,10 @@ sealed interface CatalogEditEvent {
 
     data class PointsChanged(
         val value: Int,
+    ) : CatalogEditEvent
+
+    data class ChildSelectableChanged(
+        val value: Boolean,
     ) : CatalogEditEvent
 
     data object Save : CatalogEditEvent
@@ -75,6 +80,7 @@ class CatalogEditViewModel(
             is CatalogEditEvent.EmojiChanged -> _state.update { it.copy(emoji = event.value.take(TaskLimits.EMOJI_MAX), error = null) }
             is CatalogEditEvent.PointsChanged ->
                 _state.update { it.copy(points = event.value.coerceIn(TaskLimits.POINTS_MIN, TaskLimits.POINTS_MAX), error = null) }
+            is CatalogEditEvent.ChildSelectableChanged -> _state.update { it.copy(childSelectable = event.value, error = null) }
             CatalogEditEvent.Save -> save()
             CatalogEditEvent.AskArchive -> _state.update { it.copy(confirmingArchive = true) }
             CatalogEditEvent.DismissArchive -> _state.update { it.copy(confirmingArchive = false) }
@@ -94,7 +100,13 @@ class CatalogEditViewModel(
                         if (task == null) {
                             it.copy(isLoading = false, loadError = AppError.NotFound)
                         } else {
-                            it.copy(isLoading = false, title = task.title, emoji = task.emoji.orEmpty(), points = task.points)
+                            it.copy(
+                                isLoading = false,
+                                title = task.title,
+                                emoji = task.emoji.orEmpty(),
+                                points = task.points,
+                                childSelectable = task.childSelectable,
+                            )
                         }
                     }
                     is ApiResult.Failure -> it.copy(isLoading = false, loadError = result.error)
@@ -108,7 +120,7 @@ class CatalogEditViewModel(
         if (!current.canSave) return
         _state.update { it.copy(isBusy = true, error = null) }
         viewModelScope.launch {
-            val input = CatalogInput(current.title, current.emoji, current.points)
+            val input = CatalogInput(current.title, current.emoji, current.points, current.childSelectable)
             when (val result = catalog.save(current.catalogTaskId, input)) {
                 is ApiResult.Success -> _state.update { it.copy(isBusy = false, isDone = true) }
                 is ApiResult.Failure -> _state.update { it.copy(isBusy = false, error = result.error) }

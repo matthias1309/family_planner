@@ -9,10 +9,13 @@ import de.familyplanner.android.feature.tasks.domain.board.TaskRepository
 import de.familyplanner.api.client.TasksApi
 import de.familyplanner.api.model.AssignTasksRequest
 import de.familyplanner.api.model.RejectTaskRequest
+import de.familyplanner.api.model.TakePoolTaskRequest
 import kotlinx.serialization.json.Json
+import java.time.Instant
 
 class RemoteTaskRepository(
     private val tasks: TasksApi,
+    private val dueDates: TaskDueDateApi,
     private val json: Json,
 ) : TaskRepository {
     override suspend fun board(): ApiResult<List<TaskLane>> =
@@ -26,8 +29,22 @@ class RemoteTaskRepository(
     override suspend fun assign(
         memberId: String,
         catalogTaskIds: List<String>,
+        dueAt: Instant?,
     ): ApiResult<List<TaskCard>> =
-        apiCall(json, { tasks.assignTasks(AssignTasksRequest(memberId, catalogTaskIds)) }) { response -> response.data?.cards() }
+        apiCall(json, { tasks.assignTasks(AssignTasksRequest(memberId, catalogTaskIds, dueAt?.toString())) }) { response ->
+            response.data?.cards()
+        }
+
+    /** Der Server verlangt den Schlüssel `dueAt`; `null` heißt „Frist entfernen“. */
+    override suspend fun setDueDate(
+        cardId: String,
+        dueAt: Instant?,
+    ): ApiResult<TaskCard> = apiCall(json, { dueDates.setTaskDueDate(cardId, dueDateBody(dueAt)) }) { it.data?.toDomain() }
+
+    override suspend fun takeFromPool(
+        catalogTaskId: String,
+        alreadyDone: Boolean,
+    ): ApiResult<TaskCard> = apiCall(json, { tasks.takePoolTask(catalogTaskId, TakePoolTaskRequest(alreadyDone)) }) { it.data?.toDomain() }
 
     override suspend fun report(cardId: String): ApiResult<TaskCard> = apiCall(json, { tasks.reportTask(cardId) }) { it.data?.toDomain() }
 

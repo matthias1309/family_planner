@@ -14,4 +14,4 @@ fun validateCatalogInput(input: CatalogInput): AppError.Validation? =
         else -> null
     }
 
-internal fun CatalogInput.normalized() = CatalogInput(title.trim(), emoji?.trim()?.takeIf { it.isNotEmpty() }, points)
+internal fun CatalogInput.normalized() = CatalogInput(title.trim(), emoji?.trim()?.takeIf { it.isNotEmpty() }, points, childSelectable)

@@ -2,8 +2,10 @@ package de.familyplanner.android.feature.tasks.domain
 
 import de.familyplanner.android.feature.tasks.domain.board.CardAction
 import de.familyplanner.android.feature.tasks.domain.board.TaskStatus
+import de.familyplanner.android.feature.tasks.domain.board.adding
 import de.familyplanner.android.feature.tasks.domain.board.cardActions
 import de.familyplanner.android.feature.tasks.domain.board.orderedLanes
+import de.familyplanner.android.feature.tasks.domain.board.overdueCount
 import de.familyplanner.android.feature.tasks.domain.board.removing
 import de.familyplanner.android.feature.tasks.domain.board.replacing
 import de.familyplanner.android.feature.tasks.domain.board.reviewCount
@@ -11,6 +13,7 @@ import de.familyplanner.android.feature.tasks.domain.board.reviewQueue
 import de.familyplanner.android.feature.tasks.domain.board.sections
 import de.familyplanner.android.feature.tasks.fakes.card
 import de.familyplanner.android.feature.tasks.fakes.lane
+import de.familyplanner.android.feature.tasks.fakes.noon
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -36,7 +39,7 @@ class BoardRulesTest {
     @Test
     fun `REQ-TASK-023 parent sees accept, reject and remove on review cards`() {
         assertEquals(
-            listOf(CardAction.ACCEPT, CardAction.REJECT, CardAction.REMOVE),
+            listOf(CardAction.ACCEPT, CardAction.REJECT, CardAction.SET_DUE_DATE, CardAction.REMOVE),
             cardActions(review, "p-1", isParent = true, isOffline = false),
         )
     }
@@ -44,7 +47,7 @@ class BoardRulesTest {
     @Test
     fun `REQ-TASK-023 parent can accept a todo card directly or remove it`() {
         assertEquals(
-            listOf(CardAction.ACCEPT_DIRECTLY, CardAction.REMOVE),
+            listOf(CardAction.ACCEPT_DIRECTLY, CardAction.SET_DUE_DATE, CardAction.REMOVE),
             cardActions(todo, "p-1", isParent = true, isOffline = false),
         )
     }
@@ -69,7 +72,7 @@ class BoardRulesTest {
                 card("d2", status = TaskStatus.DONE, doneAt = at(13)),
             )
 
-        val result = sections(cards)
+        val result = sections(cards, noon)
 
         assertEquals(listOf("t1", "t2"), result.todo.map { it.id })
         assertEquals(listOf("r1", "r2"), result.review.map { it.id })
@@ -110,5 +113,77 @@ class BoardRulesTest {
         assertEquals(TaskStatus.REVIEW, moved[0].cards.first { it.id == "a" }.status)
         assertEquals(listOf("a"), removed[0].cards.map { it.id })
         assertEquals(listOf("c"), removed[1].cards.map { it.id })
+    }
+
+    private val hour = { h: Int -> Instant.parse("2026-10-24T%02d:00:00Z".format(h)) }
+
+    @Test
+    fun `REQ-TASK-027 overdue cards come first in todo ordered by due date`() {
+        val cards =
+            listOf(
+                card("plain", assignedAt = hour(8)),
+                card("late2", assignedAt = hour(9), dueAt = hour(9)),
+                card("future", assignedAt = hour(7), dueAt = hour(20)),
+                card("late1", assignedAt = hour(10), dueAt = hour(8)),
+            )
+
+        assertEquals(listOf("late1", "late2", "future", "plain"), sections(cards, noon).todo.map { it.id })
+    }
+
+    @Test
+    fun `REQ-TASK-027 rejected card after deadline is overdue again and on top`() {
+        val rejected = card("x", reason = "nochmal", assignedAt = hour(11), dueAt = hour(9))
+
+        assertEquals(listOf("x", "a"), sections(listOf(card("a", assignedAt = hour(8)), rejected), noon).todo.map { it.id })
+    }
+
+    @Test
+    fun `REQ-TASK-026 parent sees set due date only for assigned cards`() {
+        val selfTaken = card("s", selfAssigned = true)
+
+        assertEquals(
+            listOf(CardAction.ACCEPT_DIRECTLY, CardAction.REMOVE),
+            cardActions(selfTaken, "p-1", isParent = true, isOffline = false),
+        )
+    }
+
+    @Test
+    fun `REQ-TASK-028 child can put back own self-assigned todo`() {
+        assertEquals(
+            listOf(CardAction.PUT_BACK, CardAction.REPORT),
+            cardActions(card("s", selfAssigned = true), "c-1", isParent = false, isOffline = false),
+        )
+    }
+
+    @Test
+    fun `REQ-TASK-028 child cannot put back assigned card`() {
+        assertEquals(listOf(CardAction.REPORT), cardActions(todo, "c-1", isParent = false, isOffline = false))
+    }
+
+    @Test
+    fun `REQ-TASK-028 adding puts the card into its lane once`() {
+        val lanes = listOf(lane("c-1", "Ben"), lane("c-2", "Lea"))
+
+        val added = lanes.adding(card("n")).adding(card("n"))
+
+        assertEquals(listOf("n"), added[0].cards.map { it.id })
+        assertEquals(emptyList(), added[1].cards)
+    }
+
+    @Test
+    fun `REQ-TASK-027 overdue count only counts open past-due todo cards`() {
+        val lanes =
+            listOf(
+                lane(
+                    "c-1",
+                    "Ben",
+                    card("a", dueAt = hour(9)),
+                    card("b", dueAt = hour(20)),
+                    card("r", status = TaskStatus.REVIEW, dueAt = hour(9)),
+                ),
+                lane("c-2", "Lea", card("c", "c-2", dueAt = noon)),
+            )
+
+        assertEquals(2, overdueCount(lanes, noon))
     }
 }

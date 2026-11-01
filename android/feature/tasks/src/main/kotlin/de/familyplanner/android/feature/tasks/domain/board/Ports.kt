@@ -4,7 +4,9 @@ import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.feature.tasks.domain.catalog.CatalogInput
 import de.familyplanner.android.feature.tasks.domain.catalog.CatalogTask
 import de.familyplanner.android.feature.tasks.domain.notice.TaskNotice
+import de.familyplanner.android.feature.tasks.domain.reminder.TaskReminder
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
 
 interface TaskRepository {
     suspend fun board(): ApiResult<List<TaskLane>>
@@ -17,7 +19,20 @@ interface TaskRepository {
     suspend fun assign(
         memberId: String,
         catalogTaskIds: List<String>,
+        dueAt: Instant?,
     ): ApiResult<List<TaskCard>>
+
+    /** `null` entfernt die Frist (REQ-TASK-026). */
+    suspend fun setDueDate(
+        cardId: String,
+        dueAt: Instant?,
+    ): ApiResult<TaskCard>
+
+    /** Kind nimmt eine freigegebene Aufgabe; [alreadyDone] meldet sie sofort (REQ-TASK-028). */
+    suspend fun takeFromPool(
+        catalogTaskId: String,
+        alreadyDone: Boolean,
+    ): ApiResult<TaskCard>
 
     suspend fun report(cardId: String): ApiResult<TaskCard>
 
@@ -35,6 +50,9 @@ interface TaskRepository {
 
 interface CatalogRepository {
     suspend fun list(): ApiResult<List<CatalogTask>>
+
+    /** Für Kinder freigegebene Aufgaben (REQ-TASK-011). */
+    suspend fun pool(): ApiResult<List<CatalogTask>>
 
     suspend fun create(input: CatalogInput): ApiResult<CatalogTask>
 
@@ -70,6 +88,13 @@ interface BoardCache {
 
 interface TaskNotifier {
     fun announce(notice: TaskNotice)
+
+    fun remind(reminder: TaskReminder)
+}
+
+/** Plant lokale Fristerinnerungen; je Karte höchstens ein Alarm, erneutes Planen ersetzt ihn (ADR-0013). */
+interface TaskReminderScheduler {
+    fun schedule(reminders: List<TaskReminder>)
 }
 
 /** Stößt den Abgleich im Hintergrund an (WorkManager, ADR-0013). */

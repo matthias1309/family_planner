@@ -388,7 +388,7 @@ gemeinsame Testphase auf den beiden Testhandys.
 - **Success signal**: Integrationstests decken Frist-Regeln und Pool-Rechte je Rolle ab; die aktuelle Familien-App
   läuft unverändert gegen das neue Backend.
 
-**Phase 5: Fristen & Pool App**
+**Phase 5: Fristen & Pool App** — Plan: `.claude/PRPs/plans/completed/fristen-pool-app.plan.md`; umgesetzt, Geräte-Abnahme offen
 - **Goal**: Eltern setzen Fristen, Kinder sehen sie, werden erinnert und können sich Aufgaben aus dem Pool nehmen.
 - **Scope**: Zuweisungs- und Katalog-Screens erweitern, Karte/„Heute“ mit Frist und Überfällig, Pool-Screen,
   Erinnerung über den Abgleich nach ADR-0013, Cache.

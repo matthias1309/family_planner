@@ -37,7 +37,18 @@ class StaticTaskRepository(
     override suspend fun assign(
         memberId: String,
         catalogTaskIds: List<String>,
+        dueAt: Instant?,
     ): ApiResult<List<TaskCard>> = unsupported
+
+    override suspend fun setDueDate(
+        cardId: String,
+        dueAt: Instant?,
+    ): ApiResult<TaskCard> = unsupported
+
+    override suspend fun takeFromPool(
+        catalogTaskId: String,
+        alreadyDone: Boolean,
+    ): ApiResult<TaskCard> = unsupported
 
     override suspend fun report(cardId: String): ApiResult<TaskCard> = unsupported
 

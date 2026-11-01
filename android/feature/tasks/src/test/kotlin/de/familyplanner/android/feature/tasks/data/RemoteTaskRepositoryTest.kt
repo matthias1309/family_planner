@@ -27,7 +27,7 @@ class RemoteTaskRepositoryTest {
     fun setUp() {
         server = MockWebServer().apply { start() }
         val retrofit = createRetrofit(ServerConfig(server.url("/").toString()), OkHttpClient(), json)
-        repository = RemoteTaskRepository(retrofit.create(TasksApi::class.java), json)
+        repository = RemoteTaskRepository(retrofit.create(TasksApi::class.java), retrofit.create(TaskDueDateApi::class.java), json)
     }
 
     @After
@@ -109,7 +109,7 @@ class RemoteTaskRepositoryTest {
         runTest {
             enqueue(201, ok("[" + cardJson("t-1") + "," + cardJson("t-2") + "]"))
 
-            val cards = (repository.assign("c-1", listOf("k-1", "k-2")) as ApiResult.Success).data
+            val cards = (repository.assign("c-1", listOf("k-1", "k-2"), null) as ApiResult.Success).data
 
             val request = server.takeRequest()
             assertEquals("POST", request.method)
@@ -167,5 +167,81 @@ class RemoteTaskRepositoryTest {
             assertEquals("DELETE", server.takeRequest().method)
             assertEquals(ApiResult.Failure(AppError.Conflict("Die Aufgabe ist schon erledigt")), repository.remove("t-1"))
             assertEquals(ApiResult.Failure(AppError.Forbidden), repository.remove("t-1"))
+        }
+
+    @Test
+    fun `REQ-TASK-026 removing the due date sends explicit null`() =
+        runTest {
+            enqueue(200, ok(cardJson()))
+
+            repository.setDueDate("t-1", null)
+
+            val request = server.takeRequest()
+            assertEquals("PUT /api/v1/tasks/cards/t-1/due-date", "${request.method} ${request.url.encodedPath}")
+            assertEquals("""{"dueAt":null}""", request.body?.utf8())
+        }
+
+    @Test
+    fun `REQ-TASK-026 setting the due date sends the iso instant`() =
+        runTest {
+            enqueue(200, ok(cardJson(extra = ""","dueAt":"2026-11-01T17:00:00Z"""")))
+
+            val card = (repository.setDueDate("t-1", Instant.parse("2026-11-01T17:00:00Z")) as ApiResult.Success).data
+
+            assertEquals("""{"dueAt":"2026-11-01T17:00:00Z"}""", server.takeRequest().body?.utf8())
+            assertEquals(Instant.parse("2026-11-01T17:00:00Z"), card.dueAt)
+        }
+
+    @Test
+    fun `REQ-TASK-026 assign sends due date only when set`() =
+        runTest {
+            enqueue(201, ok("[" + cardJson() + "]"))
+            enqueue(201, ok("[" + cardJson() + "]"))
+
+            repository.assign("c-1", listOf("k-1"), null)
+            repository.assign("c-1", listOf("k-1"), Instant.parse("2026-11-01T17:00:00Z"))
+
+            assertEquals(
+                false,
+                server
+                    .takeRequest()
+                    .body
+                    ?.utf8()
+                    .orEmpty()
+                    .contains("dueAt"),
+            )
+            assertEquals(
+                true,
+                server
+                    .takeRequest()
+                    .body
+                    ?.utf8()
+                    .orEmpty()
+                    .contains(""""dueAt":"2026-11-01T17:00:00Z""""),
+            )
+        }
+
+    @Test
+    fun `REQ-TASK-028 taking from the pool posts already done and reads late and self flags`() =
+        runTest {
+            enqueue(
+                201,
+                ok(cardJson(status = "REVIEW", extra = ""","reportedAt":"2026-10-24T11:00:00Z","reportedLate":true,"selfAssigned":true""")),
+            )
+
+            val card = (repository.takeFromPool("k-1", alreadyDone = true) as ApiResult.Success).data
+
+            val request = server.takeRequest()
+            assertEquals("/api/v1/tasks/pool/k-1/cards", request.url.encodedPath)
+            assertEquals("""{"alreadyDone":true}""", request.body?.utf8())
+            assertEquals(true, card.reportedLate && card.selfAssigned)
+        }
+
+    @Test
+    fun `REQ-TASK-026 unreadable due date is a server error`() =
+        runTest {
+            enqueue(200, ok("""{"lanes":[{"memberId":"c-1","name":"Ben","cards":[${cardJson(extra = ""","dueAt":"kaputt"""")}]}]}"""))
+
+            assertEquals(AppError.Server, (repository.board() as ApiResult.Failure).error)
         }
 }

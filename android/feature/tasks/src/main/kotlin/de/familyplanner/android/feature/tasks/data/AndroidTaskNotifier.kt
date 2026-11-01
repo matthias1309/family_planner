@@ -11,13 +11,16 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import de.familyplanner.android.core.ui.formatWeekdayDateTime
 import de.familyplanner.android.feature.tasks.R
 import de.familyplanner.android.feature.tasks.TaskOpenRequests
 import de.familyplanner.android.feature.tasks.domain.board.TaskNotifier
 import de.familyplanner.android.feature.tasks.domain.notice.TaskNotice
+import de.familyplanner.android.feature.tasks.domain.reminder.TaskReminder
 
 internal const val CHANNEL_TASKS = "tasks"
 internal const val TASK_ID_BASE = 100_000
+internal const val REMINDER_ID_BASE = 200_000
 private const val TASK_ID_MASK = 0xFFFF
 private const val OPEN_TASKS_REQUEST_CODE = 1
 
@@ -44,6 +47,14 @@ class AndroidTaskNotifier(
                         (notice.reason ?: context.getString(R.string.tasks_notice_rejected_text))
             }
         show(TASK_ID_BASE + (notice.cardId.hashCode() and TASK_ID_MASK), title, text)
+    }
+
+    override fun remind(reminder: TaskReminder) {
+        show(
+            REMINDER_ID_BASE + (reminder.cardId.hashCode() and TASK_ID_MASK),
+            context.getString(R.string.tasks_reminder_title, reminder.title),
+            context.getString(R.string.tasks_reminder_text, formatWeekdayDateTime(reminder.dueAt)),
+        )
     }
 
     private fun show(

@@ -2,6 +2,7 @@ package de.familyplanner.android.feature.tasks.ui.catalog
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -9,11 +10,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -75,6 +78,14 @@ fun CatalogEditScreen(
         )
         Text(stringResource(R.string.tasks_field_points), style = MaterialTheme.typography.titleMedium)
         PointsStepper(state.points, { onEvent(CatalogEditEvent.PointsChanged(it)) }, enabled = !state.isBusy)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.tasks_field_child_selectable), modifier = Modifier.weight(1f))
+            Switch(
+                checked = state.childSelectable,
+                onCheckedChange = { onEvent(CatalogEditEvent.ChildSelectableChanged(it)) },
+                enabled = !state.isBusy,
+            )
+        }
         ErrorText(state.error)
         SubmitButton(
             text = stringResource(R.string.tasks_save),
