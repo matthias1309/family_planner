@@ -120,4 +120,48 @@ class TasksCatalogApiTest {
                 client.call(HttpMethod.Get, "$CATALOG?includeArchived=maybe", family.parentToken, invalidRequestExpected = true).status,
             )
         }
+
+    @Test
+    fun `REQ-TASK-011 parent releases a task for the pool, update without flag keeps it`() =
+        testApplication {
+            start()
+            val family = setupFamilyWithChild()
+            val created =
+                client.call(
+                    HttpMethod.Post,
+                    CATALOG,
+                    family.parentToken,
+                    """{"title":"Bad putzen","points":3,"childSelectable":true}""",
+                )
+            val task = created.task()
+            assertEquals(true, task.childSelectable)
+            assertEquals(listOf(task.id), client.pool(family.childToken).map { it.id })
+
+            val renamed = client.call(HttpMethod.Put, "$CATALOG/${task.id}", family.parentToken, """{"title":"Bad schrubben","points":4}""")
+            assertEquals(true, renamed.task().childSelectable)
+            assertEquals(listOf("Bad schrubben"), client.pool(family.parentToken).map { it.title })
+
+            client.call(
+                HttpMethod.Put,
+                "$CATALOG/${task.id}",
+                family.parentToken,
+                """{"title":"Bad schrubben","points":4,"childSelectable":false}""",
+            )
+            assertTrue(client.pool(family.childToken).isEmpty())
+        }
+
+    @Test
+    fun `REQ-TASK-011 new task without flag is not in the pool`() =
+        testApplication {
+            start()
+            val family = setupFamilyWithChild()
+
+            val created = client.call(HttpMethod.Post, CATALOG, family.parentToken, """{"title":"Bad putzen","points":3}""")
+
+            assertEquals(false, created.task().childSelectable)
+            assertTrue(client.pool(family.parentToken).isEmpty())
+        }
+
+    private suspend fun HttpClient.pool(token: String): List<CatalogTask> =
+        checkNotNull(json.decodeFromString<CatalogTaskListResponse>(call(HttpMethod.Get, "/api/v1/tasks/pool", token).bodyAsText()).data)
 }

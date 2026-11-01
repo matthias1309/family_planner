@@ -46,6 +46,8 @@ class ExposedTaskCardRepository(
                 this[TaskCardsTable.assignedAt] = card.assignedAt.toEpochMilli()
                 this[TaskCardsTable.reportedAt] = card.reportedAt?.toEpochMilli()
                 this[TaskCardsTable.doneAt] = card.doneAt?.toEpochMilli()
+                this[TaskCardsTable.dueAt] = card.dueAt?.toEpochMilli()
+                this[TaskCardsTable.selfAssigned] = card.selfAssigned
             }
         }
     }
@@ -111,11 +113,44 @@ class ExposedTaskCardRepository(
     override suspend fun remove(id: TaskCardId): TransitionOutcome =
         dbQuery(db) {
             val removed = TaskCardsTable.deleteWhere { (TaskCardsTable.id eq id.value) and (status neq TaskStatus.DONE.name) }
-            when {
-                removed > 0 -> TransitionOutcome.CHANGED
-                row(id) != null -> TransitionOutcome.WRONG_STATUS
-                else -> TransitionOutcome.NOT_FOUND
-            }
+            outcome(removed, id)
+        }
+
+    override suspend fun setDueAt(
+        id: TaskCardId,
+        dueAt: Instant?,
+    ): TransitionOutcome =
+        dbQuery(db) {
+            val changed =
+                TaskCardsTable.update({ (TaskCardsTable.id eq id.value) and (TaskCardsTable.status neq TaskStatus.DONE.name) }) {
+                    it[TaskCardsTable.dueAt] = dueAt?.toEpochMilli()
+                }
+            outcome(changed, id)
+        }
+
+    override suspend fun removeOwnSelfAssigned(
+        id: TaskCardId,
+        memberId: MemberId,
+    ): TransitionOutcome =
+        dbQuery(db) {
+            val removed =
+                TaskCardsTable.deleteWhere {
+                    (TaskCardsTable.id eq id.value) and
+                        (TaskCardsTable.memberId eq memberId.value) and
+                        (selfAssigned eq true) and
+                        (status eq TaskStatus.TODO.name)
+                }
+            outcome(removed, id)
+        }
+
+    private fun JdbcTransaction.outcome(
+        affectedRows: Int,
+        id: TaskCardId,
+    ): TransitionOutcome =
+        when {
+            affectedRows > 0 -> TransitionOutcome.CHANGED
+            row(id) != null -> TransitionOutcome.WRONG_STATUS
+            else -> TransitionOutcome.NOT_FOUND
         }
 
     private fun JdbcTransaction.row(id: TaskCardId): ResultRow? =
@@ -153,5 +188,7 @@ class ExposedTaskCardRepository(
             assignedAt = Instant.ofEpochMilli(this[TaskCardsTable.assignedAt]),
             reportedAt = this[TaskCardsTable.reportedAt]?.let { Instant.ofEpochMilli(it) },
             doneAt = this[TaskCardsTable.doneAt]?.let { Instant.ofEpochMilli(it) },
+            dueAt = this[TaskCardsTable.dueAt]?.let { Instant.ofEpochMilli(it) },
+            selfAssigned = this[TaskCardsTable.selfAssigned],
         )
 }

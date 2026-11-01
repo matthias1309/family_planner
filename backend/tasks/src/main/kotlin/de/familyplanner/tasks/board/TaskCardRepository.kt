@@ -32,4 +32,16 @@ interface TaskCardRepository {
 
     /** Deletes the card unless it is DONE ([TransitionOutcome.WRONG_STATUS]). */
     suspend fun remove(id: TaskCardId): TransitionOutcome
+
+    /** Sets or clears the due date unless the card is DONE ([TransitionOutcome.WRONG_STATUS]). */
+    suspend fun setDueAt(
+        id: TaskCardId,
+        dueAt: Instant?,
+    ): TransitionOutcome
+
+    /** Deletes the card only if it belongs to [memberId], is self-assigned and still TODO. */
+    suspend fun removeOwnSelfAssigned(
+        id: TaskCardId,
+        memberId: MemberId,
+    ): TransitionOutcome
 }

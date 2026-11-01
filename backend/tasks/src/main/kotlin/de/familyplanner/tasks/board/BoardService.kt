@@ -1,7 +1,6 @@
 package de.familyplanner.tasks.board
 
 import de.familyplanner.core.error.AppException
-import de.familyplanner.core.error.validatedName
 import de.familyplanner.core.events.EventNotifier
 import de.familyplanner.core.member.Member
 import de.familyplanner.core.member.MemberId
@@ -13,6 +12,7 @@ import kotlinx.coroutines.CancellationException
 import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Duration
+import java.time.Instant
 import java.util.UUID
 
 internal const val CARD_NOT_FOUND = "Karte nicht gefunden"
@@ -31,6 +31,7 @@ class BoardService(
     suspend fun assign(
         memberId: MemberId,
         catalogTaskIds: List<CatalogTaskId>,
+        dueAt: Instant? = null,
     ): List<TaskCard> {
         if (catalogTaskIds.size !in 1..ASSIGN_MAX) {
             throw AppException.Validation("Bitte 1 bis $ASSIGN_MAX Aufgaben auswählen")
@@ -38,7 +39,8 @@ class BoardService(
         requireChild(memberId)
         val available = catalog.findActiveByIds(catalogTaskIds.distinct()).associateBy { it.id }
         val now = clock.instant()
-        val created = catalogTaskIds.map { newCard(TaskCardId(newId()), memberId, availableTask(available, it), now) }
+        val due = validatedDueAt(dueAt, now)
+        val created = catalogTaskIds.map { newCard(TaskCardId(newId()), memberId, availableTask(available, it), now, due) }
         cards.createAll(created)
         log.info("Task cards assigned: {} to {}", created.size, memberId.value)
         return created
@@ -80,12 +82,32 @@ class BoardService(
         reason: String?,
     ) = move(actor, id, TaskTransition.REJECT, validatedReason(reason))
 
-    suspend fun remove(id: TaskCardId) {
-        when (cards.remove(id)) {
-            TransitionOutcome.CHANGED -> log.info("Task card removed: {}", id.value)
-            TransitionOutcome.NOT_FOUND -> throw AppException.NotFound(CARD_NOT_FOUND)
-            TransitionOutcome.WRONG_STATUS -> throw AppException.Conflict("Erledigte Aufgaben können nicht entfernt werden")
+    /** Parents remove any card that is not DONE; children only put back their own self-assigned TODO cards. */
+    suspend fun remove(
+        actor: Actor,
+        id: TaskCardId,
+    ) {
+        if (actor.isParent) {
+            requireRemoved(cards.remove(id), "Erledigte Aufgaben können nicht entfernt werden")
+        } else {
+            requireOwnSelfAssigned(actor, requireCard(id))
+            requireRemoved(cards.removeOwnSelfAssigned(id, actor.id), "Nur offene Aufgaben können zurückgelegt werden")
         }
+        log.info("Task card removed: {}", id.value)
+    }
+
+    /** Sets, changes or (with `null`) clears the due date; DONE cards are frozen (REQ-TASK-026). */
+    suspend fun setDueAt(
+        id: TaskCardId,
+        dueAt: Instant?,
+    ): TaskCard {
+        val due = validatedDueAt(dueAt, clock.instant())
+        when (cards.setDueAt(id, due)) {
+            TransitionOutcome.CHANGED -> log.info("Task card due date set: {}", id.value)
+            TransitionOutcome.NOT_FOUND -> throw AppException.NotFound(CARD_NOT_FOUND)
+            TransitionOutcome.WRONG_STATUS -> throw AppException.Conflict("Erledigte Aufgaben können nicht mehr geändert werden")
+        }
+        return requireCard(id)
     }
 
     private suspend fun move(
@@ -122,7 +144,4 @@ class BoardService(
     }
 
     private suspend fun requireMember(id: MemberId): Member = members.findById(id) ?: throw AppException.NotFound(MEMBER_NOT_FOUND)
-
-    private fun validatedReason(reason: String?): String? =
-        reason?.takeIf { it.isNotBlank() }?.let { validatedName(it, "Begründung", REASON_MAX) }
 }

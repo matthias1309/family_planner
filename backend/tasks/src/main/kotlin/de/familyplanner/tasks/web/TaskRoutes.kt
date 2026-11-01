@@ -4,6 +4,7 @@ import de.familyplanner.api.model.AssignTasksRequest
 import de.familyplanner.api.model.CatalogTaskListResponse
 import de.familyplanner.api.model.CatalogTaskResponse
 import de.familyplanner.api.model.RejectTaskRequest
+import de.familyplanner.api.model.TakePoolTaskRequest
 import de.familyplanner.api.model.TaskBoard
 import de.familyplanner.api.model.TaskBoardResponse
 import de.familyplanner.api.model.TaskCardListResponse
@@ -16,6 +17,7 @@ import de.familyplanner.core.error.AppException
 import de.familyplanner.core.member.MemberId
 import de.familyplanner.tasks.board.BoardService
 import de.familyplanner.tasks.board.HISTORY_LIMIT_DEFAULT
+import de.familyplanner.tasks.board.PoolService
 import de.familyplanner.tasks.board.TaskCard
 import de.familyplanner.tasks.board.TaskCardId
 import de.familyplanner.tasks.catalog.CatalogService
@@ -34,16 +36,19 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
+import kotlinx.serialization.json.JsonObject
 import de.familyplanner.api.model.CatalogTaskInput as ApiCatalogTaskInput
 
 fun Route.taskRoutes(
     catalog: CatalogService,
     board: BoardService,
+    pool: PoolService,
 ) {
     authenticate(AUTH_DEVICE) {
         catalogRoutes(catalog)
         boardRoutes(board)
         transitionRoutes(board)
+        poolRoutes(catalog, pool)
     }
 }
 
@@ -76,7 +81,7 @@ private fun Route.boardRoutes(board: BoardService) {
         call.requireParent()
         val request = call.receive<AssignTasksRequest>()
         val ids = request.catalogTaskIds.map { CatalogTaskId(it) }
-        val cards = board.assign(MemberId(request.memberId), ids)
+        val cards = board.assign(MemberId(request.memberId), ids, parseDueAt(request.dueAt))
         call.respond(HttpStatusCode.Created, TaskCardListResponse(success = true, data = cards.map { it.toApi() }))
     }
     get("/api/v1/tasks/board") {
@@ -90,9 +95,12 @@ private fun Route.boardRoutes(board: BoardService) {
         call.respond(TaskCardListResponse(success = true, data = cards.map { it.toApi() }))
     }
     delete("/api/v1/tasks/cards/{cardId}") {
-        call.requireParent()
-        board.remove(call.cardId())
+        board.remove(call.principalOrThrow().toActor(), call.cardId())
         call.respond(HttpStatusCode.NoContent)
+    }
+    put("/api/v1/tasks/cards/{cardId}/due-date") {
+        call.requireParent()
+        call.respondCard(board.setDueAt(call.cardId(), dueAtOf(call.receive<JsonObject>())))
     }
 }
 
@@ -112,11 +120,27 @@ private fun Route.transitionRoutes(board: BoardService) {
     }
 }
 
+private fun Route.poolRoutes(
+    catalog: CatalogService,
+    pool: PoolService,
+) {
+    get("/api/v1/tasks/pool") {
+        call.principalOrThrow()
+        call.respond(CatalogTaskListResponse(success = true, data = catalog.pool().map { it.toApi() }))
+    }
+    post("/api/v1/tasks/pool/{catalogTaskId}/cards") {
+        val actor = call.principalOrThrow().toActor()
+        val id = CatalogTaskId(call.uuidParameter("catalogTaskId"))
+        val card = pool.take(actor, id, call.receive<TakePoolTaskRequest>().alreadyDone)
+        call.respond(HttpStatusCode.Created, TaskCardResponse(success = true, data = card.toApi()))
+    }
+}
+
 private suspend fun ApplicationCall.respondCard(card: TaskCard) = respond(TaskCardResponse(success = true, data = card.toApi()))
 
 private fun ApplicationCall.cardId() = TaskCardId(uuidParameter("cardId"))
 
-private fun ApiCatalogTaskInput.toInput() = CatalogTaskInput(title, emoji, points)
+private fun ApiCatalogTaskInput.toInput() = CatalogTaskInput(title, emoji, points, childSelectable)
 
 /** The rejection body is optional: no JSON content type means no reason. */
 private suspend fun ApplicationCall.optionalReason(): String? =

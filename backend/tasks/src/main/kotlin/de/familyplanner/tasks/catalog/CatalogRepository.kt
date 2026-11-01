@@ -8,6 +8,9 @@ interface CatalogRepository {
 
     suspend fun findById(id: CatalogTaskId): CatalogTask?
 
+    /** Active tasks that children may take themselves (the pool), sorted by title, case-insensitive. */
+    suspend fun findSelectable(): List<CatalogTask>
+
     /** Returns only the tasks among [ids] that exist and are not archived. */
     suspend fun findActiveByIds(ids: Collection<CatalogTaskId>): List<CatalogTask>
 

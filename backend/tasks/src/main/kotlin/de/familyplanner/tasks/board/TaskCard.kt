@@ -11,6 +11,7 @@ const val HISTORY_LIMIT_DEFAULT = 50
 const val HISTORY_LIMIT_MAX = 100
 const val ASSIGN_MAX = 20
 const val REASON_MAX = 200
+const val DUE_DATE_MAX_DAYS = 365L
 
 @JvmInline
 value class TaskCardId(
@@ -40,6 +41,9 @@ data class TaskCard(
     val assignedAt: Instant,
     val reportedAt: Instant?,
     val doneAt: Instant?,
+    val dueAt: Instant? = null,
+    /** `true` for cards a child took from the pool. */
+    val selfAssigned: Boolean = false,
 )
 
 /** One child's column on the board. */

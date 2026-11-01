@@ -97,4 +97,52 @@ class CatalogServiceTest {
 
             assertFalse(fixture.catalogRepository.update(task, fixture.clock.instant()))
         }
+
+    @Test
+    fun `REQ-TASK-011 new task is not selectable`() =
+        runTest {
+            assertFalse(service.create(CatalogTaskInput("Bad putzen", null, 2)).childSelectable)
+            assertEquals(emptyList(), service.pool())
+        }
+
+    @Test
+    fun `REQ-TASK-011 parent releases a task for the pool`() =
+        runTest {
+            val task = service.create(CatalogTaskInput("Bad putzen", null, 2, childSelectable = true))
+
+            assertTrue(task.childSelectable)
+            assertEquals(listOf(task), service.pool())
+        }
+
+    @Test
+    fun `REQ-TASK-011 update without flag keeps the release`() =
+        runTest {
+            val task = fixture.catalogTask(childSelectable = true)
+
+            val updated = service.update(task.id, CatalogTaskInput("Anders", null, 3))
+
+            assertTrue(updated.childSelectable)
+            assertEquals(listOf(updated), service.pool())
+        }
+
+    @Test
+    fun `REQ-TASK-011 update can withdraw the release`() =
+        runTest {
+            val task = fixture.catalogTask(childSelectable = true)
+
+            service.update(task.id, CatalogTaskInput(task.title, null, task.points, childSelectable = false))
+
+            assertEquals(emptyList(), service.pool())
+        }
+
+    @Test
+    fun `REQ-TASK-011 archived task leaves the pool and pool is sorted by title`() =
+        runTest {
+            val zebra = fixture.catalogTask(title = "Zebra", childSelectable = true)
+            val apple = fixture.catalogTask(title = "apfel", childSelectable = true)
+            fixture.catalogTask(title = "Intern")
+            fixture.catalogTask(title = "Alt", childSelectable = true).also { service.archive(it.id) }
+
+            assertEquals(listOf(apple, zebra), service.pool())
+        }
 }

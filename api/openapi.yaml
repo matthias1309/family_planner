@@ -775,7 +775,7 @@ paths:
       operationId: assignTasks
       tags: [tasks]
       summary: Katalogaufgaben einem Kind zuweisen (nur Eltern)
-      description: Je Katalog-ID entsteht eine Karte; Titel, Symbol und Punkte werden kopiert.
+      description: Je Katalog-ID entsteht eine Karte; Titel, Symbol und Punkte werden kopiert. Eine optionale Frist gilt für alle Karten des Aufrufs.
       requestBody:
         required: true
         content:
@@ -914,11 +914,78 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
+  /api/v1/tasks/cards/{cardId}/due-date:
+    put:
+      operationId: setTaskDueDate
+      tags: [tasks]
+      summary: Frist einer Karte setzen, ändern oder entfernen (nur Eltern)
+      description: dueAt=null entfernt die Frist. Erledigte Karten (DONE) sind nicht mehr änderbar.
+      parameters:
+        - $ref: '#/components/parameters/CardId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SetDueDateRequest' }
+      responses:
+        '200':
+          description: Geänderte Karte
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskCardResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/tasks/pool:
+    get:
+      operationId: getTaskPool
+      tags: [tasks]
+      summary: Pool der für Kinder freigegebenen Aufgaben
+      description: Aktive Katalogaufgaben mit childSelectable=true, nach Titel sortiert.
+      responses:
+        '200':
+          description: Freigegebene Aufgaben
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogTaskListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/tasks/pool/{catalogTaskId}/cards:
+    post:
+      operationId: takePoolTask
+      tags: [tasks]
+      summary: Aufgabe aus dem Pool nehmen (nur Kinder, für sich selbst)
+      description: alreadyDone=false erzeugt eine Karte in TODO, true eine Karte in REVIEW (sofort gemeldet).
+      parameters:
+        - $ref: '#/components/parameters/CatalogTaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TakePoolTaskRequest' }
+      responses:
+        '201':
+          description: Neue Karte
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TaskCardResponse' }
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
   /api/v1/tasks/cards/{cardId}:
     delete:
       operationId: removeTaskCard
       tags: [tasks]
-      summary: Karte entfernen (nur Eltern, nicht erledigte)
+      summary: 'Karte entfernen (Eltern: nicht erledigte; Kind: eigene selbst genommene in TODO)'
       parameters:
         - $ref: '#/components/parameters/CardId'
       responses:
@@ -2179,6 +2246,7 @@ components:
         emoji: { type: string, minLength: 1, maxLength: 16, nullable: true }
         points: { type: integer, minimum: 1, maximum: 100 }
         archived: { type: boolean }
+        childSelectable: { type: boolean, default: false }
 
     CatalogTaskInput:
       type: object
@@ -2187,6 +2255,10 @@ components:
         title: { type: string, minLength: 1, maxLength: 40 }
         emoji: { type: string, maxLength: 16, nullable: true }
         points: { type: integer, minimum: 1, maximum: 100 }
+        childSelectable:
+          type: boolean
+          nullable: true
+          description: 'Neu: fehlt = false. Ändern: fehlt = unverändert.'
 
     TaskCard:
       type: object
@@ -2203,6 +2275,9 @@ components:
         assignedAt: { type: string, format: date-time }
         reportedAt: { type: string, format: date-time, nullable: true }
         doneAt: { type: string, format: date-time, nullable: true }
+        dueAt: { type: string, format: date-time, nullable: true }
+        reportedLate: { type: boolean, default: false }
+        selfAssigned: { type: boolean, default: false }
 
     AssignTasksRequest:
       type: object
@@ -2214,6 +2289,19 @@ components:
           minItems: 1
           maxItems: 20
           items: { type: string, format: uuid }
+        dueAt: { type: string, format: date-time, nullable: true }
+
+    SetDueDateRequest:
+      type: object
+      required: [dueAt]
+      properties:
+        dueAt: { type: string, format: date-time, nullable: true }
+
+    TakePoolTaskRequest:
+      type: object
+      required: [alreadyDone]
+      properties:
+        alreadyDone: { type: boolean }
 
     RejectTaskRequest:
       type: object

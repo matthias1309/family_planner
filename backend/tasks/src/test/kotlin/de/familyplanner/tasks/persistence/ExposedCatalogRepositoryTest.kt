@@ -91,4 +91,28 @@ class ExposedCatalogRepositoryTest {
 
             assertEquals(listOf("a"), found.map { it.id.value })
         }
+
+    @Test
+    fun `REQ-TASK-011 release flag round-trips and update changes it`() =
+        runTest {
+            repository.create(task("a", "A").copy(childSelectable = true), now)
+            repository.create(task("b", "B"), now)
+
+            assertEquals(true, repository.findById(CatalogTaskId("a"))?.childSelectable)
+            assertEquals(false, repository.findById(CatalogTaskId("b"))?.childSelectable)
+            assertTrue(repository.update(task("b", "B").copy(childSelectable = true), now))
+            assertEquals(true, repository.findById(CatalogTaskId("b"))?.childSelectable)
+        }
+
+    @Test
+    fun `REQ-TASK-028 findSelectable returns released active tasks sorted by title`() =
+        runTest {
+            repository.create(task("1", "zebra").copy(childSelectable = true), now)
+            repository.create(task("2", "Apfel").copy(childSelectable = true), now)
+            repository.create(task("3", "Intern"), now)
+            repository.create(task("4", "Alt").copy(childSelectable = true), now)
+            repository.archive(CatalogTaskId("4"), now)
+
+            assertEquals(listOf("2", "1"), repository.findSelectable().map { it.id.value })
+        }
 }

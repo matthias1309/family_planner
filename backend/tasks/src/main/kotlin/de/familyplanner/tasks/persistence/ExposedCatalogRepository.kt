@@ -34,6 +34,15 @@ class ExposedCatalogRepository(
                 ?.toTask()
         }
 
+    override suspend fun findSelectable(): List<CatalogTask> =
+        dbQuery(db) {
+            TaskCatalogTable
+                .selectAll()
+                .where { TaskCatalogTable.archivedAt.isNull() and (TaskCatalogTable.childSelectable eq true) }
+                .map { it.toTask() }
+                .sortedBy { it.title.lowercase() }
+        }
+
     override suspend fun findActiveByIds(ids: Collection<CatalogTaskId>): List<CatalogTask> =
         dbQuery(db) {
             TaskCatalogTable
@@ -52,6 +61,7 @@ class ExposedCatalogRepository(
                 it[title] = task.title
                 it[emoji] = task.emoji
                 it[points] = task.points
+                it[childSelectable] = task.childSelectable
                 it[createdAt] = at.toEpochMilli()
                 it[updatedAt] = at.toEpochMilli()
             }
@@ -68,6 +78,7 @@ class ExposedCatalogRepository(
                     it[title] = task.title
                     it[emoji] = task.emoji
                     it[points] = task.points
+                    it[childSelectable] = task.childSelectable
                     it[updatedAt] = at.toEpochMilli()
                 }
             changed > 0
@@ -92,5 +103,6 @@ class ExposedCatalogRepository(
             emoji = this[TaskCatalogTable.emoji],
             points = this[TaskCatalogTable.points],
             archived = this[TaskCatalogTable.archivedAt] != null,
+            childSelectable = this[TaskCatalogTable.childSelectable],
         )
 }

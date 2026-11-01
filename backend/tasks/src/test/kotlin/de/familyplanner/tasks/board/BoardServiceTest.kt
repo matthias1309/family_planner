@@ -8,10 +8,13 @@ import de.familyplanner.tasks.catalog.CatalogTaskInput
 import de.familyplanner.tasks.fakes.TasksFixture
 import kotlinx.coroutines.test.runTest
 import java.time.Duration
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class BoardServiceTest {
     private val fixture = TasksFixture()
@@ -277,19 +280,139 @@ class BoardServiceTest {
     fun `REQ-TASK-024 parent removes todo or review card, not done`() =
         runTest {
             val child = fixture.child()
+            val parent = fixture.parent()
             val todo = assignOne(child)
             val review = reported(child)
-            val done = assignOne(child).also { board.accept(fixture.parent(), it.id) }
+            val done = assignOne(child).also { board.accept(parent, it.id) }
 
-            board.remove(todo.id)
-            board.remove(review.id)
+            board.remove(parent, todo.id)
+            board.remove(parent, review.id)
 
             assertEquals(
                 listOf(done.id),
                 fixture.cardRepository.cards.keys
                     .toList(),
             )
-            assertFailsWith<AppException.Conflict> { board.remove(done.id) }
-            assertFailsWith<AppException.NotFound> { board.remove(todo.id) }
+            assertFailsWith<AppException.Conflict> { board.remove(parent, done.id) }
+            assertFailsWith<AppException.NotFound> { board.remove(parent, todo.id) }
+        }
+
+    private fun due(hours: Long) = fixture.clock.instant().plus(Duration.ofHours(hours))
+
+    private suspend fun assignWithDue(
+        child: Actor,
+        dueAt: Instant?,
+    ): TaskCard = board.assign(child.id, listOf(fixture.catalogTask().id), dueAt).single()
+
+    @Test
+    fun `REQ-TASK-026 assigning sets the due date on every card`() =
+        runTest {
+            val child = fixture.child()
+            val ids = listOf(fixture.catalogTask().id, fixture.catalogTask().id)
+
+            val cards = board.assign(child.id, ids, due(5))
+
+            assertEquals(listOf(due(5), due(5)), cards.map { it.dueAt })
+            assertEquals(listOf(due(5), due(5)), cards.map { checkNotNull(fixture.cardRepository.cards[it.id]).dueAt })
+        }
+
+    @Test
+    fun `REQ-TASK-026 assigning without a due date leaves it empty`() =
+        runTest {
+            assertNull(assignWithDue(fixture.child(), null).dueAt)
+        }
+
+    @Test
+    fun `REQ-TASK-026 due date in the past is rejected and nothing is created`() =
+        runTest {
+            val child = fixture.child()
+
+            assertFailsWith<AppException.Validation> { assignWithDue(child, due(-1)) }
+
+            assertEquals(emptyMap(), fixture.cardRepository.cards)
+        }
+
+    @Test
+    fun `REQ-TASK-026 parent changes and clears the due date`() =
+        runTest {
+            val card = assignWithDue(fixture.child(), due(5))
+
+            assertEquals(due(9), board.setDueAt(card.id, due(9)).dueAt)
+            assertNull(board.setDueAt(card.id, null).dueAt)
+            assertFailsWith<AppException.Validation> { board.setDueAt(card.id, due(-1)) }
+            assertFailsWith<AppException.NotFound> { board.setDueAt(TaskCardId("missing"), due(1)) }
+        }
+
+    @Test
+    fun `REQ-TASK-026 due date of a reported card can still change`() =
+        runTest {
+            val child = fixture.child()
+            val card = assignWithDue(child, due(5)).also { board.report(child, it.id) }
+
+            assertEquals(due(8), board.setDueAt(card.id, due(8)).dueAt)
+        }
+
+    @Test
+    fun `REQ-TASK-026 due date of a done card cannot change`() =
+        runTest {
+            val card = assignWithDue(fixture.child(), due(5)).also { board.accept(fixture.parent(), it.id) }
+
+            assertFailsWith<AppException.Conflict> { board.setDueAt(card.id, due(8)) }
+            assertFailsWith<AppException.Conflict> { board.setDueAt(card.id, null) }
+        }
+
+    @Test
+    fun `REQ-TASK-027 report after the due date is flagged late`() =
+        runTest {
+            val child = fixture.child()
+            val card = assignWithDue(child, due(2))
+
+            fixture.clock.advance(Duration.ofHours(3))
+
+            assertTrue(board.report(child, card.id).isReportedLate())
+        }
+
+    @Test
+    fun `REQ-TASK-027 report before the due date is not late`() =
+        runTest {
+            val child = fixture.child()
+            val card = assignWithDue(child, due(2))
+
+            assertFalse(board.report(child, card.id).isReportedLate())
+        }
+
+    @Test
+    fun `REQ-TASK-028 child puts back own self-assigned todo card`() =
+        runTest {
+            val child = fixture.child()
+            val card = fixture.pool.take(child, fixture.catalogTask(childSelectable = true).id, alreadyDone = false)
+
+            board.remove(child, card.id)
+
+            assertEquals(emptyMap(), fixture.cardRepository.cards)
+        }
+
+    @Test
+    fun `REQ-TASK-028 child cannot remove an assigned card or another child's card`() =
+        runTest {
+            val child = fixture.child()
+            val sibling = fixture.child()
+            val assigned = assignOne(child)
+            val taken = fixture.pool.take(sibling, fixture.catalogTask(childSelectable = true).id, alreadyDone = false)
+
+            assertFailsWith<AppException.Forbidden> { board.remove(child, assigned.id) }
+            assertFailsWith<AppException.Forbidden> { board.remove(child, taken.id) }
+            assertFailsWith<AppException.NotFound> { board.remove(child, TaskCardId("missing")) }
+            assertEquals(2, fixture.cardRepository.cards.size)
+        }
+
+    @Test
+    fun `REQ-TASK-028 reported self-assigned card cannot be put back`() =
+        runTest {
+            val child = fixture.child()
+            val card = fixture.pool.take(child, fixture.catalogTask(childSelectable = true).id, alreadyDone = true)
+
+            assertFailsWith<AppException.Conflict> { board.remove(child, card.id) }
+            assertEquals(1, fixture.cardRepository.cards.size)
         }
 }

@@ -41,6 +41,7 @@ import de.familyplanner.meals.web.planRoutes
 import de.familyplanner.meals.web.recipeRoutes
 import de.familyplanner.meals.web.shoppingRoutes
 import de.familyplanner.tasks.board.BoardService
+import de.familyplanner.tasks.board.PoolService
 import de.familyplanner.tasks.catalog.CatalogService
 import de.familyplanner.tasks.tasksModule
 import de.familyplanner.tasks.web.taskRoutes
@@ -121,7 +122,7 @@ fun Application.module(
         cookingRoutes(get<DishReviewService>(), get<CookingWeekService>(), get<CookingConfirmationService>())
         recipeRoutes(get<RecipeService>())
         shoppingRoutes(get<ShoppingListService>())
-        taskRoutes(get<CatalogService>(), get<BoardService>())
+        taskRoutes(get<CatalogService>(), get<BoardService>(), get<PoolService>())
         gamificationRoutes(get<AccountService>(), get<GameSettingsService>(), get<BadgeService>())
         rewardRoutes(get<RewardService>(), get<RedemptionService>())
         avatarRoutes(get<AvatarService>())
