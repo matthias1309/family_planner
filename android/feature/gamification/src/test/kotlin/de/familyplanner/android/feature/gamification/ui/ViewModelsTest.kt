@@ -10,8 +10,11 @@ import de.familyplanner.android.feature.gamification.domain.CountPendingRedempti
 import de.familyplanner.android.feature.gamification.domain.LoadBadgesUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadChildAccountUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadPointsUseCase
+import de.familyplanner.android.feature.gamification.domain.avatar.AvatarDirectory
+import de.familyplanner.android.feature.gamification.fakes.FakeAvatarRepository
 import de.familyplanner.android.feature.gamification.fakes.FakePointsRepository
 import de.familyplanner.android.feature.gamification.fakes.FakeRewardRepository
+import de.familyplanner.android.feature.gamification.fakes.InMemoryAvatarCache
 import de.familyplanner.android.feature.gamification.fakes.InMemoryPointsCache
 import de.familyplanner.android.feature.gamification.fakes.badge
 import de.familyplanner.android.feature.gamification.fakes.childSession
@@ -46,10 +49,11 @@ class ViewModelsTest {
 
     private val repository = FakePointsRepository()
     private val cache = InMemoryPointsCache()
+    private val avatarDirectory = AvatarDirectory(FakeAvatarRepository(), InMemoryAvatarCache())
 
     private fun me(): MeViewModel {
         val sessions = InMemorySessionStore(childSession)
-        return MeViewModel(LoadPointsUseCase(repository, FakeRewardRepository(), cache, sessions), sessions)
+        return MeViewModel(LoadPointsUseCase(repository, FakeRewardRepository(), cache, sessions), sessions, avatarDirectory)
     }
 
     private fun family() =
@@ -57,6 +61,7 @@ class ViewModelsTest {
             LoadPointsUseCase(repository, FakeRewardRepository(), cache, InMemorySessionStore(parentSession)),
             CookingPointsUseCase(repository),
             CountPendingRedemptionsUseCase(FakeRewardRepository()),
+            avatarDirectory,
         )
 
     private fun account() =

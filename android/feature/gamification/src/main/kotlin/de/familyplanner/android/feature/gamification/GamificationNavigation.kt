@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountArgs
 import de.familyplanner.android.feature.gamification.ui.account.ChildAccountRoute
+import de.familyplanner.android.feature.gamification.ui.avatar.AvatarEditorRoute
 import de.familyplanner.android.feature.gamification.ui.badges.MemberBadgesArgs
 import de.familyplanner.android.feature.gamification.ui.badges.MemberBadgesRoute
 import de.familyplanner.android.feature.gamification.ui.manage.ManageRewardsRoute
@@ -20,6 +21,10 @@ data object MeHomeRoute
 /** Seite „Belohnungen“ (Kind). */
 @Serializable
 data object RewardsRoute
+
+/** Bildschirm „Avatar & Shop“ (Kind). */
+@Serializable
+data object AvatarEditorRoute
 
 /** Seite „Belohnungen verwalten“ (Eltern). */
 @Serializable
@@ -38,7 +43,14 @@ data class MemberBadgesRoute(
 )
 
 fun NavGraphBuilder.gamificationGraph(navController: NavHostController) {
-    composable<MeHomeRoute> { MeRoute(onOpenBadges = navController::openMemberBadges, onOpenRewards = navController::openRewards) }
+    composable<MeHomeRoute> {
+        MeRoute(
+            onOpenBadges = navController::openMemberBadges,
+            onOpenRewards = navController::openRewards,
+            onOpenAvatar = navController::openAvatarEditor,
+        )
+    }
+    composable<AvatarEditorRoute> { AvatarEditorRoute(onBack = { navController.popBackStack() }) }
     composable<RewardsRoute> { RewardsRoute(onBack = { navController.popBackStack() }) }
     composable<ManageRewardsRoute> { ManageRewardsRoute(onBack = { navController.popBackStack() }) }
     composable<ChildAccountRoute> { entry ->
@@ -64,3 +76,5 @@ fun NavHostController.openChildAccount(
 fun NavHostController.openRewards() = navigate(RewardsRoute)
 
 fun NavHostController.openManageRewards() = navigate(ManageRewardsRoute)
+
+fun NavHostController.openAvatarEditor() = navigate(AvatarEditorRoute)

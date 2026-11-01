@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.familyplanner.android.core.ui.avatar.AvatarCredit
 import de.familyplanner.android.core.ui.components.ErrorText
 import de.familyplanner.android.core.ui.formatDateTime
 import de.familyplanner.android.feature.gamification.R
@@ -53,6 +54,7 @@ fun FamilyPointsSection(
                 entries = snapshot.leaderboard,
                 highlightId = null,
                 onClick = if (state.isOffline) null else { child -> onOpenChild(child.memberId, child.name) },
+                looks = state.looks,
             )
         }
         state.cookingPoints?.let { points ->
@@ -64,6 +66,7 @@ fun FamilyPointsSection(
             }
         }
         RewardsRow(state, onOpenRewards)
+        AvatarCredit()
         HorizontalDivider()
     }
     state.editingCookingPoints?.let { value ->

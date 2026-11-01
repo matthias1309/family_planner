@@ -3,7 +3,7 @@
 ## Abgedeckte Anforderungen
 
 REQ-GAME-010, -011, -012, -013, -014 (Phase 1a, Backend/API), REQ-GAME-020, -021 (Phase 2a, Backend/API, Abschnitt „Badges“), REQ-GAME-040, -041 (Server-Anteil), -042, -043 (Phase 3a, Backend/API, Abschnitt „Belohnungen“), REQ-GAME-030, -031 (Phase 4a, Backend/API + Renderer, Abschnitt „Avatar & Shop“) und – Server-Anteil in `meals` – REQ-MEAL-034 — siehe
-[gamification.prd.md](../01-requirements/gamification.prd.md). Die App-Seite ist in Phase 1b (Punkte) und 2b (Badges) umgesetzt. Konventionen für Feature-Module:
+[gamification.prd.md](../01-requirements/gamification.prd.md). Die App-Seite ist in Phase 1b (Punkte), 2b (Badges), 3b (Belohnungen) und 4b (Avatar & Shop) umgesetzt. Konventionen für Feature-Module:
 [ADR-0010](../02-architecture/adr/0010-backend-feature-modules.md); Ereignisse: [ADR-0016](../02-architecture/adr/0016-domain-events-outbox.md).
 
 Die PRD-Notiz „Gutschrift in derselben Transaktion“ ist durch ADR-0016 ersetzt: Das Ereignis entsteht atomar mit dem Statuswechsel
@@ -138,7 +138,7 @@ Andere Übergänge gibt es nicht (`409`). Das Kind kann eine Einlösung nicht zu
 ## Avatar & Shop (Phase 4a)
 
 Paket `avatar`, alles im Modul `gamification`; Technik, Lizenz und Spike-Ergebnis: [ADR-0017](../02-architecture/adr/0017-avatar-bausteine.md).
-Die Bildschirme (Editor, Shop, Avatar in Rangliste/Board/„Heute“, Kauf-Hinweis beim Sparziel) folgen in Phase 4b.
+Die Bildschirme (Editor, Shop, Avatar in Rangliste/Board/„Heute“, Kauf-Hinweis beim Sparziel): Abschnitt „App-Seite Avatar & Shop (Phase 4b)“.
 
 **Begriffe:** *Slot* (`AvatarSlot`, 13 in Editor-Reihenfolge, `clothesGraphic`/`accessories`/`facialHair` optional), *Teil* (`AvatarItem`, Katalogeintrag mit
 Slot, Kategorie, Titel, Preis), *Grundsortiment* (Preis 0: gehört allen, nicht kaufbar), *Avatar* (`AvatarConfig`, Item-ID je Slot).
@@ -250,3 +250,30 @@ Gleiches Modul, kein Backend-/Vertragswechsel (OpenAPI 0.9.0). App 0.12.0. Hinwe
 
 Tests: `RewardsDomainTest`, `RewardUseCasesTest`, `RewardNoticesTest`, `SyncRewardNoticesUseCaseTest`, `RemoteRewardRepositoryTest`,
 `DataStoreRedemptionNoticeStoreTest`, `DataStorePointsCacheTest`, `UseCasesTest`, `RewardViewModelsTest`, `RewardScreensTest`, `GamificationModuleTest`.
+
+## App-Seite Avatar & Shop (Phase 4b)
+
+Gleiches Modul, kein Backend-/Vertragswechsel (OpenAPI 0.10.0). App 0.13.0. Renderer und Look-Typ `AvatarLook` liegen in `core:ui` (4a).
+
+| Bildschirm | Inhalt |
+|---|---|
+| „Ich“ (Kind) | Karte `MyAvatarCard` oben: eigener Avatar (64 dp) + „Avatar & Shop“ bzw. „Richte deinen Avatar ein“; offline deaktiviert |
+| „Avatar & Shop“ (`AvatarEditorRoute`, ohne Leiste) | Guthaben, große Vorschau, Rubrik-Tabs (14, `top` geteilt in Frisur/Kopfbedeckung), Raster, Aktionszeile (Kaufen / „Noch x Punkte“), Speichern, Quellenangabe |
+| „Heute“ (Kind) | `TodayAvatarRoute`: Karte mit eigenem Avatar; Eltern: nichts |
+| Rangliste (Ich, Familie) | `AvatarImage` je Kind (Initiale, solange kein Avatar) |
+| Board-Reiter | Avatar 24 dp + Name über den Slot `laneAvatar` in `tasksGraph` (`tasks` kennt `gamification` nicht; `MemberAvatar` aus der App) |
+| „Familie“ → Punkte (Eltern) | Zeile „Avatare: „Avataaars“ von Pablo Stanley“ (ADR-0017 Nr. 6) |
+
+- **Ein Bildschirm statt Editor + Shop:** Teil antippen = Vorschau (auch vor dem Kauf). Kaufen bucht nur ab; getragen wird erst mit „Speichern“.
+- **Speichern** (`canSave`): alle getragenen Teile bekannt und tragbar (kostenlos/besessen) und (noch nichts gespeichert oder Entwurf ≠ gespeichert).
+- **Kauf** (`purchaseOption`): `Wearable` / `Buyable(price)` (Guthaben ≥ Preis) / `Missing(points)`. Bestätigung „Kostet x Punkte. Danach hast du noch y.“
+- **Sparziel-Hinweis** (`goalWarning`, REQ-GAME-041): Guthaben − Preis < Preis der Belohnung (aktives Ziel) → Warnzeile im Dialog; Hinweis, kein Verbot.
+- **409** (schon gekauft, Guthaben zu knapp): neu laden, Entwurf bleibt, Fehlertext des Servers bleibt sichtbar.
+- **Standard-Entwurf:** erstes kostenloses Teil je Pflicht-Slot; Katalog ohne ein solches Teil → Serverfehler.
+- **Lokaler Stand:** `AvatarDirectory` (single) hält `memberId → AvatarLook`, lädt `GET /avatars`, schreibt `game_avatars.json` (Version 1);
+  offline aus dem Stand; 401 löscht ihn. Editor und Kauf nur online.
+- **Rendern:** `AvatarImage` baut das SVG auf `Dispatchers.Default` und behält das letzte Bild bis zum neuen.
+- **Rechte:** Editor, Ich-/Heute-Karte nur Kinder (`Forbidden` bei Eltern).
+
+Tests: `AvatarRulesTest`, `AvatarUseCasesTest`, `AvatarDirectoryTest`, `RemoteAvatarRepositoryTest`, `DataStoreAvatarCacheTest`, `AvatarViewModelsTest`,
+`AvatarScreensTest`, `GamificationModuleTest`, `AvatarImageSpikeTest`.

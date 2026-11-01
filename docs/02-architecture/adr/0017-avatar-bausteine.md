@@ -22,7 +22,7 @@ Familienprojekt, keine Weiterverbreitung, kein selbst gezeichnetes Artwork.
 4. **Item-ID-Schema** `<slot>.<variante>`, Farben `<slot>.<hex ohne #>` (z. B. `top.winterHat1`, `hairColor.2c1b18`).
    IDs werden gespeichert und **nie geändert**; ein Test hält die ID-Liste fest.
 5. **Hintergrund** ist ein eigener Slot mit eigener Palette (Kreis hinter dem Avatar), nicht Teil der Definition.
-6. **Namensnennung** „Avataaars von Pablo Stanley“ in der App ab Phase 4b (Familie → Über).
+6. **Namensnennung** „Avataaars von Pablo Stanley“ in der App ab Phase 4b (Editor-Fußzeile und Familie → Punkte).
 
 ## Spike-Ergebnis (2026-11-01)
 

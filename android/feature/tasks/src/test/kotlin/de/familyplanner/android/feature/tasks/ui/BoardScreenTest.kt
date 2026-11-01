@@ -1,5 +1,6 @@
 package de.familyplanner.android.feature.tasks.ui
 
+import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -75,6 +76,17 @@ class BoardScreenTest {
         compose.scrollTo("Erledigt (7 Tage)").assertIsDisplayed()
         compose.onNodeWithContentDescription("Katalog").assertDoesNotExist()
         compose.onNodeWithText("Zuweisen").assertDoesNotExist()
+    }
+
+    @Test
+    fun `REQ-GAME-014 lane tab renders the avatar slot`() {
+        compose.setContent {
+            FamilyPlannerTheme {
+                BoardScreen(child(), {}, {}, {}, { _, _ -> }, laneAvatar = { _, name -> Text("A:$name") })
+            }
+        }
+
+        compose.onNodeWithText("A:Lea").assertIsDisplayed()
     }
 
     @Test

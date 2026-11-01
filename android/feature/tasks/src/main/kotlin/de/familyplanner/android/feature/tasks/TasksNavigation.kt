@@ -1,5 +1,6 @@
 package de.familyplanner.android.feature.tasks
 
+import androidx.compose.runtime.Composable
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
@@ -39,12 +40,16 @@ data class HistoryRoute(
     val name: String,
 )
 
-fun NavGraphBuilder.tasksGraph(navController: NavHostController) {
+fun NavGraphBuilder.tasksGraph(
+    navController: NavHostController,
+    laneAvatar: @Composable (memberId: String, name: String) -> Unit = { _, _ -> },
+) {
     composable<TasksHomeRoute> {
         BoardRoute(
             onOpenCatalog = { navController.navigate(CatalogRoute) },
             onAssign = { navController.navigate(AssignRoute(it)) },
             onOpenHistory = { memberId, name -> navController.navigate(HistoryRoute(memberId, name)) },
+            laneAvatar = laneAvatar,
         )
     }
     composable<AssignRoute> { entry ->

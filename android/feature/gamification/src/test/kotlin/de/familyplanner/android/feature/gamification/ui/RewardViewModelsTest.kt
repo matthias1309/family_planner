@@ -12,9 +12,12 @@ import de.familyplanner.android.feature.gamification.domain.LoadManagedRewardsUs
 import de.familyplanner.android.feature.gamification.domain.LoadPointsUseCase
 import de.familyplanner.android.feature.gamification.domain.LoadTodaySavingsUseCase
 import de.familyplanner.android.feature.gamification.domain.ManageRewardActions
+import de.familyplanner.android.feature.gamification.domain.avatar.AvatarDirectory
+import de.familyplanner.android.feature.gamification.fakes.FakeAvatarRepository
 import de.familyplanner.android.feature.gamification.fakes.FakePointsRepository
 import de.familyplanner.android.feature.gamification.fakes.FakeRewardRepository
 import de.familyplanner.android.feature.gamification.fakes.FakeRewardSync
+import de.familyplanner.android.feature.gamification.fakes.InMemoryAvatarCache
 import de.familyplanner.android.feature.gamification.fakes.InMemoryPointsCache
 import de.familyplanner.android.feature.gamification.fakes.childSession
 import de.familyplanner.android.feature.gamification.fakes.goal
@@ -255,6 +258,7 @@ class RewardViewModelsTest {
                 LoadPointsUseCase(points, repository, InMemoryPointsCache(), InMemorySessionStore(parentSession)),
                 CookingPointsUseCase(points),
                 CountPendingRedemptionsUseCase(repository),
+                AvatarDirectory(FakeAvatarRepository(), InMemoryAvatarCache()),
             )
 
         vm.onEvent(FamilyPointsEvent.Refresh)

@@ -13,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,17 +46,20 @@ fun AvatarImage(
     val definition by produceState(AvatarDefinition.peek(), context) {
         value = value ?: withContext(Dispatchers.Default) { AvatarDefinition.load(context) }
     }
-    val svg =
-        remember(look, definition) {
-            val loaded = definition
+    // Der Wert bleibt über Schlüsselwechsel erhalten: bis das neue Bild fertig ist, steht das alte (kein Flackern).
+    val svg by produceState<SVG?>(initialValue = null, look, definition) {
+        val loaded = definition
+        value =
             if (look == null || loaded == null) {
                 null
             } else {
-                runCatching { SVG.getFromString(AvatarSvg.render(loaded, look.toSelection())) }
-                    .onFailure { Log.w(LOG_TAG, "Avatar could not be rendered", it) }
-                    .getOrNull()
+                withContext(Dispatchers.Default) {
+                    runCatching { SVG.getFromString(AvatarSvg.render(loaded, look.toSelection())) }
+                        .onFailure { Log.w(LOG_TAG, "Avatar could not be rendered", it) }
+                        .getOrNull()
+                }
             }
-        }
+    }
     val description = stringResource(R.string.core_avatar_description, name)
     val rendered = svg
     if (rendered == null) {
@@ -71,6 +73,17 @@ fun AvatarImage(
             rendered.renderToCanvas(canvas.nativeCanvas)
         }
     }
+}
+
+/** Quellenangabe für „Avataaars“ (ADR-0017 Nr. 6). */
+@Composable
+fun AvatarCredit(modifier: Modifier = Modifier) {
+    Text(
+        stringResource(R.string.core_avatar_credit),
+        modifier,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable

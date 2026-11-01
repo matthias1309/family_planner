@@ -56,8 +56,10 @@ class AvatarImageSpikeTest {
         val millis =
             measureTimeMillis {
                 compose.setContent { AvatarImage(look, name, Modifier.size(RENDER_SIZE_DP.dp), RENDER_SIZE_DP.dp) }
-                compose.waitUntil(LOAD_TIMEOUT_MILLIS) { AvatarDefinition.peek() != null }
-                compose.waitForIdle()
+                compose.waitUntil(LOAD_TIMEOUT_MILLIS) {
+                    AvatarDefinition.peek() != null &&
+                        containsColor(compose.onRoot().captureToImage().asAndroidBitmap(), skin)
+                }
                 bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
             }
         val captured = checkNotNull(bitmap)

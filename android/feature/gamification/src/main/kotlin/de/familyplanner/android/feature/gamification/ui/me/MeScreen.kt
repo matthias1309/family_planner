@@ -22,6 +22,7 @@ import de.familyplanner.android.core.ui.components.ErrorText
 import de.familyplanner.android.core.ui.formatDateTime
 import de.familyplanner.android.feature.gamification.R
 import de.familyplanner.android.feature.gamification.domain.RankedChild
+import de.familyplanner.android.feature.gamification.ui.avatar.MyAvatarCard
 import de.familyplanner.android.feature.gamification.ui.components.BadgeHeader
 import de.familyplanner.android.feature.gamification.ui.components.BadgeList
 import de.familyplanner.android.feature.gamification.ui.components.LeaderboardList
@@ -35,11 +36,12 @@ import org.koin.androidx.compose.koinViewModel
 fun MeRoute(
     onOpenBadges: (memberId: String, name: String) -> Unit,
     onOpenRewards: () -> Unit,
+    onOpenAvatar: () -> Unit = {},
     viewModel: MeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onEvent(MeEvent.Refresh) }
-    MeScreen(state, viewModel::onEvent, onOpenBadges, onOpenRewards)
+    MeScreen(state, viewModel::onEvent, onOpenBadges, onOpenRewards, onOpenAvatar)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,6 +51,7 @@ fun MeScreen(
     onEvent: (MeEvent) -> Unit,
     onOpenBadges: (memberId: String, name: String) -> Unit,
     onOpenRewards: () -> Unit,
+    onOpenAvatar: () -> Unit = {},
 ) {
     PullToRefreshBox(isRefreshing = state.isLoading, onRefresh = { onEvent(MeEvent.Refresh) }, modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -63,6 +66,7 @@ fun MeScreen(
             item { ErrorText(state.error) }
             if (snapshot != null) {
                 snapshot.account?.let { account ->
+                    item { MyAvatarCard(state.looks[account.memberId], state.name, !state.isOffline, onOpenAvatar) }
                     item { StatTiles(account.collected, account.balance) }
                     item { SavingsGoalCard(snapshot.savingsGoal, onClick = if (state.isOffline) null else onOpenRewards) }
                     item {
@@ -76,7 +80,7 @@ fun MeScreen(
                 item {
                     val onChildClick: ((RankedChild) -> Unit)? =
                         if (state.isOffline) null else { child -> onOpenBadges(child.memberId, child.name) }
-                    LeaderboardList(snapshot.leaderboard, highlightId = state.memberId, onClick = onChildClick)
+                    LeaderboardList(snapshot.leaderboard, highlightId = state.memberId, onClick = onChildClick, looks = state.looks)
                 }
                 snapshot.badges?.let { badges ->
                     item { BadgeHeader(badges) }
