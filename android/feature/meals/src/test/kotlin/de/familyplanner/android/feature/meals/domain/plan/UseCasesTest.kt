@@ -31,6 +31,7 @@ import java.time.ZoneId
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class UseCasesTest {
@@ -284,5 +285,23 @@ class UseCasesTest {
             DeleteDishUseCase(repository, sync)("d-1")
 
             assertEquals(1, sync.requests)
+        }
+
+    @Test
+    fun `REQ-MEAL-001 stored week of the member is available before loading`() =
+        runTest {
+            loadWeekPlan(thisWeek)
+
+            assertEquals(thisWeek, loadWeekPlan.stored(thisWeek)?.weekStart)
+            assertNull(loadWeekPlan.stored(thisWeek.plusWeeks(3)))
+        }
+
+    @Test
+    fun `REQ-MEAL-001 no stored week without session`() =
+        runTest {
+            loadWeekPlan(thisWeek)
+            sessions.setCurrent(null)
+
+            assertNull(loadWeekPlan.stored(thisWeek))
         }
 }

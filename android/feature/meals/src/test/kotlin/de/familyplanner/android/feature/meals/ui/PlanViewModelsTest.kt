@@ -158,6 +158,100 @@ class PlanViewModelsTest {
     }
 
     @Test
+    fun `REQ-MEAL-001 reopened plan shows the stored week before the server answers`() {
+        planViewModel()
+        repository.weekGates[thisWeek] = CompletableDeferred()
+
+        val state = planViewModel().state.value
+
+        assertEquals(thisWeek, state.week?.weekStart)
+        assertTrue(state.isLoading)
+        assertTrue(state.isRefreshingStored)
+        assertFalse(state.isOffline)
+        assertNull(state.error)
+    }
+
+    @Test
+    fun `REQ-MEAL-001 stored week cannot be edited or opened until the fresh week arrives`() {
+        planViewModel()
+        repository.weekGates[thisWeek] = CompletableDeferred()
+
+        val state = planViewModel().state.value
+
+        assertFalse(state.canEdit)
+        assertTrue(
+            state.week
+                ?.days
+                .orEmpty()
+                .none { state.canOpen(it) },
+        )
+    }
+
+    @Test
+    fun `REQ-MEAL-001 fresh week replaces the stored week and allows editing`() {
+        planViewModel()
+        val gate = CompletableDeferred<Unit>()
+        repository.weekGates[thisWeek] = gate
+        val viewModel = planViewModel()
+
+        gate.complete(Unit)
+
+        val state = viewModel.state.value
+        assertFalse(state.isLoading)
+        assertFalse(state.isRefreshingStored)
+        assertTrue(state.canEdit)
+    }
+
+    @Test
+    fun `REQ-MEAL-001 switching week shows the stored target week immediately`() {
+        val viewModel = planViewModel()
+        repository.weekGates[thisWeek.plusWeeks(1)] = CompletableDeferred()
+
+        viewModel.onEvent(WeekPlanEvent.NextWeek)
+
+        assertEquals(
+            thisWeek.plusWeeks(1),
+            viewModel.state.value.week
+                ?.weekStart,
+        )
+        assertTrue(viewModel.state.value.isLoading)
+    }
+
+    @Test
+    fun `REQ-MEAL-002 stored week turns offline when the reload fails`() {
+        planViewModel()
+        val gate = CompletableDeferred<Unit>()
+        repository.weekGates[thisWeek] = gate
+        repository.weekResult = { ApiResult.Failure(AppError.Network) }
+        val viewModel = planViewModel()
+
+        gate.complete(Unit)
+
+        assertTrue(viewModel.state.value.isOffline)
+        assertFalse(viewModel.state.value.isRefreshingStored)
+        assertEquals(
+            thisWeek,
+            viewModel.state.value.week
+                ?.weekStart,
+        )
+    }
+
+    @Test
+    fun `REQ-MEAL-002 rejected reload hides the stored week and shows the error`() {
+        planViewModel()
+        val gate = CompletableDeferred<Unit>()
+        repository.weekGates[thisWeek] = gate
+        repository.weekResult = { ApiResult.Failure(AppError.NotFound) }
+        val viewModel = planViewModel()
+
+        gate.complete(Unit)
+
+        assertNull(viewModel.state.value.week)
+        assertFalse(viewModel.state.value.isRefreshingStored)
+        assertEquals(AppError.NotFound, viewModel.state.value.error)
+    }
+
+    @Test
     fun `REQ-MEAL-002 offline with cache shows cached week as offline`() {
         val viewModel = planViewModel()
         repository.weekResult = { ApiResult.Failure(AppError.Network) }

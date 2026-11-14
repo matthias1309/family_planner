@@ -17,6 +17,12 @@ class LoadBoardUseCase(
     private val sessions: SessionStore,
     private val clock: Clock = Clock.system(BerlinZone),
 ) {
+    /** Gespeicherter Stand, um ihn vor der Server-Antwort zu zeigen (ADR-0018); ohne Session `null`. */
+    suspend fun stored(): BoardSnapshot? {
+        val memberId = sessions.current?.memberId ?: return null
+        return cache.read(memberId)
+    }
+
     suspend operator fun invoke(): BoardLoad {
         val memberId = sessions.current?.memberId ?: return BoardLoad.Failed(AppError.Unauthorized)
         return when (val result = repository.board()) {

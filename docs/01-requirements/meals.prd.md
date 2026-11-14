@@ -119,6 +119,8 @@ Als Familienmitglied möchte ich den Essensplan der Woche (Mo–So) sehen, damit
 - Given ein geplanter Wochenplan, When ich den Essensplan öffne, Then sehe ich für jeden Tag Gericht und Koch/Köchin.
 - Given ein Tag ohne Gericht, When ich den Plan öffne, Then ist der Tag als „noch offen“ erkennbar.
 - Given es ist Sonntag, When ich den Plan öffne, Then kann ich zur kommenden Woche wechseln.
+- Given ich habe eine Woche schon einmal geladen, When ich sie erneut öffne oder zu ihr wechsle, Then sehe ich sofort
+  den gespeicherten Stand, der im Hintergrund aktualisiert wird; bearbeiten kann ich erst den frischen Stand (ADR-0018).
 
 ##### REQ-MEAL-002 Plan ohne Heimnetz lesen
 Als Familienmitglied möchte ich den zuletzt synchronisierten Plan auch unterwegs sehen, damit ich mich auch außer
@@ -316,6 +318,9 @@ Als Elternteil möchte ich eine Einkaufsliste mit den Zutaten aller freigegebene
 - Given gleiche Zutat mit verschiedenen Einheiten (z. B. „200 g Sahne“ und „1 Becher Sahne“), When die Liste erzeugt
   wird, Then bleiben es getrennte Einträge.
 - Given ein Gericht „wartet auf Freigabe“, When ich die Liste öffne, Then sind seine Zutaten nicht enthalten.
+- Given ich habe die Liste einer Woche schon einmal geladen, When ich sie erneut öffne, Then sehe ich sofort den
+  zuletzt geladenen Stand samt eigener Änderungen, der im Hintergrund aktualisiert wird; ist der Server nicht
+  erreichbar, bleibt er mit Fehlerhinweis und nur lesbar stehen (ADR-0018).
 
 ##### REQ-MEAL-041 Einkaufsliste bearbeiten
 Als Elternteil möchte ich Einträge ergänzen und abhaken (bestellt), damit ich bei Picnic nichts vergesse.

@@ -5,6 +5,7 @@ import de.familyplanner.android.core.data.AppError
 import de.familyplanner.android.core.data.session.SessionStore
 import de.familyplanner.android.core.ui.BerlinZone
 import de.familyplanner.android.feature.meals.domain.attendance.AttendanceRepository
+import de.familyplanner.android.feature.meals.domain.cache.allowsStoredState
 import de.familyplanner.android.feature.meals.domain.cooking.ReviewDishUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.ingredientsFromText
@@ -17,7 +18,6 @@ import java.time.LocalDate
 private const val UNKNOWN_NAME = "?"
 
 /** Verbindungsprobleme, bei denen der gespeicherte Stand gezeigt wird (ADR-0011). */
-private fun AppError.allowsCachedPlan() = this == AppError.Network || this == AppError.Certificate || this == AppError.Server
 
 class LoadWeekPlanUseCase(
     private val repository: MealPlanRepository,
@@ -25,6 +25,12 @@ class LoadWeekPlanUseCase(
     private val sessions: SessionStore,
     private val clock: Clock = Clock.system(BerlinZone),
 ) {
+    /** Gespeicherter Stand der Woche, um ihn vor der Server-Antwort zu zeigen (ADR-0018); ohne Session `null`. */
+    suspend fun stored(weekStart: LocalDate): WeekPlanSnapshot? {
+        val memberId = sessions.current?.memberId ?: return null
+        return cache.read(memberId, weekStart)
+    }
+
     suspend operator fun invoke(weekStart: LocalDate): WeekPlanLoad {
         val memberId = sessions.current?.memberId ?: return WeekPlanLoad.Failed(AppError.Unauthorized)
         return when (val result = loadRemote(weekStart)) {
@@ -33,7 +39,7 @@ class LoadWeekPlanUseCase(
                 WeekPlanLoad.Fresh(result.data)
             }
             is ApiResult.Failure -> {
-                val cached = if (result.error.allowsCachedPlan()) cache.read(memberId, weekStart) else null
+                val cached = if (result.error.allowsStoredState()) cache.read(memberId, weekStart) else null
                 if (cached != null) WeekPlanLoad.Cached(cached, result.error) else WeekPlanLoad.Failed(result.error)
             }
         }

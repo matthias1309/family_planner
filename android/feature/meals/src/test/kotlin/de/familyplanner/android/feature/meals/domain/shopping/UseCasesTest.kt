@@ -2,10 +2,15 @@ package de.familyplanner.android.feature.meals.domain.shopping
 
 import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
+import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.feature.meals.domain.recipe.Ingredient
 import de.familyplanner.android.feature.meals.fakes.FakeShoppingRepository
+import de.familyplanner.android.feature.meals.fakes.parentSession
 import de.familyplanner.android.feature.meals.fakes.planWeek
 import de.familyplanner.android.feature.meals.fakes.shoppingEntry
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -14,6 +19,8 @@ import kotlin.test.assertTrue
 
 class UseCasesTest {
     private val repository = FakeShoppingRepository()
+    private val sessions = InMemorySessionStore(parentSession)
+    private val cache = ShoppingListCache(sessions)
 
     private fun validation(result: ApiResult<*>): String? = ((result as ApiResult.Failure).error as? AppError.Validation)?.message
 
@@ -40,7 +47,7 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-041 add item parses quantity and unit`() =
         runTest {
-            AddShoppingItemUseCase(repository)(planWeek, " 2 kg Kartoffeln ", 0)
+            AddShoppingItemUseCase(repository, cache)(planWeek, " 2 kg Kartoffeln ", 0)
 
             assertEquals(listOf(planWeek to Ingredient("Kartoffeln", 2.0, "kg")), repository.added)
         }
@@ -48,7 +55,7 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-041 add item keeps unparsable text as name`() =
         runTest {
-            AddShoppingItemUseCase(repository)(planWeek, "Saft von 1 Limette", 0)
+            AddShoppingItemUseCase(repository, cache)(planWeek, "Saft von 1 Limette", 0)
 
             assertEquals(Ingredient("Saft von 1 Limette"), repository.added.single().second)
         }
@@ -56,7 +63,7 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-041 blank item is rejected without request`() =
         runTest {
-            val result = AddShoppingItemUseCase(repository)(planWeek, "  ", 0)
+            val result = AddShoppingItemUseCase(repository, cache)(planWeek, "  ", 0)
 
             assertEquals("Bitte einen Eintrag eingeben.", validation(result))
             assertTrue(repository.added.isEmpty())
@@ -65,7 +72,7 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-041 too long item is rejected`() =
         runTest {
-            val result = AddShoppingItemUseCase(repository)(planWeek, "x".repeat(81), 0)
+            val result = AddShoppingItemUseCase(repository, cache)(planWeek, "x".repeat(81), 0)
 
             assertEquals("Ein Eintrag darf höchstens 80 Zeichen haben.", validation(result))
             assertTrue(repository.added.isEmpty())
@@ -74,7 +81,7 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-041 fifty free items are rejected without request`() =
         runTest {
-            val result = AddShoppingItemUseCase(repository)(planWeek, "Brot", ShoppingLimits.FREE_ITEMS_MAX)
+            val result = AddShoppingItemUseCase(repository, cache)(planWeek, "Brot", ShoppingLimits.FREE_ITEMS_MAX)
 
             assertEquals("Höchstens 50 freie Einträge.", validation(result))
             assertTrue(repository.added.isEmpty())
@@ -85,7 +92,7 @@ class UseCasesTest {
         runTest {
             repository.deleteResult = ApiResult.Failure(AppError.NotFound)
 
-            assertEquals(ApiResult.Success(Unit), DeleteShoppingItemUseCase(repository)(planWeek, "i-1"))
+            assertEquals(ApiResult.Success(Unit), DeleteShoppingItemUseCase(repository, cache)(planWeek, "i-1"))
         }
 
     @Test
@@ -93,9 +100,52 @@ class UseCasesTest {
         runTest {
             repository.deleteResult = ApiResult.Failure(AppError.Forbidden)
 
-            val result = DeleteShoppingItemUseCase(repository)(planWeek, "i-1")
+            val result = DeleteShoppingItemUseCase(repository, cache)(planWeek, "i-1")
 
             assertIs<ApiResult.Failure>(result)
             assertEquals(AppError.Forbidden, result.error)
+        }
+
+    @Test
+    fun `REQ-MEAL-040 list requested before a check does not undo it`() =
+        runTest {
+            val load = LoadShoppingListUseCase(repository, cache)
+            load(planWeek)
+            val gate = CompletableDeferred<Unit>()
+            repository.listGates[planWeek] = gate
+            val pending = async { load(planWeek) }
+            runCurrent()
+
+            SetShoppingCheckUseCase(repository, cache)(planWeek, "k-1", true)
+            gate.complete(Unit)
+            pending.await()
+
+            assertEquals(
+                true,
+                load
+                    .cached(planWeek)
+                    ?.entries
+                    ?.single()
+                    ?.checked,
+            )
+        }
+
+    @Test
+    fun `REQ-MEAL-041 failed check leaves the kept list unchanged`() =
+        runTest {
+            val load = LoadShoppingListUseCase(repository, cache)
+            load(planWeek)
+            repository.checkResult = ApiResult.Failure(AppError.Network)
+
+            SetShoppingCheckUseCase(repository, cache)(planWeek, "k-1", true)
+
+            assertEquals(
+                false,
+                load
+                    .cached(planWeek)
+                    ?.entries
+                    ?.single()
+                    ?.checked,
+            )
         }
 }

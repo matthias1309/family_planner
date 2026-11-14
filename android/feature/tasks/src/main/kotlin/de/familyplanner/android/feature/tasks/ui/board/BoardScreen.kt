@@ -80,7 +80,7 @@ fun BoardScreen(
                 BoardContent(state, onEvent, onOpenHistory)
             }
         }
-        if (!state.isParent && !state.isOffline) {
+        if (!state.isParent && state.canAct) {
             ExtendedFloatingActionButton(
                 onClick = onOpenPool,
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },

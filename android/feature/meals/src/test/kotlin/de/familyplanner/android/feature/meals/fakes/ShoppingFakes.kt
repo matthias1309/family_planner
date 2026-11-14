@@ -1,11 +1,18 @@
 package de.familyplanner.android.feature.meals.fakes
 
 import de.familyplanner.android.core.data.ApiResult
+import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.feature.meals.domain.recipe.Ingredient
+import de.familyplanner.android.feature.meals.domain.shopping.AddShoppingItemUseCase
+import de.familyplanner.android.feature.meals.domain.shopping.DeleteShoppingItemUseCase
+import de.familyplanner.android.feature.meals.domain.shopping.LoadShoppingListUseCase
+import de.familyplanner.android.feature.meals.domain.shopping.SetShoppingCheckUseCase
 import de.familyplanner.android.feature.meals.domain.shopping.ShoppingEntry
 import de.familyplanner.android.feature.meals.domain.shopping.ShoppingList
+import de.familyplanner.android.feature.meals.domain.shopping.ShoppingListCache
 import de.familyplanner.android.feature.meals.domain.shopping.ShoppingRepository
 import de.familyplanner.android.feature.meals.domain.shopping.ShoppingSource
+import de.familyplanner.android.feature.meals.domain.shopping.ShoppingUseCases
 import kotlinx.coroutines.CompletableDeferred
 import java.time.LocalDate
 
@@ -78,3 +85,13 @@ class FakeShoppingRepository : ShoppingRepository {
         return checkResult
     }
 }
+
+fun shoppingUseCases(
+    repository: ShoppingRepository,
+    cache: ShoppingListCache = ShoppingListCache(InMemorySessionStore(parentSession)),
+) = ShoppingUseCases(
+    LoadShoppingListUseCase(repository, cache),
+    AddShoppingItemUseCase(repository, cache),
+    SetShoppingCheckUseCase(repository, cache),
+    DeleteShoppingItemUseCase(repository, cache),
+)

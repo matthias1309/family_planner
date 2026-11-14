@@ -9,6 +9,7 @@ import de.familyplanner.android.core.data.session.SessionStore
 import de.familyplanner.android.core.ui.BerlinZone
 import de.familyplanner.android.feature.meals.domain.attendance.AttendanceLimits
 import de.familyplanner.android.feature.meals.domain.attendance.currentPlanWeek
+import de.familyplanner.android.feature.meals.domain.cache.allowsStoredState
 import de.familyplanner.android.feature.meals.domain.plan.PlanLimits
 import de.familyplanner.android.feature.meals.domain.shopping.ShoppingList
 import de.familyplanner.android.feature.meals.domain.shopping.ShoppingSections
@@ -33,13 +34,15 @@ data class ShoppingListUiState(
     val list: ShoppingList? = null,
     val isLoading: Boolean = false,
     val error: AppError? = null,
+    /** Zuletzt geladene Liste nach einem Verbindungsfehler (ADR-0018): nur lesen, Schreiben schlüge ohnehin fehl. */
+    val isStale: Boolean = false,
     val isParent: Boolean = false,
     val newItem: String = "",
     val isBusy: Boolean = false,
     val actionError: AppError? = null,
 ) {
     val sections: ShoppingSections get() = splitByChecked(list?.entries.orEmpty())
-    val canEdit: Boolean get() = isParent && list != null
+    val canEdit: Boolean get() = isParent && list != null && !isStale
     val freeItemCount: Int get() = list?.entries?.count { it.isFreeItem } ?: 0
     val isEmpty: Boolean get() = list != null && list.entries.isEmpty()
     val canGoPrevious: Boolean get() = weekStart.minusWeeks(1).year >= AttendanceLimits.MIN_YEAR
@@ -110,6 +113,7 @@ class ShoppingListViewModel(
                 weekStart = it.weekStart.plusWeeks(offset),
                 list = null,
                 error = null,
+                isStale = false,
                 actionError = null,
                 newItem = "",
             )
@@ -117,10 +121,12 @@ class ShoppingListViewModel(
         load()
     }
 
+    /** Zeigt sofort den zuletzt geladenen Stand und lädt dahinter neu (ADR-0018); ein Fehler lässt die Liste stehen. */
     private fun load() {
         loadJob?.cancel()
         val requested = _state.value.weekStart
-        _state.update { it.copy(isLoading = true, error = null) }
+        val cached = shopping.load.cached(requested)
+        _state.update { it.copy(isLoading = true, error = null, list = it.list ?: cached) }
         loadJob =
             viewModelScope.launch {
                 val result = shopping.load(requested)
@@ -128,8 +134,8 @@ class ShoppingListViewModel(
                 if (_state.value.weekStart != requested) return@launch
                 _state.update {
                     when (result) {
-                        is ApiResult.Success -> it.copy(isLoading = false, list = result.data)
-                        is ApiResult.Failure -> it.copy(isLoading = false, list = null, error = result.error)
+                        is ApiResult.Success -> it.copy(isLoading = false, list = result.data, isStale = false)
+                        is ApiResult.Failure -> it.withLoadFailure(result.error)
                     }
                 }
             }
@@ -193,3 +199,11 @@ class ShoppingListViewModel(
         }
     }
 }
+
+/** Bei Verbindungsfehlern bleibt eine gezeigte Liste lesbar stehen; andere Fehler verdrängen sie. */
+private fun ShoppingListUiState.withLoadFailure(error: AppError): ShoppingListUiState =
+    if (list != null && error.allowsStoredState()) {
+        copy(isLoading = false, error = error, isStale = true)
+    } else {
+        copy(isLoading = false, error = error, list = null, isStale = false)
+    }

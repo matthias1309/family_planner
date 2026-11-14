@@ -21,6 +21,7 @@ import de.familyplanner.android.feature.tasks.fakes.parentSession
 import de.familyplanner.android.feature.tasks.ui.board.BoardEvent
 import de.familyplanner.android.feature.tasks.ui.board.BoardTab
 import de.familyplanner.android.feature.tasks.ui.board.BoardViewModel
+import kotlinx.coroutines.CompletableDeferred
 import org.junit.Rule
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -53,6 +54,102 @@ class BoardViewModelTest {
 
     private fun seedBoard() {
         repository.boardResult = ApiResult.Success(listOf(lane("c-1", "Ben", todo, review), lane("c-2", "Lea", card("l", "c-2"))))
+    }
+
+    // ---- Gespeicherter Stand beim Öffnen (ADR-0018) ----
+
+    @Test
+    fun `REQ-TASK-021 reopened board shows the stored board before the server answers`() {
+        seedBoard()
+        viewModel()
+        repository.boardGate = CompletableDeferred()
+
+        val state = viewModel().state.value
+
+        assertEquals(listOf("Ben", "Lea"), state.tabs.map { (it as BoardTab.Lane).lane.name })
+        assertTrue(state.isLoading)
+        assertTrue(state.isRefreshingStored)
+        assertFalse(state.isOffline)
+    }
+
+    @Test
+    fun `REQ-TASK-021 stored board offers no card actions until the fresh board arrives`() {
+        seedBoard()
+        viewModel()
+        repository.boardGate = CompletableDeferred()
+
+        val state = viewModel().state.value
+
+        assertTrue(state.actionsFor(todo).isEmpty())
+    }
+
+    @Test
+    fun `REQ-TASK-021 fresh board replaces the stored board and allows actions`() {
+        seedBoard()
+        viewModel()
+        val gate = CompletableDeferred<Unit>()
+        repository.boardGate = gate
+        repository.boardResult = ApiResult.Success(listOf(lane("c-1", "Ben", todo, card("n", title = "Neu"))))
+        val vm = viewModel()
+
+        gate.complete(Unit)
+
+        val lane = (vm.state.value.selectedTabContent as BoardTab.Lane).lane
+        assertTrue(lane.cards.any { it.id == "n" })
+        assertFalse(vm.state.value.isRefreshingStored)
+        assertFalse(vm.state.value.isLoading)
+        assertTrue(
+            vm.state.value
+                .actionsFor(todo)
+                .isNotEmpty(),
+        )
+    }
+
+    @Test
+    fun `REQ-TASK-021 stored board turns offline when the reload fails`() {
+        seedBoard()
+        viewModel()
+        val gate = CompletableDeferred<Unit>()
+        repository.boardGate = gate
+        repository.boardResult = ApiResult.Failure(AppError.Network)
+        val vm = viewModel()
+
+        gate.complete(Unit)
+
+        assertTrue(vm.state.value.isOffline)
+        assertFalse(vm.state.value.isRefreshingStored)
+    }
+
+    @Test
+    fun `REQ-TASK-021 refresh of a shown board does not fall back to the stored board`() {
+        seedBoard()
+        val vm = viewModel()
+        repository.boardGate = CompletableDeferred()
+
+        vm.onEvent(BoardEvent.Refresh)
+
+        assertTrue(vm.state.value.isLoading)
+        assertFalse(vm.state.value.isRefreshingStored)
+        assertTrue(vm.state.value.canAct)
+    }
+
+    @Test
+    fun `REQ-TASK-021 rejected reload hides the stored board and shows the error`() {
+        seedBoard()
+        viewModel()
+        val gate = CompletableDeferred<Unit>()
+        repository.boardGate = gate
+        repository.boardResult = ApiResult.Failure(AppError.Forbidden)
+        val vm = viewModel()
+
+        gate.complete(Unit)
+
+        assertTrue(
+            vm.state.value.tabs
+                .isEmpty(),
+        )
+        assertFalse(vm.state.value.isRefreshingStored)
+        assertEquals(AppError.Forbidden, vm.state.value.error)
     }
 
     @Test
