@@ -1,12 +1,14 @@
 package de.familyplanner.android.feature.meals.fakes
 
 import de.familyplanner.android.core.data.ApiResult
+import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.feature.meals.domain.recipe.DeleteRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.Ingredient
 import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipesUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.Recipe
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeDraft
+import de.familyplanner.android.feature.meals.domain.recipe.RecipeListCache
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeRepository
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeSummary
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeUseCases
@@ -48,8 +50,12 @@ class FakeRecipeRepository : RecipeRepository {
     /** Hält das Speichern zurück (Doppelklick-Test). */
     var createGate: CompletableDeferred<Unit>? = null
 
+    /** Hält die Antwort der Liste zurück (gespeicherter Stand vor der Server-Antwort). */
+    var listGate: CompletableDeferred<Unit>? = null
+
     override suspend fun list(): ApiResult<List<RecipeSummary>> {
         listCalls++
+        listGate?.await()
         return listResult
     }
 
@@ -80,10 +86,12 @@ class FakeRecipeRepository : RecipeRepository {
     private fun RecipeDraft.toRecipe(id: String) = Recipe(id, name, servings, ingredients, steps, sourceUrl, "p-1")
 }
 
-fun recipeUseCases(repository: RecipeRepository) =
-    RecipeUseCases(
-        LoadRecipesUseCase(repository),
-        LoadRecipeUseCase(repository),
-        SaveRecipeUseCase(repository),
-        DeleteRecipeUseCase(repository),
-    )
+fun recipeUseCases(
+    repository: RecipeRepository,
+    cache: RecipeListCache = RecipeListCache(InMemorySessionStore(parentSession)),
+) = RecipeUseCases(
+    LoadRecipesUseCase(repository, cache),
+    LoadRecipeUseCase(repository),
+    SaveRecipeUseCase(repository, cache),
+    DeleteRecipeUseCase(repository, cache),
+)

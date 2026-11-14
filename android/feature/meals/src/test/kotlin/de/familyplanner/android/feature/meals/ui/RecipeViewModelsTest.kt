@@ -13,6 +13,7 @@ import de.familyplanner.android.feature.meals.domain.plan.SaveDishUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.ImportRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.Ingredient
 import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
+import de.familyplanner.android.feature.meals.domain.recipe.RecipeListCache
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeRef
 import de.familyplanner.android.feature.meals.fakes.FakeAttendanceRepository
 import de.familyplanner.android.feature.meals.fakes.FakeCookingRepository
@@ -25,6 +26,7 @@ import de.familyplanner.android.feature.meals.fakes.childDish
 import de.familyplanner.android.feature.meals.fakes.childSession
 import de.familyplanner.android.feature.meals.fakes.parentSession
 import de.familyplanner.android.feature.meals.fakes.planWeek
+import de.familyplanner.android.feature.meals.fakes.quesadilla
 import de.familyplanner.android.feature.meals.fakes.recipeUseCases
 import de.familyplanner.android.feature.meals.fakes.thisWeek
 import de.familyplanner.android.feature.meals.fakes.weekPlanOf
@@ -59,7 +61,10 @@ class RecipeViewModelsTest {
     private val attendance = FakeAttendanceRepository()
     private var sessions = InMemorySessionStore(parentSession)
 
-    private fun listViewModel(pick: Boolean = false) = RecipeListViewModel(RecipeListArgs(pick), sessions, recipeUseCases(recipes))
+    private fun listViewModel(
+        pick: Boolean = false,
+        cache: RecipeListCache = RecipeListCache(sessions),
+    ) = RecipeListViewModel(RecipeListArgs(pick), sessions, recipeUseCases(recipes, cache))
 
     private fun viewViewModel(args: RecipeViewArgs = RecipeViewArgs("r-1")) = RecipeViewModel(args, sessions, recipeUseCases(recipes), plan)
 
@@ -147,6 +152,84 @@ class RecipeViewModelsTest {
         recipes.listResult = ApiResult.Failure(AppError.Network)
 
         assertEquals(AppError.Network, listViewModel().state.value.error)
+    }
+
+    @Test
+    fun `REQ-MEAL-060 reopened list shows the last loaded recipes before the server answers`() {
+        val cache = RecipeListCache(sessions)
+        listViewModel(cache = cache)
+        recipes.listGate = CompletableDeferred()
+
+        val state = listViewModel(cache = cache).state.value
+
+        assertEquals(listOf("r-2", "r-1"), state.recipes.map { it.id })
+        assertTrue(state.isLoading)
+        assertFalse(state.visible.isEmpty())
+    }
+
+    @Test
+    fun `REQ-MEAL-060 fresh list replaces the last loaded recipes`() {
+        val cache = RecipeListCache(sessions)
+        listViewModel(cache = cache)
+        recipes.listResult = ApiResult.Success(listOf(quesadilla))
+        val gate = CompletableDeferred<Unit>()
+        recipes.listGate = gate
+        val viewModel = listViewModel(cache = cache)
+
+        gate.complete(Unit)
+
+        assertEquals(
+            listOf("r-2"),
+            viewModel.state.value.recipes
+                .map { it.id },
+        )
+        assertFalse(viewModel.state.value.isLoading)
+    }
+
+    @Test
+    fun `REQ-MEAL-060 refresh during a load shows the newest answer`() {
+        val gate = CompletableDeferred<Unit>()
+        recipes.listGate = gate
+        val viewModel = listViewModel()
+        recipes.listResult = ApiResult.Success(listOf(quesadilla))
+
+        viewModel.onEvent(RecipeListEvent.Refresh)
+        gate.complete(Unit)
+
+        assertEquals(
+            listOf("r-2"),
+            viewModel.state.value.recipes
+                .map { it.id },
+        )
+        assertFalse(viewModel.state.value.isLoading)
+        assertEquals(2, recipes.listCalls)
+    }
+
+    @Test
+    fun `REQ-MEAL-060 another member does not see the last loaded recipes`() {
+        val cache = RecipeListCache(sessions)
+        listViewModel(cache = cache)
+        sessions.setCurrent(childSession)
+        recipes.listGate = CompletableDeferred()
+
+        assertTrue(
+            listViewModel(cache = cache)
+                .state.value.recipes
+                .isEmpty(),
+        )
+    }
+
+    @Test
+    fun `REQ-MEAL-060 failed reload keeps the last loaded recipes and shows the error`() {
+        val cache = RecipeListCache(sessions)
+        listViewModel(cache = cache)
+        recipes.listResult = ApiResult.Failure(AppError.Network)
+
+        val state = listViewModel(cache = cache).state.value
+
+        assertEquals(2, state.recipes.size)
+        assertEquals(AppError.Network, state.error)
+        assertFalse(state.isLoading)
     }
 
     // ---- Ansicht ----

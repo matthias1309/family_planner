@@ -326,7 +326,10 @@ Regeln:
   behält `recipeId`/`servings` beim Ändern, auch wenn das Rezept nicht (mehr) ladbar ist (dann ohne Stepper).
 - **Navigationsergebnis:** Die Rezeptliste im Auswahlmodus schreibt die Rezept-ID in den `SavedStateHandle` des Gericht-Editors; der Editor
   verbraucht sie einmal (`onRecipeConsumed`), sodass eine Rotation das Rezept nicht erneut übernimmt.
-- **Nicht offline:** Rezepte werden nicht gecacht (PRD „Later“); beim gespeicherten Plan-Stand gibt es kein „Rezept ›“.
+- **Nicht offline:** Rezepte werden nicht dauerhaft gespeichert (PRD „Later“); beim gespeicherten Plan-Stand gibt es kein „Rezept ›“.
+- **Zuletzt geladene Liste ([ADR-0018](../02-architecture/adr/0018-show-last-loaded-list.md)):** `RecipeListCache` (Koin-`single`, nur
+  Arbeitsspeicher, je `memberId`) hält die letzte erfolgreiche Rezeptliste. Die Liste zeigt sie beim Öffnen sofort und lädt dahinter neu;
+  ein Fehler lässt sie stehen. Speichern ersetzt/ergänzt den Eintrag, Löschen (auch 404) entfernt ihn.
 - **Löschen** nur in der Rezeptansicht; 404 gilt als gelöscht. Bestehende Gerichte bleiben unverändert (Server-Regel 5a).
 - **Fehler:** 400/403/404/409 und offline über `ErrorText`; bei 409 (Name vergeben) und 400 gewinnt die Servermeldung.
 

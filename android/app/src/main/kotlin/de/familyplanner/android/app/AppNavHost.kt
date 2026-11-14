@@ -77,7 +77,12 @@ fun AppNavHost(
 @Composable
 private fun AuthHost(signedOutNotice: Boolean) {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = WelcomeRoute) {
+    NavHost(
+        navController = navController,
+        startDestination = WelcomeRoute,
+        enterTransition = navEnterTransition,
+        exitTransition = navExitTransition,
+    ) {
         authGraph(navController, signedOutNotice)
     }
 }
@@ -142,7 +147,13 @@ private fun MainHost(
             }
         },
     ) { padding ->
-        NavHost(navController = navController, startDestination = HomeRoute, modifier = Modifier.padding(padding)) {
+        NavHost(
+            navController = navController,
+            startDestination = HomeRoute,
+            modifier = Modifier.padding(padding),
+            enterTransition = navEnterTransition,
+            exitTransition = navExitTransition,
+        ) {
             mainGraph(
                 todayContent = {
                     TodayAvatarRoute(
