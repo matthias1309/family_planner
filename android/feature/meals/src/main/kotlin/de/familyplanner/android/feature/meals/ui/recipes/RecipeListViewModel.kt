@@ -60,9 +60,11 @@ class RecipeListViewModel(
         }
     }
 
+    /** Zeigt sofort den zuletzt geladenen Stand und lädt dahinter neu (ADR-0018); ein Fehler lässt die Liste stehen. */
     private fun load() {
         loadJob?.cancel()
-        _state.update { it.copy(isLoading = true, error = null) }
+        val cached = recipes.list.cached()
+        _state.update { it.copy(isLoading = true, error = null, recipes = cached ?: it.recipes) }
         loadJob =
             viewModelScope.launch {
                 when (val result = recipes.list()) {

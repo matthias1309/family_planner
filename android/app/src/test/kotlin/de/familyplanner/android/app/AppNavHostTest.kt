@@ -66,6 +66,7 @@ import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipesUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.Recipe
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeDraft
+import de.familyplanner.android.feature.meals.domain.recipe.RecipeListCache
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeRepository
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeSource
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeSummary
@@ -330,14 +331,15 @@ class AppNavHostTest {
                     }
                     viewModel { TodayMealViewModel(LoadWeekPlanUseCase(planRepository, planCache, sessions)) }
                     viewModel { params ->
+                        val recipeListCache = RecipeListCache(sessions)
                         RecipeEditViewModel(
                             params.get(),
                             sessions,
                             RecipeUseCases(
-                                LoadRecipesUseCase(recipeRepository),
+                                LoadRecipesUseCase(recipeRepository, recipeListCache),
                                 LoadRecipeUseCase(recipeRepository),
-                                SaveRecipeUseCase(recipeRepository),
-                                DeleteRecipeUseCase(recipeRepository),
+                                SaveRecipeUseCase(recipeRepository, recipeListCache),
+                                DeleteRecipeUseCase(recipeRepository, recipeListCache),
                             ),
                             ImportRecipeUseCase(recipeSource),
                         )

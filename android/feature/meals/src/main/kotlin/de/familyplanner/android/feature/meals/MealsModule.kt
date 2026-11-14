@@ -44,6 +44,7 @@ import de.familyplanner.android.feature.meals.domain.recipe.DeleteRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.ImportRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipeUseCase
 import de.familyplanner.android.feature.meals.domain.recipe.LoadRecipesUseCase
+import de.familyplanner.android.feature.meals.domain.recipe.RecipeListCache
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeRepository
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeSource
 import de.familyplanner.android.feature.meals.domain.recipe.RecipeUseCases
@@ -127,12 +128,14 @@ val mealsModule =
 
         // recipe
         single<RecipeRepository> { RemoteRecipeRepository(get(), get()) }
+        // single: Die gemerkte Liste muss das Schließen des Bildschirms überleben (ADR-0018).
+        single { RecipeListCache(get()) }
         factory {
             RecipeUseCases(
-                LoadRecipesUseCase(get()),
+                LoadRecipesUseCase(get(), get()),
                 LoadRecipeUseCase(get()),
-                SaveRecipeUseCase(get()),
-                DeleteRecipeUseCase(get()),
+                SaveRecipeUseCase(get(), get()),
+                DeleteRecipeUseCase(get(), get()),
             )
         }
         viewModel { params -> RecipeListViewModel(params.get(), get(), get()) }

@@ -261,6 +261,8 @@ abtippen.
 - Given ein Rezept ohne Name, ohne Zutaten oder mit Portionen < 1, When ich speichere, Then wird der Fehler gemeldet.
 - Given ein Rezept, When ich es ändere oder lösche, Then bleiben Gerichte, die schon daraus übernommen wurden, unverändert.
 - Given die Rezeptliste, When ich einen Suchbegriff eingebe, Then sehe ich nur Rezepte, deren Name ihn enthält.
+- Given ich habe die Rezeptliste schon einmal geladen, When ich sie erneut öffne, Then sehe ich sofort den zuletzt
+  geladenen Stand, der im Hintergrund aktualisiert wird; schlägt das fehl, bleibt er mit Fehlerhinweis stehen (ADR-0018).
 
 ##### REQ-MEAL-061 Rezept aus der REWE-Rezeptwelt importieren
 Als Elternteil möchte ich ein Rezept von rewe.de über „Teilen“ oder per Link übernehmen, damit Lieblingsrezepte

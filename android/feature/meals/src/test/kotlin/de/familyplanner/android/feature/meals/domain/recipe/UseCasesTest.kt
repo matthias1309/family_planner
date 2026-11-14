@@ -2,9 +2,15 @@ package de.familyplanner.android.feature.meals.domain.recipe
 
 import de.familyplanner.android.core.data.ApiResult
 import de.familyplanner.android.core.data.AppError
+import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.feature.meals.fakes.FakeRecipeRepository
 import de.familyplanner.android.feature.meals.fakes.carbonaraSummary
+import de.familyplanner.android.feature.meals.fakes.childSession
+import de.familyplanner.android.feature.meals.fakes.parentSession
 import de.familyplanner.android.feature.meals.fakes.quesadilla
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -14,7 +20,9 @@ import kotlin.test.assertTrue
 
 class UseCasesTest {
     private val repository = FakeRecipeRepository()
-    private val save = SaveRecipeUseCase(repository)
+    private val sessions = InMemorySessionStore(parentSession)
+    private val cache = RecipeListCache(sessions)
+    private val save = SaveRecipeUseCase(repository, cache)
 
     private fun input(
         name: String = "Curry",
@@ -42,7 +50,7 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-060 list is loaded from the repository`() =
         runTest {
-            assertEquals(repository.listResult, LoadRecipesUseCase(repository)())
+            assertEquals(repository.listResult, LoadRecipesUseCase(repository, cache)())
         }
 
     @Test
@@ -101,8 +109,154 @@ class UseCasesTest {
     @Test
     fun `REQ-MEAL-060 delete passes the recipe id`() =
         runTest {
-            DeleteRecipeUseCase(repository)("r-1")
+            DeleteRecipeUseCase(repository, cache)("r-1")
 
             assertEquals(listOf("r-1"), repository.deleted)
+        }
+
+    // ---- Zuletzt geladene Liste (ADR-0018) ----
+
+    private suspend fun loadIntoCache() = LoadRecipesUseCase(repository, cache)()
+
+    @Test
+    fun `REQ-MEAL-060 successful load keeps the list for the next opening`() =
+        runTest {
+            loadIntoCache()
+
+            assertEquals(listOf(quesadilla, carbonaraSummary), LoadRecipesUseCase(repository, cache).cached())
+        }
+
+    @Test
+    fun `REQ-MEAL-060 nothing is kept before the first load`() {
+        assertNull(LoadRecipesUseCase(repository, cache).cached())
+    }
+
+    @Test
+    fun `REQ-MEAL-060 failed load keeps the previous list`() =
+        runTest {
+            loadIntoCache()
+            repository.listResult = ApiResult.Failure(AppError.Network)
+
+            loadIntoCache()
+
+            assertEquals(listOf(quesadilla, carbonaraSummary), cache.read())
+        }
+
+    @Test
+    fun `REQ-MEAL-060 list of another member is not shown`() =
+        runTest {
+            loadIntoCache()
+
+            sessions.setCurrent(childSession)
+
+            assertNull(cache.read())
+        }
+
+    @Test
+    fun `REQ-MEAL-060 load after signing out forgets the kept list`() =
+        runTest {
+            loadIntoCache()
+            sessions.setCurrent(null)
+
+            loadIntoCache()
+            sessions.setCurrent(parentSession)
+
+            assertNull(cache.read())
+        }
+
+    @Test
+    fun `REQ-MEAL-060 list loaded for one member is not kept for the next`() =
+        runTest {
+            val gate = CompletableDeferred<Unit>()
+            repository.listGate = gate
+            val load = async { loadIntoCache() }
+            runCurrent()
+            sessions.setCurrent(childSession)
+
+            gate.complete(Unit)
+            load.await()
+
+            assertNull(cache.read())
+            sessions.setCurrent(parentSession)
+            assertEquals(listOf(quesadilla, carbonaraSummary), cache.read())
+        }
+
+    @Test
+    fun `REQ-MEAL-060 list requested before a delete does not bring the recipe back`() =
+        runTest {
+            loadIntoCache()
+            val gate = CompletableDeferred<Unit>()
+            repository.listGate = gate
+            val load = async { loadIntoCache() }
+            runCurrent()
+
+            DeleteRecipeUseCase(repository, cache)("r-1")
+            gate.complete(Unit)
+            load.await()
+
+            assertEquals(listOf(quesadilla), cache.read())
+        }
+
+    @Test
+    fun `REQ-MEAL-060 changed recipe is updated in the kept list`() =
+        runTest {
+            loadIntoCache()
+
+            save("r-1", input(name = "Lauch-Carbonara"))
+
+            assertEquals(listOf(quesadilla, RecipeSummary("r-1", "Lauch-Carbonara", 4)), cache.read())
+        }
+
+    @Test
+    fun `REQ-MEAL-060 new recipe is added to the kept list`() =
+        runTest {
+            loadIntoCache()
+
+            save(null, input())
+
+            assertEquals(listOf(quesadilla, carbonaraSummary, RecipeSummary("r-new", "Curry", 4)), cache.read())
+        }
+
+    @Test
+    fun `REQ-MEAL-060 failed save leaves the kept list unchanged`() =
+        runTest {
+            loadIntoCache()
+            repository.updateResult = ApiResult.Failure(AppError.Network)
+
+            save("r-1", input(name = "Lauch-Carbonara"))
+
+            assertEquals(listOf(quesadilla, carbonaraSummary), cache.read())
+        }
+
+    @Test
+    fun `REQ-MEAL-060 deleted recipe is removed from the kept list`() =
+        runTest {
+            loadIntoCache()
+
+            DeleteRecipeUseCase(repository, cache)("r-1")
+
+            assertEquals(listOf(quesadilla), cache.read())
+        }
+
+    @Test
+    fun `REQ-MEAL-060 recipe already deleted elsewhere is removed from the kept list`() =
+        runTest {
+            loadIntoCache()
+            repository.deleteResult = ApiResult.Failure(AppError.NotFound)
+
+            DeleteRecipeUseCase(repository, cache)("r-1")
+
+            assertEquals(listOf(quesadilla), cache.read())
+        }
+
+    @Test
+    fun `REQ-MEAL-060 failed delete leaves the kept list unchanged`() =
+        runTest {
+            loadIntoCache()
+            repository.deleteResult = ApiResult.Failure(AppError.Network)
+
+            DeleteRecipeUseCase(repository, cache)("r-1")
+
+            assertEquals(listOf(quesadilla, carbonaraSummary), cache.read())
         }
 }
