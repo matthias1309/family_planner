@@ -108,6 +108,8 @@ Retrofit lehnt einen `null`-Body ab.
 Stand eines anderen Mitglieds, eine kaputte Datei oder eine unbekannte Version gelten als leer. Er wird beim Laden, nach jeder eigenen
 Aktion und vom Hintergrund-Abgleich geschrieben. Das Board zeigt bei `Network`/`Certificate`/`Server` den Stand mit
 „Offline – Stand vom …“; Badge und „Heute“ lesen ebenfalls daraus.
+Beim Öffnen zeigt das Board den gespeicherten Stand sofort (`isRefreshingStored`, ohne Offline-Hinweis, ohne Kartenaktionen) und lädt
+dahinter neu ([ADR-0018](../02-architecture/adr/0018-show-last-loaded-list.md)); lehnt der Server ab, verschwindet dieser Stand hinter dem Fehler.
 
 ### Hinweise (REQ-TASK-030, `taskNotices`)
 

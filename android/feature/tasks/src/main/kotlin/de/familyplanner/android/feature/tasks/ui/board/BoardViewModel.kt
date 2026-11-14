@@ -50,6 +50,8 @@ data class BoardUiState(
     val selectedTab: Int = 0,
     val syncedAt: Instant? = null,
     val isOffline: Boolean = false,
+    /** Gespeicherter Stand, während das Board neu geladen wird (ADR-0018); noch keine Kartenaktionen. */
+    val isRefreshingStored: Boolean = false,
     val isLoading: Boolean = false,
     val error: AppError? = null,
     val isBusy: Boolean = false,
@@ -73,7 +75,10 @@ data class BoardUiState(
     val reviewCount: Int get() = reviewCount(lanes)
     val reviewQueue: List<Pair<TaskLane, TaskCard>> get() = reviewQueue(lanes)
 
-    fun actionsFor(card: TaskCard): List<CardAction> = cardActions(card, memberId, isParent, isOffline)
+    /** Aktionen nur mit frischem Stand: weder offline noch ein gespeicherter Stand, der gerade aufgefrischt wird. */
+    val canAct: Boolean get() = !isOffline && !isRefreshingStored
+
+    fun actionsFor(card: TaskCard): List<CardAction> = cardActions(card, memberId, isParent, !canAct)
 
     fun sectionsOf(lane: TaskLane) = sections(lane.cards, now)
 
@@ -163,12 +168,25 @@ class BoardViewModel(
         _state.update { it.copy(isLoading = true, error = null) }
         loadJob =
             viewModelScope.launch {
+                launch { showStored() }
                 when (val result = loadBoard()) {
                     is BoardLoad.Fresh -> show(result.board.lanes, result.board.syncedAt, offline = false)
                     is BoardLoad.Cached -> show(result.board.lanes, result.board.syncedAt, offline = true)
-                    is BoardLoad.Failed -> _state.update { it.copy(isLoading = false, error = result.error) }
+                    is BoardLoad.Failed -> _state.update { it.withLoadFailure(result.error) }
                 }
             }
+    }
+
+    /** Zeigt den gespeicherten Stand nur, solange noch nichts angezeigt wird; eine schnellere Antwort gewinnt. */
+    private suspend fun showStored() {
+        val stored = loadBoard.stored() ?: return
+        _state.update {
+            if (it.lanes.isEmpty() && it.isLoading) {
+                it.copy(lanes = stored.lanes, syncedAt = stored.syncedAt, isRefreshingStored = true, now = clock.instant())
+            } else {
+                it
+            }
+        }
     }
 
     private fun show(
@@ -183,6 +201,7 @@ class BoardViewModel(
                 lanes = lanes,
                 syncedAt = syncedAt,
                 isOffline = offline,
+                isRefreshingStored = false,
                 now = clock.instant(),
             )
         }
@@ -234,3 +253,11 @@ class BoardViewModel(
             else -> moveCard(card.id, action, reason).map { updated -> { lanes: List<TaskLane> -> lanes.replacing(updated) } }
         }
 }
+
+/** Ein abgelehntes Neuladen verdeckt nie den Fehler: Ein gerade aufgefrischter gespeicherter Stand verschwindet. */
+private fun BoardUiState.withLoadFailure(error: AppError): BoardUiState =
+    if (isRefreshingStored) {
+        copy(isLoading = false, error = error, lanes = emptyList(), syncedAt = null, isRefreshingStored = false)
+    } else {
+        copy(isLoading = false, error = error)
+    }

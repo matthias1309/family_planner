@@ -61,6 +61,7 @@ import de.familyplanner.android.feature.meals.domain.shopping.AddShoppingItemUse
 import de.familyplanner.android.feature.meals.domain.shopping.DeleteShoppingItemUseCase
 import de.familyplanner.android.feature.meals.domain.shopping.LoadShoppingListUseCase
 import de.familyplanner.android.feature.meals.domain.shopping.SetShoppingCheckUseCase
+import de.familyplanner.android.feature.meals.domain.shopping.ShoppingListCache
 import de.familyplanner.android.feature.meals.domain.shopping.ShoppingRepository
 import de.familyplanner.android.feature.meals.domain.shopping.ShoppingUseCases
 import de.familyplanner.android.feature.meals.ui.dish.DishEditViewModel
@@ -177,12 +178,14 @@ val mealsModule =
 
         // shopping
         single<ShoppingRepository> { RemoteShoppingRepository(get(), get()) }
+        // single: Die gemerkte Liste muss das Schließen des Bildschirms überleben (ADR-0018).
+        single { ShoppingListCache(get()) }
         factory {
             ShoppingUseCases(
-                LoadShoppingListUseCase(get()),
-                AddShoppingItemUseCase(get()),
-                SetShoppingCheckUseCase(get()),
-                DeleteShoppingItemUseCase(get()),
+                LoadShoppingListUseCase(get(), get()),
+                AddShoppingItemUseCase(get(), get()),
+                SetShoppingCheckUseCase(get(), get()),
+                DeleteShoppingItemUseCase(get(), get()),
             )
         }
         viewModel { params -> ShoppingListViewModel(params.get(), get(), get()) }

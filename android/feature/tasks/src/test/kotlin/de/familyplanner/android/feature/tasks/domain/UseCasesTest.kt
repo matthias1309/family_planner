@@ -44,6 +44,30 @@ class UseCasesTest {
     private fun load() = LoadBoardUseCase(repository, cache, sessions, clock)
 
     @Test
+    fun `REQ-TASK-021 stored board of the member is available before loading`() =
+        runTest {
+            load()()
+
+            assertEquals(
+                listOf(benLane.name),
+                load()
+                    .stored()
+                    ?.lanes
+                    ?.map { it.name }
+                    ?.take(1),
+            )
+        }
+
+    @Test
+    fun `REQ-TASK-021 no stored board without session`() =
+        runTest {
+            load()()
+            sessions.setCurrent(null)
+
+            assertEquals(null, load().stored())
+        }
+
+    @Test
     fun `REQ-TASK-021 fresh board is stored for the member`() =
         runTest {
             repository.boardResult = ApiResult.Success(listOf(lane("c-1", "Ben", card("a"))))

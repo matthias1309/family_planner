@@ -38,6 +38,8 @@ data class WeekPlanUiState(
     val error: AppError? = null,
     /** Gezeigt wird ein gespeicherter Stand (REQ-MEAL-002). */
     val isOffline: Boolean = false,
+    /** Gespeicherter Stand, während die Woche neu geladen wird (ADR-0018); noch nicht bearbeitbar. */
+    val isRefreshingStored: Boolean = false,
     /** Grund für den gespeicherten Stand; `Server` heißt: erreichbar, aber gestört. */
     val cacheReason: AppError? = null,
     val isParent: Boolean = false,
@@ -57,7 +59,7 @@ data class WeekPlanUiState(
     /** Kind ohne Verbindung zum Heimnetz mit offener Einreichung: Hinweis auf den Weg per WhatsApp. */
     val showsWhatsAppHint: Boolean
         get() = !isParent && pendingCooking != null && (isOffline || error.isUnreachable() || statusError.isUnreachable())
-    val canEdit: Boolean get() = isParent && !isOffline && week != null
+    val canEdit: Boolean get() = isParent && !isOffline && !isRefreshingStored && week != null
 
     /** Eltern sehen an freigegebenen Kindergerichten, dass die Kochbestätigung noch offen ist (REQ-MEAL-034). */
     fun needsCookingConfirmation(day: PlannedDay): Boolean = canConfirmCooking(canEdit, day.dish, day.cookIsChild, today)
@@ -70,7 +72,7 @@ data class WeekPlanUiState(
     fun canOpen(day: PlannedDay): Boolean =
         when {
             canEdit -> true
-            isParent || isOffline -> false
+            isParent || isOffline || isRefreshingStored -> false
             else -> showsStatus && day.dish?.cookId == memberId
         }
 
@@ -213,6 +215,7 @@ class WeekPlanViewModel(
                 weekStart = target,
                 week = null,
                 isOffline = false,
+                isRefreshingStored = false,
                 cacheReason = null,
                 status = null,
                 statusError = null,
@@ -242,6 +245,7 @@ class WeekPlanViewModel(
         }
         loadJob =
             viewModelScope.launch {
+                launch { showStored(requested) }
                 val result = loadWeekPlan(requested)
                 // Eine späte Antwort der vorherigen Woche darf die aktuelle Anzeige nicht überschreiben.
                 if (_state.value.weekStart != requested) return@launch
@@ -249,6 +253,14 @@ class WeekPlanViewModel(
             }
         loadStatus(requested)
         loadPending()
+    }
+
+    /** Zeigt den gespeicherten Stand nur, solange noch nichts angezeigt wird; eine schnellere Antwort gewinnt. */
+    private suspend fun showStored(requested: LocalDate) {
+        val stored = loadWeekPlan.stored(requested) ?: return
+        _state.update {
+            if (it.weekStart == requested && it.week == null && it.isLoading) it.copy(week = stored, isRefreshingStored = true) else it
+        }
     }
 
     private fun loadPending() {
@@ -276,15 +288,25 @@ class WeekPlanViewModel(
 
     private fun WeekPlanUiState.withResult(result: WeekPlanLoad): WeekPlanUiState =
         when (result) {
-            is WeekPlanLoad.Fresh -> copy(isLoading = false, week = result.week, isOffline = false, cacheReason = null, error = null)
+            is WeekPlanLoad.Fresh ->
+                copy(isLoading = false, week = result.week, isOffline = false, isRefreshingStored = false, cacheReason = null, error = null)
             is WeekPlanLoad.Cached ->
                 copy(
                     isLoading = false,
                     week = result.week,
                     isOffline = true,
+                    isRefreshingStored = false,
                     cacheReason = result.error,
                     error = null,
                 )
-            is WeekPlanLoad.Failed -> copy(isLoading = false, week = null, isOffline = false, cacheReason = null, error = result.error)
+            is WeekPlanLoad.Failed ->
+                copy(
+                    isLoading = false,
+                    week = null,
+                    isOffline = false,
+                    isRefreshingStored = false,
+                    cacheReason = null,
+                    error = result.error,
+                )
         }
 }

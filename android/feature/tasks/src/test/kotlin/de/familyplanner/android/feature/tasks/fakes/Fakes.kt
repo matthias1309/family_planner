@@ -19,6 +19,7 @@ import de.familyplanner.android.feature.tasks.domain.catalog.CatalogInput
 import de.familyplanner.android.feature.tasks.domain.catalog.CatalogTask
 import de.familyplanner.android.feature.tasks.domain.notice.TaskNotice
 import de.familyplanner.android.feature.tasks.domain.reminder.TaskReminder
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.time.Instant
@@ -72,8 +73,12 @@ class FakeTaskRepository : TaskRepository {
     val rejections = mutableListOf<Pair<String, String?>>()
     val removed = mutableListOf<String>()
 
+    /** Hält die Board-Antwort zurück (gespeicherter Stand vor der Server-Antwort). */
+    var boardGate: CompletableDeferred<Unit>? = null
+
     override suspend fun board(): ApiResult<List<TaskLane>> {
         boardCalls++
+        boardGate?.await()
         return boardResult
     }
 

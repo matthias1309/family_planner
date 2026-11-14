@@ -186,6 +186,8 @@ Als Familienmitglied möchte ich das Board mit einer Lane je Kind sehen, damit i
   zu den Lanes der Geschwister wechseln.
 - Given ich bin Elternteil, When ich „Aufgaben“ öffne, Then sehe ich alle Lanes und eine Sammelansicht „Zur Abnahme“.
 - Given ich bin ohne Heimnetz, When ich das Board öffne, Then sehe ich den letzten Stand mit Sync-Zeitpunkt.
+- Given ich habe das Board schon einmal geladen, When ich „Aufgaben“ öffne, Then sehe ich sofort den gespeicherten
+  Stand, der im Hintergrund aktualisiert wird; Karten bearbeiten kann ich erst mit dem frischen Stand (ADR-0018).
 
 ##### REQ-TASK-022 Erledigt melden
 Als Kind möchte ich eine Aufgabe als erledigt melden, damit ein Elternteil sie abnimmt.

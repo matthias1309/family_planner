@@ -6,11 +6,7 @@ import de.familyplanner.android.core.data.session.Session
 import de.familyplanner.android.core.testing.InMemorySessionStore
 import de.familyplanner.android.core.testing.MainDispatcherRule
 import de.familyplanner.android.feature.meals.domain.recipe.Ingredient
-import de.familyplanner.android.feature.meals.domain.shopping.AddShoppingItemUseCase
-import de.familyplanner.android.feature.meals.domain.shopping.DeleteShoppingItemUseCase
-import de.familyplanner.android.feature.meals.domain.shopping.LoadShoppingListUseCase
-import de.familyplanner.android.feature.meals.domain.shopping.SetShoppingCheckUseCase
-import de.familyplanner.android.feature.meals.domain.shopping.ShoppingUseCases
+import de.familyplanner.android.feature.meals.domain.shopping.ShoppingListCache
 import de.familyplanner.android.feature.meals.fakes.FakeShoppingRepository
 import de.familyplanner.android.feature.meals.fakes.childSession
 import de.familyplanner.android.feature.meals.fakes.freeEntry
@@ -18,6 +14,7 @@ import de.familyplanner.android.feature.meals.fakes.parentSession
 import de.familyplanner.android.feature.meals.fakes.planWeek
 import de.familyplanner.android.feature.meals.fakes.shoppingEntry
 import de.familyplanner.android.feature.meals.fakes.shoppingListOf
+import de.familyplanner.android.feature.meals.fakes.shoppingUseCases
 import de.familyplanner.android.feature.meals.ui.shopping.ShoppingListArgs
 import de.familyplanner.android.feature.meals.ui.shopping.ShoppingListEvent
 import de.familyplanner.android.feature.meals.ui.shopping.ShoppingListViewModel
@@ -41,20 +38,112 @@ class ShoppingViewModelTest {
     private val clock = Clock.fixed(Instant.parse("2026-10-17T10:00:00Z"), ZoneId.of("Europe/Berlin"))
     private val nextWeek = planWeek.plusWeeks(1)
 
+    private val sessions = InMemorySessionStore(parentSession)
+    private val cache = ShoppingListCache(sessions)
+
     private fun viewModel(
         session: Session = parentSession,
         args: ShoppingListArgs = ShoppingListArgs(),
-    ) = ShoppingListViewModel(
-        args,
-        InMemorySessionStore(session),
-        ShoppingUseCases(
-            LoadShoppingListUseCase(repository),
-            AddShoppingItemUseCase(repository),
-            SetShoppingCheckUseCase(repository),
-            DeleteShoppingItemUseCase(repository),
-        ),
-        clock,
-    )
+    ): ShoppingListViewModel {
+        sessions.setCurrent(session)
+        return ShoppingListViewModel(args, sessions, shoppingUseCases(repository, cache), clock)
+    }
+
+    // ---- Zuletzt geladene Liste (ADR-0018) ----
+
+    @Test
+    fun `REQ-MEAL-040 reopened list shows the last loaded list before the server answers`() {
+        viewModel()
+        repository.listGates[planWeek] = CompletableDeferred()
+
+        val state = viewModel().state.value
+
+        assertEquals(1, state.sections.open.size)
+        assertTrue(state.isLoading)
+    }
+
+    @Test
+    fun `REQ-MEAL-040 fresh list replaces the last loaded list`() {
+        viewModel()
+        val gate = CompletableDeferred<Unit>()
+        repository.listGates[planWeek] = gate
+        repository.listResult = { ApiResult.Success(shoppingListOf(shoppingEntry(), freeEntry, weekStart = it)) }
+        val viewModel = viewModel()
+
+        gate.complete(Unit)
+
+        assertEquals(2, viewModel.state.value.sections.open.size)
+        assertFalse(viewModel.state.value.isLoading)
+    }
+
+    @Test
+    fun `REQ-MEAL-040 failed reload keeps the last loaded list and shows the error`() {
+        viewModel()
+        repository.listResult = { ApiResult.Failure(AppError.Network) }
+
+        val state = viewModel().state.value
+
+        assertEquals(1, state.sections.open.size)
+        assertEquals(AppError.Network, state.error)
+        assertFalse(state.canEdit)
+    }
+
+    @Test
+    fun `REQ-MEAL-040 rejected reload does not show the last loaded list`() {
+        viewModel()
+        repository.listResult = { ApiResult.Failure(AppError.Forbidden) }
+
+        val state = viewModel().state.value
+
+        assertNull(state.list)
+        assertEquals(AppError.Forbidden, state.error)
+    }
+
+    @Test
+    fun `REQ-MEAL-041 successful reload makes the kept list editable again`() {
+        viewModel()
+        repository.listResult = { ApiResult.Failure(AppError.Network) }
+        val viewModel = viewModel()
+        repository.listResult = { ApiResult.Success(shoppingListOf(shoppingEntry(), weekStart = it)) }
+
+        viewModel.onEvent(ShoppingListEvent.Refresh)
+
+        assertTrue(viewModel.state.value.canEdit)
+    }
+
+    @Test
+    fun `REQ-MEAL-041 checked entry is kept for the next opening`() {
+        viewModel().onEvent(ShoppingListEvent.SetChecked("k-1", true))
+        repository.listGates[planWeek] = CompletableDeferred()
+
+        val state = viewModel().state.value
+
+        assertEquals(1, state.sections.done.size)
+    }
+
+    @Test
+    fun `REQ-MEAL-041 deleted item is gone at the next opening`() {
+        repository.listResult = { ApiResult.Success(shoppingListOf(shoppingEntry(), freeEntry, weekStart = it)) }
+        val first = viewModel()
+        repository.listGates[planWeek] = CompletableDeferred()
+
+        first.onEvent(ShoppingListEvent.DeleteItem("i-1"))
+
+        assertEquals(
+            listOf("k-1"),
+            viewModel()
+                .state.value.sections.open
+                .map { it.key },
+        )
+    }
+
+    @Test
+    fun `REQ-MEAL-040 another member does not see the last loaded list`() {
+        viewModel()
+        repository.listGates[planWeek] = CompletableDeferred()
+
+        assertNull(viewModel(session = childSession).state.value.list)
+    }
 
     @Test
     fun `REQ-MEAL-040 opens plan week by default`() {

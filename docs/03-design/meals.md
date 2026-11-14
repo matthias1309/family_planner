@@ -260,6 +260,9 @@ Regeln:
   gespeichert; Besitzer ist das angemeldete Mitglied; Wochen vor der Vorwoche werden entfernt, höchstens 8 bleiben.
 - **Offline-Fallback nur bei Verbindungsproblemen** (`Network`, `Certificate`, `Server`): Anzeige „Offline – Stand: <Wochentag Datum, Uhrzeit>“; bei `Server` (erreichbar, aber gestört) „Server gestört – gespeicherter Stand: …“.
   Andere Fehler (403, 404, …) werden gezeigt und nie vom Cache verdeckt.
+- **Gespeicherter Stand beim Öffnen** ([ADR-0018](../02-architecture/adr/0018-show-last-loaded-list.md)): Beim Öffnen und beim Wochenwechsel
+  erscheint die gespeicherte Woche sofort (`isRefreshingStored`, ohne Offline-Hinweis), während neu geladen wird; Bearbeiten und Öffnen
+  von Tagen sind erst mit dem frischen Stand möglich. Kommt die Antwort zuerst, wird der gespeicherte Stand nicht mehr gezeigt.
 - **Offline keine Bearbeitung:** Eltern sehen „Bearbeiten ist nur im Heim-WLAN möglich.“; Kinder können nie bearbeiten.
 - **Editor:** nur Tage derselben Woche; Zutaten optional; Grenzen wie der Server (Name 60, Zutat 80, 30 Zutaten, 100 Rohzeilen).
   Ein Koch/Köchin, der kein Elternteil mehr ist, muss neu gewählt werden.
@@ -376,7 +379,10 @@ Regeln:
 
 - **Einstiege:** Knopf „Einkaufsliste“ auf der Startseite (öffnet die Planwoche) und Link „Einkaufsliste ›“ in der Wochenstatus-Karte des Essensplans (öffnet deren Woche).
 - **Startwoche** ohne Argument = Planwoche (`currentPlanWeek`); Wechsel per ‹ › innerhalb 2000–2100; späte Antworten einer früheren Woche werden verworfen.
-- **Nur online**, kein Cache: offline erscheint „Server nicht erreichbar …“ mit leerer Liste.
+- **Nur online, zuletzt geladene Liste im Arbeitsspeicher** ([ADR-0018](../02-architecture/adr/0018-show-last-loaded-list.md)): `ShoppingListCache`
+  (Koin-`single`, je `memberId`, höchstens 8 Wochen) zeigt die letzte Liste der Woche sofort und lädt dahinter neu; ein Verbindungsfehler lässt sie
+  mit Hinweis und nur lesbar stehen, andere Fehler (403, 404, …) verdrängen sie. Abhaken und Hinzufügen übernehmen die zurückgegebene Liste, Löschen entfernt den Eintrag. Ohne gemerkte Liste erscheint
+  offline „Server nicht erreichbar …“ mit leerer Liste.
 - **Freier Eintrag** = eine Textzeile, zerlegt mit `parseIngredientLine`; Client-Prüfung: nicht leer, ≤ 80 Zeichen, höchstens 50 freie Einträge (`ShoppingLimits.FREE_ITEMS_MAX`); der Server prüft erneut.
 - **Ein Schreibvorgang gleichzeitig** (`isBusy`); die Serverantwort (ganze Liste) ersetzt die Anzeige, kein optimistisches Abhaken.
 - **404:** beim Löschen gilt der Eintrag als gelöscht; beim Abhaken wird neu geladen (Eintrag ist inzwischen weg).
